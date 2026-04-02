@@ -61,7 +61,11 @@ function VoxelInstances({
   useLayoutEffect(() => {
     const mesh = ref.current;
 
-    if (!mesh) {
+    if (
+      !mesh ||
+      typeof mesh.setMatrixAt !== "function" ||
+      typeof mesh.setColorAt !== "function"
+    ) {
       return;
     }
 
@@ -115,12 +119,11 @@ function VoxelInstances({
       onPointerOut={() => onHoverCellChange?.(null)}
     >
       <boxGeometry args={[0.92, 0.92, 0.92]} />
-      <meshStandardMaterial
+      <meshBasicMaterial
         vertexColors
         transparent
         opacity={0.98}
-        roughness={0.36}
-        metalness={0.08}
+        toneMapped={false}
       />
     </instancedMesh>
   );
@@ -172,9 +175,6 @@ export function Pile3DCanvas({
         }}
       >
         <color attach="background" args={[palette.sceneBackground]} />
-        <ambientLight intensity={1.35} />
-        <directionalLight position={[40, 80, 30]} intensity={1.7} />
-        <directionalLight position={[-30, 30, -40]} intensity={0.8} />
         <gridHelper
           args={[
             Math.max(extents.x, extents.y) + 8,

@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.038`
-- Active tracked version: `0.01.039`
+- Closed release baseline: `0.01.039`
+- Active tracked version: `0.01.040`
 
 ## Release History
+
+### 0.01.040
+
+- Switched stockpile `3D` voxel rendering to an unlit material so rendered colors stay faithful to the selected property instead of being distorted by scene lighting.
+- Added component coverage to keep the `3D` pile renderer on the exact-color material path.
+- Revalidated the stockpile `3D` property-switch browser flow in isolated Playwright execution on `3001`.
 
 ### 0.01.039
 

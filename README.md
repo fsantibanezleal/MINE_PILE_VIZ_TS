@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.039` |
+| Release-synced version | `0.01.040` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.038` |
-| Active tracked version | `0.01.039` |
+| Closed baseline | `0.01.039` |
+| Active tracked version | `0.01.040` |
 
 ## Current Frontend Views
 
@@ -116,7 +116,7 @@ The simulator workspace now uses piles and virtual piles as its central object m
 
 ### Stockpile Workspace
 
-The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render. The pile visual now keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The sidebar now separates quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
+The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render. The pile visual now keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The `3D` voxel renderer now uses an unlit color path so displayed voxel colors stay faithful to the selected property instead of drifting with scene lighting. The sidebar now separates quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
 
 ### Profiler Workspace
 
@@ -144,7 +144,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.039 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.040 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -260,7 +260,7 @@ types/
 
 ## Current Version
 
-`0.01.039`
+`0.01.040`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.
