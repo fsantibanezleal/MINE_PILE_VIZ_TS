@@ -11,6 +11,7 @@ import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
+import { SimulatorMassHistogram } from "@/components/simulator/simulator-mass-histogram";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
@@ -67,6 +68,7 @@ export function SimulatorWorkspace({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [histogramBinCount, setHistogramBinCount] = useState(6);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,6 +237,18 @@ export function SimulatorWorkspace({
         >
           {playing ? "Pause" : "Play"}
         </button>
+        {selectedQuality?.kind === "numerical" ? (
+          <label className="field">
+            <span>Histogram bins</span>
+            <input
+              type="range"
+              min={4}
+              max={16}
+              value={histogramBinCount}
+              onChange={(event) => setHistogramBinCount(Number(event.target.value))}
+            />
+          </label>
+        ) : null}
         <MetricGrid
           metrics={[
             {
@@ -317,6 +331,16 @@ export function SimulatorWorkspace({
             onSelect={handleSelectObject}
           />
         )}
+        {!loading && selectedRows.length > 0 ? (
+          <>
+            <div className="section-label">Distribution</div>
+            <SimulatorMassHistogram
+              rows={selectedRows}
+              quality={selectedQuality}
+              binCount={histogramBinCount}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -162,6 +162,8 @@ describe("SimulatorWorkspace", () => {
       expect(screen.getByTestId("circuit-flow")).toHaveTextContent("pile_a:2");
     });
     expect(screen.getByText("Mass Ranking")).toBeInTheDocument();
+    expect(screen.getByText("Histogram bins")).toBeInTheDocument();
+    expect(screen.getByLabelText("Scenario mass-weighted histogram")).toBeInTheDocument();
     expect(screen.getAllByText("120 t").length).toBeGreaterThan(0);
 
     fireEvent.change(screen.getByLabelText("Object"), {

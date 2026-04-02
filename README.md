@@ -87,7 +87,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.024` |
+| Release-synced version | `0.01.025` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -104,7 +104,7 @@ The side inspection panels now expose direct cross-workspace actions so the oper
 
 ### Simulator Workspace
 
-The simulator workspace turns profiled timestep history into a scenario-oriented route. It keeps time controls, object focus, and property focus in one place so the operator can scrub through the modeled circuit, inspect the active circuit step, and compare object mass ranking without leaving the route.
+The simulator workspace turns profiled timestep history into a scenario-oriented route. It keeps time controls, object focus, and property focus in one place so the operator can scrub through the modeled circuit, inspect the active circuit step, compare object mass ranking, and read a mass-weighted distribution histogram for the selected property without leaving the route.
 
 ### Stockpile Workspace
 
@@ -135,7 +135,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.024 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.025 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -250,6 +250,6 @@ types/
 
 ## Current Version
 
-`0.01.024`
+`0.01.025`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
