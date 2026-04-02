@@ -7,12 +7,14 @@ interface PileColumnViewProps {
   cells: PileCellRecord[];
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
+  onHoverCellChange?: (cell: PileCellRecord | null) => void;
 }
 
 export function PileColumnView({
   cells,
   quality,
   numericDomain,
+  onHoverCellChange,
 }: PileColumnViewProps) {
   if (cells.length === 0) {
     return (
@@ -30,6 +32,9 @@ export function PileColumnView({
         <div
           key={`${cell.ix}-${cell.iy}-${cell.iz}`}
           className="pile-column__cell"
+          aria-label={`Pile cell ${cell.ix},${cell.iy},${cell.iz}`}
+          onMouseEnter={() => onHoverCellChange?.(cell)}
+          onMouseLeave={() => onHoverCellChange?.(null)}
           style={{
             backgroundColor: getQualityColor(
               quality,
@@ -51,6 +56,7 @@ interface PileHeatmapViewProps {
   rows: number;
   xAccessor: (cell: PileCellRecord) => number;
   yAccessor: (cell: PileCellRecord) => number;
+  onHoverCellChange?: (cell: PileCellRecord | null) => void;
 }
 
 export function PileHeatmapView({
@@ -61,6 +67,7 @@ export function PileHeatmapView({
   rows,
   xAccessor,
   yAccessor,
+  onHoverCellChange,
 }: PileHeatmapViewProps) {
   if (cells.length === 0 || columns <= 0 || rows <= 0) {
     return (
@@ -90,6 +97,9 @@ export function PileHeatmapView({
       <div
         key={`${x}-${y}`}
         className="heatmap__cell"
+        aria-label={cell ? `Pile cell ${cell.ix},${cell.iy},${cell.iz}` : `Empty cell ${x},${y}`}
+        onMouseEnter={() => onHoverCellChange?.(cell ?? null)}
+        onMouseLeave={() => onHoverCellChange?.(null)}
         style={{
           backgroundColor: cell
             ? getQualityColor(

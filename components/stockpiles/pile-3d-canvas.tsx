@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
@@ -43,6 +43,7 @@ interface VoxelInstancesProps {
   };
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
+  onHoverCellChange?: (cell: PileCellRecord | null) => void;
 }
 
 function VoxelInstances({
@@ -50,6 +51,7 @@ function VoxelInstances({
   extents,
   quality,
   numericDomain,
+  onHoverCellChange,
 }: VoxelInstancesProps) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const invalidate = useThree((state) => state.invalidate);
@@ -97,7 +99,19 @@ function VoxelInstances({
   }, [cells, extents.x, extents.y, extents.z, invalidate, numericDomain, quality]);
 
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, cells.length]}>
+    <instancedMesh
+      ref={ref}
+      args={[undefined, undefined, cells.length]}
+      onPointerMove={(event: ThreeEvent<PointerEvent>) => {
+        if (event.instanceId === undefined) {
+          onHoverCellChange?.(null);
+          return;
+        }
+
+        onHoverCellChange?.(cells[event.instanceId] ?? null);
+      }}
+      onPointerOut={() => onHoverCellChange?.(null)}
+    >
       <boxGeometry args={[0.92, 0.92, 0.92]} />
       <meshStandardMaterial
         vertexColors
@@ -119,6 +133,7 @@ interface Pile3DCanvasProps {
   };
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
+  onHoverCellChange?: (cell: PileCellRecord | null) => void;
 }
 
 export function Pile3DCanvas({
@@ -126,6 +141,7 @@ export function Pile3DCanvas({
   extents,
   quality,
   numericDomain,
+  onHoverCellChange,
 }: Pile3DCanvasProps) {
   if (cells.length === 0) {
     return (
@@ -164,6 +180,7 @@ export function Pile3DCanvas({
           extents={extents}
           quality={quality}
           numericDomain={numericDomain}
+          onHoverCellChange={onHoverCellChange}
         />
         <OrbitControls makeDefault enableDamping />
       </Canvas>

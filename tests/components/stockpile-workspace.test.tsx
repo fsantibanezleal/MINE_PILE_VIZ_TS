@@ -191,4 +191,34 @@ describe("StockpileWorkspace", () => {
       expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_b");
     });
   });
+
+  it("shows hovered cell details for the active pile view", async () => {
+    const pileA = createPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/stockpiles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+      />,
+    );
+
+    await screen.findByText("Pile A Feed");
+    fireEvent.mouseEnter(screen.getByLabelText("Pile cell 0,0,0"));
+
+    expect(screen.getByText("Cell Focus")).toBeInTheDocument();
+    expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
+    expect(screen.getByText("10 t")).toBeInTheDocument();
+  });
 });

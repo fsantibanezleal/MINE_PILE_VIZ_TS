@@ -4,6 +4,7 @@ import { startTransition, useEffect, useMemo, useState, type ReactNode } from "r
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   ObjectRegistryEntry,
+  PileCellRecord,
   PileDataset,
   QualityDefinition,
   StockpileViewMode,
@@ -22,7 +23,7 @@ import {
   PileColumnView,
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
-import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -35,6 +36,10 @@ interface StockpileWorkspaceProps {
 }
 
 type SliceAxis = "x" | "y" | "z";
+
+function isSameCell(left: PileCellRecord, right: PileCellRecord) {
+  return left.ix === right.ix && left.iy === right.iy && left.iz === right.iz;
+}
 
 function getDefaultViewMode(dataset: PileDataset): StockpileViewMode {
   if (dataset.dimension !== 3) {
@@ -78,6 +83,7 @@ export function StockpileWorkspace({
   const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
+  const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -166,6 +172,7 @@ export function StockpileWorkspace({
           setViewMode(getDefaultViewMode(payload));
           setSliceAxis("z");
           setSliceIndex(0);
+          setHoveredCell(null);
         });
       })
       .catch((error: unknown) => {
@@ -261,6 +268,30 @@ export function StockpileWorkspace({
     );
   }, [dataset, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
 
+  const visibleCellsForHover =
+    !dataset
+      ? []
+      : dataset.dimension === 3
+        ? viewMode === "surface"
+          ? dataset.surfaceCells
+          : viewMode === "shell"
+            ? dataset.shellCells.length > 0
+              ? dataset.shellCells
+              : dataset.surfaceCells
+            : viewMode === "slice"
+              ? sliceCells
+              : fullRenderPlan.cells
+        : dataset.cells;
+  const activeHoveredCell =
+    hoveredCell &&
+    visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
+      ? hoveredCell
+      : null;
+  const hoveredCellPropertyValue =
+    activeHoveredCell && selectedQuality
+      ? activeHoveredCell.qualityValues[selectedQuality.id]
+      : null;
+
   let content: ReactNode;
 
   if (!dataset) {
@@ -277,6 +308,7 @@ export function StockpileWorkspace({
         cells={dataset.cells}
         quality={selectedQuality}
         numericDomain={colorDomain}
+        onHoverCellChange={setHoveredCell}
       />
     );
   } else if (dataset.dimension === 2) {
@@ -289,6 +321,7 @@ export function StockpileWorkspace({
         rows={dataset.extents.y}
         xAccessor={(cell) => cell.ix}
         yAccessor={(cell) => cell.iy}
+        onHoverCellChange={setHoveredCell}
       />
     );
   } else if (viewMode === "slice") {
@@ -301,6 +334,7 @@ export function StockpileWorkspace({
         rows={sliceAxis === "z" ? dataset.extents.y : dataset.extents.z}
         xAccessor={(cell) => (sliceAxis === "y" ? cell.ix : cell.iy)}
         yAccessor={(cell) => (sliceAxis === "z" ? cell.iy : cell.iz)}
+        onHoverCellChange={setHoveredCell}
       />
     );
   } else {
@@ -320,6 +354,7 @@ export function StockpileWorkspace({
         extents={dataset.extents}
         quality={selectedQuality}
         numericDomain={colorDomain}
+        onHoverCellChange={setHoveredCell}
       />
     );
   }
@@ -474,6 +509,42 @@ export function StockpileWorkspace({
             limit={availableQualities.length}
           />
         ) : null}
+        <div className="inspector-stack">
+          <div className="section-label">Cell Focus</div>
+          {activeHoveredCell ? (
+            <>
+              <MetricGrid
+                metrics={[
+                  {
+                    label: "Indices",
+                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
+                  },
+                  {
+                    label: "Mass",
+                    value: formatMassTon(activeHoveredCell.massTon),
+                  },
+                  {
+                    label: selectedQuality?.label ?? "Property",
+                    value:
+                      hoveredCellPropertyValue === null
+                        ? "N/A"
+                        : formatNumber(hoveredCellPropertyValue),
+                  },
+                ]}
+              />
+              <QualityValueList
+                qualities={availableQualities}
+                values={activeHoveredCell.qualityValues}
+                limit={Math.min(availableQualities.length, 6)}
+              />
+            </>
+          ) : (
+            <p className="muted-text">
+              Hover a cell or voxel in the current pile view to inspect its coordinates,
+              mass, and property values.
+            </p>
+          )}
+        </div>
         <WorkspaceJumpLinks
           objectId={selectedPileId}
           objectType={selectedPileEntry?.objectType}

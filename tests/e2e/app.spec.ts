@@ -177,3 +177,14 @@ test("shows stockpile feed and discharge anchors on the pile view", async ({
   await expect(page.getByText("Reclaim west")).toBeVisible();
   await expect(page.getByText("Reclaim east")).toBeVisible();
 });
+
+test("shows hovered stockpile cell details in the workspace inspector", async ({
+  page,
+}) => {
+  await page.goto("/stockpiles?object=vpile_ch1&quality=q_num_fe");
+
+  await page.getByLabel("Pile cell 0,0,0").hover();
+  await expect(page.getByText("Cell Focus")).toBeVisible();
+  await expect(page.getByText("0, 0, 0")).toBeVisible();
+  await expect(page.getByText("20 t")).toBeVisible();
+});
