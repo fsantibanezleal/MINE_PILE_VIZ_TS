@@ -254,6 +254,10 @@ export function LiveWorkspace({
           qualities={qualities}
           values={selectedSummary?.qualityValues ?? currentBelt.qualityAverages}
           records={selectedObjectIsBelt ? currentBelt.blocks : null}
+          totalMassTon={
+            selectedSummary?.massTon ??
+            (selectedObjectIsBelt ? currentBelt.totalMassTon : null)
+          }
         />
         <WorkspaceJumpLinks
           objectId={selectedObjectId}

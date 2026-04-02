@@ -515,6 +515,7 @@ export function ProfilerWorkspace({
             qualities={availableQualities}
             values={selectedSummaryRow.qualityValues}
             records={detailSnapshot?.rows ?? null}
+            totalMassTon={selectedSummaryRow.massTon}
           />
         ) : null}
         <div className="inspector-stack">
