@@ -80,7 +80,7 @@ export default async function ProfilerPage() {
     <AppShell
       eyebrow="Profiler"
       title="History explorer"
-      description="Use circuit mode to compare profiled objects at a selected timestamp, then switch to detail mode to inspect the aggregated content of a single object through time."
+      description="Use circuit mode to compare reduced-resolution profiler snapshots at a selected timestamp, then switch to detail mode to inspect the aggregated historical content of one object through time. This route is historical summary, not dense live state."
       actions={
         <MetricGrid
           metrics={[
@@ -90,6 +90,9 @@ export default async function ProfilerPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
+            { label: "Source", value: "Profiler snapshots" },
+            { label: "Resolution", value: "Reduced summary rows" },
+            { label: "Time basis", value: "Historical playback" },
           ]}
         />
       }

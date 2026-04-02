@@ -91,7 +91,7 @@ export default async function CircuitPage() {
     <AppShell
       eyebrow="Circuit"
       title="Illustrated process overview"
-      description="The landing circuit page now prioritizes an illustrative 2D or 3D reading of the process area, while keeping the topology diagram available as a secondary structural mode."
+      description="The landing circuit page is the structural reading of the modeled area. It prioritizes an illustrative 2D or 3D process overview while keeping the topology diagram available as a secondary structural mode."
       actions={
         <MetricGrid
           metrics={[
@@ -101,6 +101,9 @@ export default async function CircuitPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
+            { label: "Source", value: "Configured topology" },
+            { label: "Resolution", value: "Stages and graph" },
+            { label: "Time basis", value: "Static graph context" },
           ]}
         />
       }

@@ -80,7 +80,7 @@ export default async function SimulatorPage() {
     <AppShell
       eyebrow="Simulator"
       title="Pile discharge simulator"
-      description="The simulator route keeps a selected pile or virtual pile at the center, lets the operator scrub profiled history when available, and organizes downstream belt content by configured discharge route."
+      description="The simulator route keeps a selected pile or virtual pile at the center, follows a profiled timestep when one exists, and organizes downstream route content by configured discharge output. Today the central pile can be historical while downstream conveyors still come from current live belt snapshots."
       actions={
         <MetricGrid
           metrics={[
@@ -95,6 +95,9 @@ export default async function SimulatorPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
+            { label: "Source", value: "Pile snapshot + live routes" },
+            { label: "Resolution", value: "Mixed pile detail / live belts" },
+            { label: "Time basis", value: "Selected pile step" },
           ]}
         />
       }

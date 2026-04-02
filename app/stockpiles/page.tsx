@@ -107,7 +107,7 @@ export default async function StockpilesPage() {
     <AppShell
       eyebrow="Stockpiles"
       title="Internal stockpile views"
-      description="Choose a pile and property, then move between column, heatmap, surface, shell, full voxel, and slice representations depending on dimensionality."
+      description="The stockpile route reads current dense pile inventories. Choose a pile and property, then move between column, heatmap, surface, shell, full voxel, and slice representations depending on dimensionality."
       actions={
         <MetricGrid
           metrics={[
@@ -117,6 +117,9 @@ export default async function StockpilesPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
+            { label: "Source", value: "Current pile datasets" },
+            { label: "Resolution", value: "Dense cells / voxels" },
+            { label: "Time basis", value: "Latest pile state" },
           ]}
         />
       }
