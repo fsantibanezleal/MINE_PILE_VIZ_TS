@@ -7,6 +7,8 @@ import type { CircuitSequenceState } from "@/lib/circuit-sequence";
 import type { CircuitGraph } from "@/types/app-data";
 import {
   buildCircuitPresentation,
+  getPresentationStageFootprint3d,
+  type CircuitPresentationStage,
   type CircuitPresentationNode,
   getPresentationAnchorPoint,
   getPresentationAnchorPoint3d,
@@ -21,6 +23,9 @@ interface CircuitIllustrationProps {
   onSelect?: (objectId: string) => void;
   mode: CircuitViewMode;
 }
+
+const EMPTY_NODE_IDS = new Set<string>();
+const EMPTY_EDGE_IDS = new Set<string>();
 
 function getNodeOpacity(
   selectedObjectId: string | undefined,
@@ -168,7 +173,7 @@ function Illustration2D({
   onSelect,
 }: Omit<CircuitIllustrationProps, "mode">) {
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
-  const highlightedEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
+  const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
 
   return (
     <section className="panel panel--canvas">
@@ -425,6 +430,45 @@ function VirtualMarker3D({
   );
 }
 
+function StageBase3D({
+  stage,
+  active,
+}: {
+  stage: CircuitPresentationStage;
+  active: boolean;
+}) {
+  const footprint = getPresentationStageFootprint3d(stage);
+
+  return (
+    <group position={[footprint.x, footprint.y, footprint.z]}>
+      <mesh receiveShadow>
+        <boxGeometry args={[footprint.width, footprint.height, footprint.depth]} />
+        <meshStandardMaterial
+          color={active ? "#173b5b" : "#0d2237"}
+          emissive={active ? "#153d62" : "#091321"}
+          emissiveIntensity={active ? 0.48 : 0.2}
+          metalness={0.04}
+          roughness={0.88}
+          transparent
+          opacity={active ? 0.9 : 0.72}
+        />
+      </mesh>
+      <mesh position={[0, footprint.height / 2 + 0.02, 0]} receiveShadow>
+        <boxGeometry args={[footprint.width - 0.18, 0.03, footprint.depth - 0.18]} />
+        <meshStandardMaterial
+          color={active ? "#255d8a" : "#163149"}
+          emissive={active ? "#1d4f78" : "#0f2031"}
+          emissiveIntensity={active ? 0.3 : 0.14}
+          metalness={0.02}
+          roughness={0.72}
+          transparent
+          opacity={active ? 0.86 : 0.58}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function Illustration3D({
   graph,
   selectedObjectId,
@@ -433,9 +477,23 @@ function Illustration3D({
 }: Omit<CircuitIllustrationProps, "mode">) {
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
   const spreadX = Math.max(20, presentation.width / 26);
-  const highlightedNodeIds = sequenceState?.nodeIds ?? new Set<string>();
-  const highlightedEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
+  const highlightedNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
+  const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
+  const activeStageIndexes = useMemo(() => {
+    if (!hasSelection) {
+      return new Set<number>();
+    }
+
+    return new Set(
+      presentation.nodes
+        .filter(
+          (node) =>
+            node.id === selectedObjectId || highlightedNodeIds.has(node.id),
+        )
+        .map((node) => node.stageIndex),
+    );
+  }, [hasSelection, highlightedNodeIds, presentation.nodes, selectedObjectId]);
 
   return (
     <section className="panel panel--canvas">
@@ -461,6 +519,13 @@ function Illustration3D({
             args={[spreadX + 18, presentation.stages.length * 8 + 10, "#1f3c5a", "#153149"]}
             position={[spreadX / 2 - 4, 0, 3.6]}
           />
+          {presentation.stages.map((stage) => (
+            <StageBase3D
+              key={stage.index}
+              stage={stage}
+              active={activeStageIndexes.has(stage.index)}
+            />
+          ))}
           {presentation.edges.map((edge) => (
             <Line
               key={edge.id}
