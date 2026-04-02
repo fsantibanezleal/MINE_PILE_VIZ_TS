@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.031
+
+- Expanded the vertical stage frame in the `2D` circuit illustration so each stage uses more of the available canvas height.
+- Redistributed illustration lanes over the taller frame so belts, piles, and virtual objects occupy the vertical space more clearly.
+- Added layout coverage to keep the taller stage frame and lane spread from regressing.
+
 ### 0.01.030
 
 - Replaced the flat averaged-property list with a tabbed profiled-property panel in live, stockpile, and profiler workspaces.

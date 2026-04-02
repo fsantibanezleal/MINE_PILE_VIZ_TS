@@ -45,6 +45,10 @@ export interface CircuitPresentationEdge {
 export interface CircuitPresentation {
   width: number;
   height: number;
+  stageFrameTop: number;
+  stageFrameHeight: number;
+  stageLabelY: number;
+  footnoteY: number;
   stages: CircuitPresentationStage[];
   nodes: CircuitPresentationNode[];
   edges: CircuitPresentationEdge[];
@@ -53,7 +57,19 @@ export interface CircuitPresentation {
 const STAGE_WIDTH = 320;
 const STAGE_GAP = 300;
 const STAGE_PADDING_X = 96;
-const PRESENTATION_HEIGHT = 640;
+const PRESENTATION_HEIGHT = 780;
+const STAGE_FRAME_TOP = 26;
+const STAGE_FRAME_BOTTOM_PADDING = 86;
+const STAGE_LABEL_Y = 72;
+const FOOTNOTE_Y = PRESENTATION_HEIGHT - 28;
+const LANE_TOP = 178;
+const LANE_BOTTOM = 654;
+const LANE_ORDER: CircuitPresentationVisualKind[] = [
+  "physical-belt",
+  "physical-pile",
+  "virtual-belt",
+  "virtual-pile",
+];
 const PILE_ANCHOR_MIN_X = 0.18;
 const PILE_ANCHOR_MAX_X = 0.82;
 const PILE_ANCHOR_DEPTH_STEP = 0.55;
@@ -61,7 +77,6 @@ const PILE_ANCHOR_DEPTH_STEP = 0.55;
 const LANE_CONFIG: Record<
   CircuitPresentationVisualKind,
   {
-    centerY: number;
     z: number;
     xBias: number;
     yGap: number;
@@ -69,31 +84,27 @@ const LANE_CONFIG: Record<
   }
 > = {
   "physical-belt": {
-    centerY: 182,
     z: -2.8,
     xBias: -28,
-    yGap: 86,
+    yGap: 96,
     xGap: 88,
   },
   "physical-pile": {
-    centerY: 314,
     z: 1.8,
     xBias: 36,
-    yGap: 94,
+    yGap: 104,
     xGap: 102,
   },
   "virtual-belt": {
-    centerY: 454,
     z: 7.6,
     xBias: -16,
-    yGap: 82,
+    yGap: 92,
     xGap: 84,
   },
   "virtual-pile": {
-    centerY: 558,
     z: 11.2,
     xBias: 26,
-    yGap: 86,
+    yGap: 98,
     xGap: 92,
   },
 };
@@ -136,6 +147,20 @@ function distributeAround(count: number, center: number, gap: number) {
   const start = center - totalSpan / 2;
 
   return Array.from({ length: count }, (_, index) => start + index * gap);
+}
+
+function getLaneCenterY(visualKind: CircuitPresentationVisualKind) {
+  const laneIndex = LANE_ORDER.indexOf(visualKind);
+
+  if (laneIndex <= 0) {
+    return LANE_TOP;
+  }
+
+  if (laneIndex >= LANE_ORDER.length - 1) {
+    return LANE_BOTTOM;
+  }
+
+  return LANE_TOP + ((LANE_BOTTOM - LANE_TOP) * laneIndex) / (LANE_ORDER.length - 1);
 }
 
 export function getPresentationInputAnchor(node: CircuitPresentationNode) {
@@ -406,6 +431,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     const nodeSize = getNodeSize(node);
     const stage = stageMap.get(node.stageIndex);
     const laneConfig = LANE_CONFIG[visualKind];
+    const laneCenterY = getLaneCenterY(visualKind);
     const laneIndex = Math.max(
       0,
       laneNodes.findIndex((entry) => entry.id === node.id),
@@ -415,7 +441,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     const xPositions = distributeAround(laneNodes.length, baseCenterX, laneConfig.xGap);
     const yPositions = distributeAround(
       laneNodes.length,
-      laneConfig.centerY,
+      laneCenterY,
       laneConfig.yGap,
     );
 
@@ -423,7 +449,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
       ...node,
       visualKind,
       x: xPositions[laneIndex] ?? baseCenterX,
-      y: yPositions[laneIndex] ?? laneConfig.centerY,
+      y: yPositions[laneIndex] ?? laneCenterY,
       z: laneConfig.z,
       width: nodeSize.width,
       height: nodeSize.height,
@@ -472,6 +498,10 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     width:
       (stages[stages.length - 1]?.x ?? STAGE_PADDING_X) + STAGE_WIDTH + STAGE_PADDING_X,
     height: PRESENTATION_HEIGHT,
+    stageFrameTop: STAGE_FRAME_TOP,
+    stageFrameHeight: PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING,
+    stageLabelY: STAGE_LABEL_Y,
+    footnoteY: FOOTNOTE_Y,
     stages,
     nodes,
     edges,

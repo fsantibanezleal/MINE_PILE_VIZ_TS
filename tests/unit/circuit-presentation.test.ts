@@ -94,6 +94,71 @@ const mixedStageGraph: CircuitGraph = {
   edges: [],
 };
 
+const laneSpreadGraph: CircuitGraph = {
+  stages: [
+    {
+      index: 0,
+      label: "Illustration stage",
+      nodeIds: ["belt_cv200", "pile_stockpile", "vbelt_feed", "vpile_buffer"],
+    },
+  ],
+  nodes: [
+    {
+      id: "belt_cv200",
+      objectId: "belt_cv200",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "CV 200",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: true,
+      shortDescription: "Physical conveyor",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Plant Stockpile",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Physical stockpile",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vbelt_feed",
+      objectId: "vbelt_feed",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Virtual Feed",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual conveyor",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vpile_buffer",
+      objectId: "vpile_buffer",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Virtual Buffer",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual pile",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [],
+};
+
 describe("circuit pile anchor presentation", () => {
   it("separates belt and pile lanes inside the same stage", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -105,6 +170,15 @@ describe("circuit pile anchor presentation", () => {
     expect(belt!.y).toBeLessThan(pile!.y);
     expect(belt!.z).toBeLessThan(pile!.z);
     expect(Math.abs(belt!.x - pile!.x)).toBeGreaterThan(20);
+  });
+
+  it("uses a taller 2D stage frame and spreads the lanes over it", () => {
+    const presentation = buildCircuitPresentation(laneSpreadGraph);
+    const nodeYs = presentation.nodes.map((node) => node.y);
+
+    expect(presentation.height).toBeGreaterThanOrEqual(780);
+    expect(presentation.stageFrameHeight).toBeGreaterThan(660);
+    expect(Math.max(...nodeYs) - Math.min(...nodeYs)).toBeGreaterThan(440);
   });
 
   it("keeps multiple feed anchors distinct in the 2D illustration", () => {

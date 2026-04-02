@@ -197,15 +197,15 @@ function Illustration2D({
             <g key={stage.index}>
               <rect
                 x={stage.x}
-                y={44}
+                y={presentation.stageFrameTop}
                 width={stage.width}
-                height={presentation.height - 88}
+                height={presentation.stageFrameHeight}
                 rx={28}
                 className="circuit-illustration__stage"
               />
               <text
                 x={stage.x + stage.width / 2}
-                y={82}
+                y={presentation.stageLabelY}
                 textAnchor="middle"
                 className="circuit-illustration__stage-label"
               >
@@ -267,7 +267,7 @@ function Illustration2D({
             </g>
           ))}
 
-          <text x={96} y={presentation.height - 30} className="circuit-illustration__footnote">
+          <text x={96} y={presentation.footnoteY} className="circuit-illustration__footnote">
             Virtual transfer objects stay visible as conceptual markers, while physical belts
             and stockpiles are rendered with illustrative shapes.
           </text>
