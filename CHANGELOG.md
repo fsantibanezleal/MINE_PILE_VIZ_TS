@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.033
+
+- Added stage boxes to the circuit diagram view so the staged structure remains visible in the graph representation.
+- Derived diagram stage frames from the same staged circuit metadata used by the rest of the circuit workspace.
+- Added diagram-stage coverage in graph layout tests and browser validation.
+
 ### 0.01.032
 
 - Added one ground-level stage box per stage in the `3D` circuit illustration.

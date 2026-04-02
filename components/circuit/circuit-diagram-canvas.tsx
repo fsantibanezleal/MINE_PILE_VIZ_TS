@@ -9,6 +9,7 @@ import {
   Controls,
   Handle,
   MiniMap,
+  type Edge,
   type Node,
   Position,
   ReactFlow,
@@ -16,9 +17,18 @@ import {
 } from "@xyflow/react";
 import type { CircuitSequenceState } from "@/lib/circuit-sequence";
 import type { CircuitGraph } from "@/types/app-data";
-import { type CircuitNodeData, layoutCircuitGraph } from "@/lib/graph-layout";
+import {
+  type CircuitNodeData,
+  type CircuitStageNodeData,
+  layoutCircuitGraph,
+} from "@/lib/graph-layout";
 
 type CircuitFlowNode = Node<CircuitNodeData, "circuit">;
+type CircuitStageNode = Node<CircuitStageNodeData, "stage">;
+type CircuitFlowRenderableNode = CircuitStageNode | CircuitFlowNode;
+
+const EMPTY_NODE_IDS = new Set<string>();
+const EMPTY_EDGE_IDS = new Set<string>();
 
 function CircuitNodeCard({ data, selected }: NodeProps<CircuitFlowNode>) {
   const nodeData = data;
@@ -48,7 +58,25 @@ function CircuitNodeCard({ data, selected }: NodeProps<CircuitFlowNode>) {
   );
 }
 
+function CircuitStageCard({ data }: NodeProps<CircuitStageNode>) {
+  const nodeData = data;
+
+  return (
+    <div
+      className={clsx("circuit-stage", nodeData.isActive && "circuit-stage--active")}
+      data-testid={`circuit-stage-${nodeData.stageIndex}`}
+    >
+      <div className="circuit-stage__eyebrow">
+        <span>{`Stage ${nodeData.stageIndex + 1}`}</span>
+        <span>{`${nodeData.nodeCount} objects`}</span>
+      </div>
+      <strong>{nodeData.label}</strong>
+    </div>
+  );
+}
+
 const nodeTypes = {
+  stage: CircuitStageCard,
   circuit: CircuitNodeCard,
 };
 
@@ -65,14 +93,34 @@ export function CircuitDiagramCanvas({
   sequenceState,
   onSelect,
 }: CircuitDiagramCanvasProps) {
-  const { nodes, edges } = useMemo(
-    () => layoutCircuitGraph(graph.nodes, graph.edges),
-    [graph.edges, graph.nodes],
+  const { stageNodes, nodes, edges } = useMemo(
+    () => layoutCircuitGraph(graph.stages, graph.nodes, graph.edges),
+    [graph.edges, graph.nodes, graph.stages],
   );
-  const sequenceNodeIds = sequenceState?.nodeIds ?? new Set<string>();
-  const sequenceEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
+  const sequenceNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
+  const sequenceEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
 
+  const flowStageNodes = stageNodes.map((node) => {
+    const isActive =
+      hasSelection &&
+      node.data.memberNodeIds.some(
+        (memberNodeId) =>
+          memberNodeId === selectedObjectId || sequenceNodeIds.has(memberNodeId),
+      );
+
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        isActive,
+      },
+      style: {
+        ...node.style,
+        opacity: !hasSelection ? 1 : isActive ? 1 : 0.38,
+      },
+    } satisfies CircuitStageNode;
+  });
   const flowNodes = nodes.map((node) => ({
     ...node,
     selected: node.id === selectedObjectId,
@@ -102,14 +150,15 @@ export function CircuitDiagramCanvas({
         ...edge.labelStyle,
         fill: isInSequence ? "#edf4ff" : "#6f849f",
       },
-    };
+    } satisfies Edge;
   });
+  const renderNodes: CircuitFlowRenderableNode[] = [...flowStageNodes, ...flowNodes];
 
   return (
     <section className="panel panel--canvas circuit-flow__panel">
       <div className="circuit-flow__viewport">
         <ReactFlow
-          nodes={flowNodes}
+          nodes={renderNodes}
           edges={flowEdges}
           nodeTypes={nodeTypes}
           fitView
@@ -117,7 +166,11 @@ export function CircuitDiagramCanvas({
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable
-          onNodeClick={(_, node) => onSelect?.(node.id)}
+          onNodeClick={(_, node) => {
+            if (node.type === "circuit") {
+              onSelect?.(node.id);
+            }
+          }}
         >
           <Background color="rgba(91, 140, 255, 0.12)" gap={24} />
           <Controls showInteractive={false} />
@@ -128,9 +181,15 @@ export function CircuitDiagramCanvas({
               backgroundColor: "rgba(8, 18, 31, 0.92)",
               border: "1px solid rgba(124, 164, 201, 0.14)",
             }}
-            nodeColor={(node) =>
-              node.id === selectedObjectId ? "#59ddff" : "rgba(91, 140, 255, 0.56)"
-            }
+            nodeColor={(node) => {
+              if (node.type === "stage") {
+                return "rgba(23, 59, 91, 0.36)";
+              }
+
+              return node.id === selectedObjectId
+                ? "#59ddff"
+                : "rgba(91, 140, 255, 0.56)";
+            }}
           />
         </ReactFlow>
       </div>
