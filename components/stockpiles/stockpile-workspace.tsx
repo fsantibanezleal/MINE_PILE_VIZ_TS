@@ -29,6 +29,24 @@ interface StockpileWorkspaceProps {
 
 type SliceAxis = "x" | "y" | "z";
 
+function getDefaultViewMode(dataset: PileDataset): StockpileViewMode {
+  if (dataset.dimension !== 3) {
+    return dataset.viewModes[0] ?? "full";
+  }
+
+  const canSafelyRenderFull =
+    dataset.viewModes.includes("full") &&
+    dataset.occupiedCellCount <= dataset.fullModeThreshold;
+
+  if (canSafelyRenderFull) {
+    return "full";
+  }
+
+  return dataset.viewModes.includes("surface")
+    ? "surface"
+    : (dataset.viewModes[0] ?? "full");
+}
+
 export function StockpileWorkspace({
   pileEntries,
   qualities,
@@ -40,7 +58,7 @@ export function StockpileWorkspace({
     initialDataset.defaultQualityId,
   );
   const [viewMode, setViewMode] = useState<StockpileViewMode>(
-    initialDataset.dimension === 3 ? "surface" : initialDataset.viewModes[0] ?? "full",
+    getDefaultViewMode(initialDataset),
   );
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
@@ -100,7 +118,7 @@ export function StockpileWorkspace({
         startTransition(() => {
           setDataset(payload);
           setSelectedQualityId(payload.defaultQualityId);
-          setViewMode(payload.dimension === 3 ? "surface" : payload.viewModes[0] ?? "full");
+          setViewMode(getDefaultViewMode(payload));
           setSliceIndex(0);
         });
       })
@@ -345,6 +363,15 @@ export function StockpileWorkspace({
           <InlineNotice tone="warning" title="Adaptive full mode active">
             Rendering uses surface cells, base footprint cells, and stride-sampled interior
             cells at stride {fullRenderPlan.stride} to keep dense local views responsive.
+          </InlineNotice>
+        ) : null}
+        {dataset.dimension === 3 && viewMode !== "full" ? (
+          <InlineNotice tone="info" title="Interior voxels are not fully exposed in this mode">
+            {viewMode === "surface"
+              ? "Surface mode colors only the currently visible outer layer. Switch to full mode to paint every occupied voxel when the dataset size allows it."
+              : viewMode === "shell"
+                ? "Shell mode colors the exposed envelope of the pile. Switch to full mode to paint every occupied voxel when you need the full internal content."
+                : "Slice mode colors only the active cross-section. Switch to full mode to paint every occupied voxel across the full pile."}
           </InlineNotice>
         ) : null}
         {viewMode === "shell" && dataset.shellCells.length === 0 && dataset.surfaceCells.length > 0 ? (

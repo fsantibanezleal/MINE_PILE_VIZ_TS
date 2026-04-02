@@ -89,6 +89,16 @@ export function deriveNumericColorDomain(
     return undefined;
   }
 
+  if (
+    typeof definition.min === "number" &&
+    Number.isFinite(definition.min) &&
+    typeof definition.max === "number" &&
+    Number.isFinite(definition.max) &&
+    definition.max > definition.min
+  ) {
+    return { min: definition.min, max: definition.max };
+  }
+
   const min = Math.min(...numericValues);
   const max = Math.max(...numericValues);
 

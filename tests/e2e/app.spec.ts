@@ -53,7 +53,6 @@ test("updates stockpile 3D colors when the selected property changes", async ({
   const canvas = page.locator(".pile-canvas canvas").first();
 
   await pileSelect.selectOption("pile_stockpile");
-  await page.getByRole("button", { name: "full" }).click();
   await canvas.waitFor({ state: "visible" });
   await page.waitForTimeout(800);
 
