@@ -88,7 +88,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.035` |
+| Release-synced version | `0.01.036` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -105,7 +105,7 @@ The side inspection panels now expose direct cross-workspace actions so the oper
 
 ### Simulator Workspace
 
-The simulator workspace turns profiled timestep history into a scenario-oriented route. It keeps time controls, object focus, and property focus in one place so the operator can scrub through the modeled circuit, inspect the active circuit step, compare object mass ranking, and read a mass-weighted distribution histogram for the selected property without leaving the route.
+The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section organizes one discharge lane per configured output. Each lane keeps the downstream belt content in its own column, including ordered block strips and mass-weighted histograms for each reachable live belt on that route. This makes reclaim-side reading much closer to the operational question of what each pile output is currently feeding.
 
 ### Stockpile Workspace
 
@@ -137,7 +137,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.035 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.036 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -253,7 +253,7 @@ types/
 
 ## Current Version
 
-`0.01.035`
+`0.01.036`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

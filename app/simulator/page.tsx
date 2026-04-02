@@ -49,8 +49,8 @@ export default async function SimulatorPage() {
     return (
       <AppShell
         eyebrow="Simulator"
-        title="Scenario explorer"
-        description="Inspect timestep-oriented scenario states for the modeled circuit from the local app-ready cache."
+        title="Pile discharge simulator"
+        description="Inspect pile-centric scenario states from the local app-ready cache and follow configured discharge routes toward downstream transport objects."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -63,8 +63,8 @@ export default async function SimulatorPage() {
     return (
       <AppShell
         eyebrow="Simulator"
-        title="Scenario explorer"
-        description="Inspect timestep-oriented scenario states for the modeled circuit from the local app-ready cache."
+        title="Pile discharge simulator"
+        description="Inspect pile-centric scenario states from the local app-ready cache and follow configured discharge routes toward downstream transport objects."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -79,13 +79,18 @@ export default async function SimulatorPage() {
   return (
     <AppShell
       eyebrow="Simulator"
-      title="Scenario explorer"
-      description="The simulator route turns profiled timestep history into a dedicated scenario workspace so the operator can scrub time, inspect circuit-wide state, and keep object focus anchored while the scenario evolves."
+      title="Pile discharge simulator"
+      description="The simulator route keeps a selected pile or virtual pile at the center, lets the operator scrub profiled history when available, and organizes downstream belt content by configured discharge route."
       actions={
         <MetricGrid
           metrics={[
             { label: "Dataset", value: state.manifest.datasetLabel },
-            { label: "Profiled objects", value: String(state.index.objects.length) },
+            {
+              label: "Pile nodes",
+              value: String(
+                state.graph.nodes.filter((node) => node.objectType === "pile").length,
+              ),
+            },
             {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
