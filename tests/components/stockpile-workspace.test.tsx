@@ -135,6 +135,141 @@ function createPileDataset(objectId: string, displayName: string, fe: number): P
   };
 }
 
+function create2DPileDataset(objectId: string, displayName: string, fe: number): PileDataset {
+  return {
+    objectId,
+    displayName,
+    objectRole: "physical",
+    timestamp: "2025-03-19T01:15:00Z",
+    dimension: 2,
+    extents: { x: 2, y: 2, z: 1 },
+    occupiedCellCount: 4,
+    surfaceCellCount: 4,
+    defaultQualityId: "q_num_fe",
+    availableQualityIds: ["q_num_fe"],
+    viewModes: ["full"],
+    suggestedFullStride: 1,
+    fullModeThreshold: 100,
+    qualityAverages: { q_num_fe: fe },
+    inputs: [
+      {
+        id: `${objectId}-feed-west`,
+        label: `${displayName} Feed West`,
+        kind: "input",
+        x: 0.22,
+        y: 0.15,
+        relatedObjectId: "belt_feed",
+      },
+      {
+        id: `${objectId}-feed-east`,
+        label: `${displayName} Feed East`,
+        kind: "input",
+        x: 0.78,
+        y: 0.15,
+        relatedObjectId: "belt_feed",
+      },
+    ],
+    outputs: [
+      {
+        id: `${objectId}-reclaim-west`,
+        label: `${displayName} Reclaim West`,
+        kind: "output",
+        x: 0.28,
+        y: 0.9,
+        relatedObjectId: "belt_reclaim",
+      },
+      {
+        id: `${objectId}-reclaim-east`,
+        label: `${displayName} Reclaim East`,
+        kind: "output",
+        x: 0.72,
+        y: 0.9,
+        relatedObjectId: "belt_reclaim",
+      },
+    ],
+    files: {
+      cells: `stockpiles/${objectId}/cells.arrow`,
+    },
+    cells: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 12,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.08 },
+      },
+      {
+        ix: 1,
+        iy: 0,
+        iz: 0,
+        massTon: 13,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.02 },
+      },
+      {
+        ix: 0,
+        iy: 1,
+        iz: 0,
+        massTon: 14,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.04 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 0,
+        massTon: 15,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.1 },
+      },
+    ],
+    surfaceCells: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 12,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.08 },
+      },
+      {
+        ix: 1,
+        iy: 0,
+        iz: 0,
+        massTon: 13,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.02 },
+      },
+      {
+        ix: 0,
+        iy: 1,
+        iz: 0,
+        massTon: 14,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.04 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 0,
+        massTon: 15,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.1 },
+      },
+    ],
+    shellCells: [],
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -177,6 +312,8 @@ describe("StockpileWorkspace", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_a");
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
+    expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Pile"), {
       target: { value: "pile_b" },
@@ -220,5 +357,40 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("Cell Focus")).toBeInTheDocument();
     expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
     expect(screen.getByText("10 t")).toBeInTheDocument();
+  });
+
+  it("renders in-figure pile anchors for 2D stockpiles while keeping the external anchor tracks", async () => {
+    const pileA = create2DPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/stockpiles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+      />,
+    );
+
+    await screen.findByText("Pile A Feed West");
+
+    const inputOverlay = screen.getByTestId("pile-anchor-overlay-input");
+    const outputOverlay = screen.getByTestId("pile-anchor-overlay-output");
+
+    expect(inputOverlay).toBeInTheDocument();
+    expect(outputOverlay).toBeInTheDocument();
+    expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
+    expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
+    expect(screen.getByText("Pile A Feed West")).toBeInTheDocument();
+    expect(screen.getByText("Pile A Reclaim East")).toBeInTheDocument();
   });
 });
