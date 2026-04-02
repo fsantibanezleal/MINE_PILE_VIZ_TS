@@ -518,6 +518,7 @@ export function StockpileWorkspace({
             qualities={availableQualities}
             values={dataset.qualityAverages}
             records={dataset.cells}
+            totalMassTon={dataset.cells.reduce((sum, cell) => sum + cell.massTon, 0)}
           />
         ) : null}
         <div className="inspector-stack">

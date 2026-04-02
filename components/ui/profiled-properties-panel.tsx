@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { formatMassTon, formatNumber, formatPercent } from "@/lib/format";
 import {
+  buildCategoricalDistributionGroups,
   buildCategoricalProportionBreakdown,
   buildDominantCategoricalEntries,
   splitProfiledQualities,
@@ -16,34 +17,18 @@ interface ProfiledPropertiesPanelProps {
   qualities: QualityDefinition[];
   values: QualityValueMap;
   records?: ProfiledPropertyRecord[] | null;
-}
-
-function buildPieGradient(
-  segments: Array<{
-    color: string;
-    ratio: number;
-  }>,
-) {
-  let cursor = 0;
-
-  return `conic-gradient(${segments
-    .map((segment) => {
-      const start = cursor * 100;
-      cursor += segment.ratio;
-      const end = cursor * 100;
-      return `${segment.color} ${start}% ${end}%`;
-    })
-    .join(", ")})`;
+  totalMassTon?: number | null;
 }
 
 export function ProfiledPropertiesPanel({
   qualities,
   values,
   records,
+  totalMassTon,
 }: ProfiledPropertiesPanelProps) {
   const { numericalQualities, categoricalQualities } = useMemo(
-    () => splitProfiledQualities(qualities, values),
-    [qualities, values],
+    () => splitProfiledQualities(qualities, values, records),
+    [qualities, records, values],
   );
   const [tab, setTab] = useState<PropertyTab>("quantitative");
   const [selectedCategoricalId, setSelectedCategoricalId] = useState(
@@ -54,21 +39,48 @@ export function ProfiledPropertiesPanel({
     categoricalQualities.some((quality) => quality.id === selectedCategoricalId)
       ? selectedCategoricalId
       : (categoricalQualities[0]?.id ?? "");
+  const distributionGroups = useMemo(
+    () => buildCategoricalDistributionGroups(categoricalQualities, qualities),
+    [categoricalQualities, qualities],
+  );
 
   const dominantEntries = useMemo(
-    () => buildDominantCategoricalEntries(categoricalQualities, values, records),
-    [categoricalQualities, records, values],
+    () =>
+      buildDominantCategoricalEntries(
+        categoricalQualities,
+        qualities,
+        values,
+        records,
+        totalMassTon,
+      ),
+    [categoricalQualities, qualities, records, totalMassTon, values],
   );
   const selectedCategoricalQuality = categoricalQualities.find(
     (quality) => quality.id === effectiveSelectedCategoricalId,
   );
+  const selectedDistributionGroup = distributionGroups.find(
+    (group) => group.mainQuality.id === effectiveSelectedCategoricalId,
+  );
   const selectedBreakdown = useMemo(
     () =>
       selectedCategoricalQuality
-        ? buildCategoricalProportionBreakdown(selectedCategoricalQuality, records)
+        ? buildCategoricalProportionBreakdown(
+            selectedCategoricalQuality,
+            qualities,
+            values,
+            records,
+            totalMassTon,
+          )
         : null,
-    [records, selectedCategoricalQuality],
+    [qualities, records, selectedCategoricalQuality, totalMassTon, values],
   );
+  const selectedBreakdownSourceText = selectedBreakdown
+    ? selectedBreakdown.source === "proportion-records"
+      ? "Mass-weighted distribution from explicit categorical proportion values."
+      : selectedBreakdown.source === "proportion-aggregate"
+        ? "Distribution reconstructed from aggregate proportion values."
+        : "Estimated from block or cell predominant labels because explicit proportion values are unavailable in this cache."
+    : null;
 
   return (
     <div className="profiled-properties">
@@ -137,11 +149,15 @@ export function ProfiledPropertiesPanel({
                     {entry.quality.label}
                   </span>
                   <span className="quality-list__subtext">
-                    {entry.source === "records"
-                      ? `${formatPercent((entry.ratio ?? 0) * 100)} by mass`
-                      : entry.source === "aggregate"
-                        ? "Mapped from aggregate category"
-                        : "Requires block or cell detail"}
+                    {entry.source === "proportion-records"
+                      ? `${formatPercent((entry.ratio ?? 0) * 100)} from explicit distribution`
+                      : entry.source === "proportion-aggregate"
+                        ? `${formatPercent((entry.ratio ?? 0) * 100)} from aggregate proportions`
+                        : entry.source === "main-records"
+                          ? `${formatPercent((entry.ratio ?? 0) * 100)} estimated from predominant labels`
+                          : entry.source === "aggregate"
+                            ? "Mapped from aggregate predominant category"
+                            : "Requires qualitative detail or aggregate proportions"}
                   </span>
                 </div>
                 <strong>{entry.label}</strong>
@@ -159,7 +175,7 @@ export function ProfiledPropertiesPanel({
         categoricalQualities.length > 0 ? (
           <div className="profiled-properties__proportions">
             <label className="field">
-              <span>Categorical property</span>
+              <span>Qualitative property</span>
               <select
                 value={effectiveSelectedCategoricalId}
                 onChange={(event) => setSelectedCategoricalId(event.target.value)}
@@ -173,47 +189,82 @@ export function ProfiledPropertiesPanel({
             </label>
 
             {selectedBreakdown ? (
-              <div className="profiled-properties__pie-layout">
-                <div className="profiled-properties__pie-card">
-                  <div
-                    className="profiled-properties__pie"
-                    style={{
-                      background: buildPieGradient(selectedBreakdown.segments),
-                    }}
-                    aria-label={`${selectedBreakdown.quality.label} categorical proportions`}
-                  >
-                    <div className="profiled-properties__pie-center">
-                      <strong>{formatMassTon(selectedBreakdown.totalMassTon)}</strong>
-                      <span>Mass basis</span>
-                    </div>
+              <div className="profiled-properties__distribution">
+                <div className="metric-grid">
+                  <div className="metric-card">
+                    <span>Source</span>
+                    <strong>
+                      {selectedBreakdown.source === "proportion-records"
+                        ? "Explicit proportions"
+                        : selectedBreakdown.source === "proportion-aggregate"
+                          ? "Aggregate proportions"
+                          : "Predominant-label estimate"}
+                    </strong>
+                  </div>
+                  <div className="metric-card">
+                    <span>Mass basis</span>
+                    <strong>
+                      {selectedBreakdown.totalMassTon !== null
+                        ? formatMassTon(selectedBreakdown.totalMassTon)
+                        : "Not available"}
+                    </strong>
+                  </div>
+                  <div className="metric-card">
+                    <span>Categories</span>
+                    <strong>{String(selectedBreakdown.segments.length)}</strong>
                   </div>
                 </div>
+                <p className="muted-text">{selectedBreakdownSourceText}</p>
+                {selectedDistributionGroup?.proportionQualities.length ? (
+                  <p className="quality-list__subtext">
+                    Derived from {selectedDistributionGroup.proportionQualities.length} explicit
+                    proportion channels for this qualitative variable.
+                  </p>
+                ) : null}
                 <div className="quality-list">
                   {selectedBreakdown.segments.map((segment) => (
                     <div
                       key={`${selectedBreakdown.quality.id}:${segment.label}`}
-                      className="quality-list__item"
+                      className="profiled-properties__distribution-row"
                     >
-                      <div className="quality-list__meta quality-list__meta--stacked">
-                        <span className="quality-list__meta">
-                          <i
-                            className="quality-dot"
-                            style={{ backgroundColor: segment.color }}
+                      <div className="profiled-properties__distribution-meta">
+                        <div className="quality-list__meta quality-list__meta--stacked">
+                          <span className="quality-list__meta">
+                            <i
+                              className="quality-dot"
+                              style={{ backgroundColor: segment.color }}
+                            />
+                            {segment.label}
+                          </span>
+                          <span className="quality-list__subtext">
+                            {segment.massTon !== null
+                              ? formatMassTon(segment.massTon)
+                              : "Mass basis unavailable"}
+                          </span>
+                        </div>
+                        <div className="profiled-properties__distribution-bar-frame">
+                          <div
+                            className="profiled-properties__distribution-bar"
+                            style={{
+                              width: `${Math.max(segment.ratio * 100, 1)}%`,
+                              backgroundColor: segment.color,
+                            }}
+                            aria-label={`${segment.label} qualitative distribution`}
                           />
-                          {segment.label}
-                        </span>
-                        <span className="quality-list__subtext">
-                          {formatMassTon(segment.massTon)}
-                        </span>
+                        </div>
                       </div>
-                      <strong>{formatPercent(segment.ratio * 100)}</strong>
+                      <div className="profiled-properties__distribution-values">
+                        <strong>{formatPercent(segment.ratio * 100)}</strong>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
               <p className="muted-text">
-                Proportions require block or cell-level records for the selected object.
+                This cache does not expose explicit qualitative proportion channels for the
+                selected variable, and no block or cell-level predominant labels are available
+                to estimate a distribution.
               </p>
             )}
           </div>

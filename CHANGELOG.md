@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.034
+
+- Aligned qualitative dominant-category handling with categorical proportion semantics instead of relying only on `*_main` label counts.
+- Added support for qualitative distribution groups driven by `q_cat_<src>_prop_<token>` and `..._prop_other` channels when the app-ready cache exposes them.
+- Replaced the qualitative proportions tab with a histogram-style distribution view and added fallback messaging when the cache only carries predominant labels.
+
 ### 0.01.033
 
 - Added stage boxes to the circuit diagram view so the staged structure remains visible in the graph representation.

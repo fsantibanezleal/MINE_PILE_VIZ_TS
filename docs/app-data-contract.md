@@ -80,6 +80,27 @@ Categorical qualities should also provide:
 - `categories[]`
 - each category needs `value`, `label`, `color`
 
+Qualitative distribution channels may also be emitted as additional numerical quality definitions
+when the exporter has access to categorical proportion outputs.
+
+Naming convention:
+
+- main qualitative key: `q_cat_<source>_main`
+- proportion keys: `q_cat_<source>_prop_<token>`
+- residual channel: `q_cat_<source>_prop_other`
+
+Recommended characteristics for these proportion qualities:
+
+- `kind: numerical`
+- `min: 0`
+- `max: 1`
+- `label` should be the human-readable token name (for example `Oxide 1`)
+- `palette` should contain the display color for that token
+
+When these proportion channels are present, the UI will use them to derive dominant qualitative
+categories and histogram-style qualitative distributions. When they are absent, the UI falls back
+to estimates based on block or cell-level `*_main` labels when detail rows are available.
+
 ### `registry.json`
 
 Array of object descriptors.

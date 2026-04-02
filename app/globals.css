@@ -671,6 +671,50 @@ code {
   gap: 12px;
 }
 
+.profiled-properties__distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profiled-properties__distribution-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(124, 164, 201, 0.08);
+}
+
+.profiled-properties__distribution-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profiled-properties__distribution-bar-frame {
+  width: 100%;
+  min-height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(17, 33, 54, 0.86);
+  border: 1px solid rgba(124, 164, 201, 0.1);
+}
+
+.profiled-properties__distribution-bar {
+  min-height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(2, 8, 18, 0.22);
+}
+
+.profiled-properties__distribution-values {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 78px;
+}
+
 .profiled-properties__tabs {
   display: flex;
   flex-wrap: wrap;
