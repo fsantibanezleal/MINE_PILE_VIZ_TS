@@ -20,6 +20,7 @@ import type {
 } from "@/types/app-data";
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { deriveNumericColorDomain } from "@/lib/color";
+import { deriveCellExtents } from "@/lib/data-stats";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
@@ -52,15 +53,7 @@ function isSameCell(left: PileCellRecord, right: PileCellRecord) {
 }
 
 function getExtents(rows: ProfilerSnapshot["rows"]) {
-  if (rows.length === 0) {
-    return { x: 1, y: 1, z: 1 };
-  }
-
-  return {
-    x: Math.max(...rows.map((row) => row.ix)) + 1,
-    y: Math.max(...rows.map((row) => row.iy)) + 1,
-    z: Math.max(...rows.map((row) => row.iz)) + 1,
-  };
+  return deriveCellExtents(rows);
 }
 
 export function ProfilerWorkspace({

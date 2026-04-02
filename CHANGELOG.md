@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.036`
-- Active tracked version: `0.01.037`
+- Closed release baseline: `0.01.037`
+- Active tracked version: `0.01.038`
 
 ## Release History
+
+### 0.01.038
+
+- Fixed stack overflows caused by spreading large profiler row collections into `Math.max`, which could leave the simulator stuck in the `Pile content loads on demand` fallback state.
+- Fixed the same overflow pattern in numerical color-domain derivation so dense simulator and stockpile views can still color voxels and cells safely.
+- Replaced large-collection extrema calculations with iterative reducers and added regression coverage for high-cardinality row and value collections.
 
 ### 0.01.037
 

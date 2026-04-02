@@ -24,6 +24,7 @@ import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { deriveNumericColorDomain } from "@/lib/color";
+import { deriveCellExtents } from "@/lib/data-stats";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import {
   buildAdaptiveFullRenderPlan,
@@ -103,15 +104,7 @@ function isSameCell(left: PileCellRecord, right: PileCellRecord) {
 }
 
 function getRowsExtents(rows: PileCellRecord[]) {
-  if (rows.length === 0) {
-    return { x: 1, y: 1, z: 1 };
-  }
-
-  return {
-    x: Math.max(...rows.map((row) => row.ix)) + 1,
-    y: Math.max(...rows.map((row) => row.iy)) + 1,
-    z: Math.max(...rows.map((row) => row.iz)) + 1,
-  };
+  return deriveCellExtents(rows);
 }
 
 function buildSummaryValuesFromCells(
@@ -192,8 +185,10 @@ function normalizeSnapshotData(
 ): SimulatorCentralObjectData {
   const selectedNode = graph.nodes.find((node) => node.objectId === snapshot.objectId);
   const extents = getRowsExtents(snapshot.rows);
-  const surfaceCells = deriveSurfaceCells(snapshot.rows);
-  const shellCells = deriveShellCells(snapshot.rows);
+  const surfaceCells =
+    snapshot.dimension === 3 ? deriveSurfaceCells(snapshot.rows) : snapshot.rows;
+  const shellCells =
+    snapshot.dimension === 3 ? deriveShellCells(snapshot.rows) : [];
   const qualityAverages = summaryRow?.qualityValues ?? buildSummaryValuesFromCells(snapshot.rows, qualities);
   const defaultQualityId =
     qualities.find((quality) => quality.id in qualityAverages)?.id ?? qualities[0]?.id ?? "";

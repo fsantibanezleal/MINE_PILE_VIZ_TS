@@ -54,4 +54,16 @@ describe("color helpers", () => {
 
     expect(feColor).not.toBe(cutColor);
   });
+
+  it("derives a color domain from large value collections without overflowing the stack", () => {
+    const values = Array.from({ length: 180_000 }, (_, index) => 1 + (index % 17) / 100);
+
+    const domain = deriveNumericColorDomain(values, feDefinition);
+
+    expect(domain).toMatchObject({
+      mode: "adaptive-local",
+    });
+    expect(domain?.min ?? 0).toBeLessThan(1);
+    expect(domain?.max ?? 0).toBeGreaterThan(1.16);
+  });
 });

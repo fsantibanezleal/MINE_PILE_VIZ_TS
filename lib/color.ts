@@ -1,4 +1,5 @@
 import type { QualityDefinition } from "@/types/app-data";
+import { deriveNumericExtrema } from "@/lib/data-stats";
 
 const FALLBACK_COLOR = "#7ca4c9";
 
@@ -123,8 +124,13 @@ export function deriveNumericColorDomain(
     return undefined;
   }
 
-  const min = Math.min(...numericValues);
-  const max = Math.max(...numericValues);
+  const domain = deriveNumericExtrema(numericValues, (value) => value);
+
+  if (!domain) {
+    return undefined;
+  }
+
+  const { min, max } = domain;
   const configuredDomainIsValid = hasConfiguredDomain(definition);
   const configuredMin = configuredDomainIsValid ? definition.min : undefined;
   const configuredMax = configuredDomainIsValid ? definition.max : undefined;
