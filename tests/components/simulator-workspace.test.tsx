@@ -375,10 +375,12 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByText("Belt B")).toBeInTheDocument();
     expect(screen.getByText("Active lane summary")).toBeInTheDocument();
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
-    expect(screen.getByLabelText("West reclaim mass-weighted histogram")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("West reclaim numerical mass distribution for Fe"),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Virtual Lane block strip")).toBeInTheDocument();
     expect(
-      screen.getByLabelText("Virtual Lane mass-weighted histogram"),
+      screen.getByLabelText("Virtual Lane numerical mass distribution for Fe"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
 
