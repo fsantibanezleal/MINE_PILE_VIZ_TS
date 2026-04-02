@@ -14,8 +14,8 @@ import { BeltBlockStrip } from "@/components/live/belt-block-strip";
 import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import {
@@ -250,9 +250,10 @@ export function LiveWorkspace({
             },
           ]}
         />
-        <QualityValueList
+        <ProfiledPropertiesPanel
           qualities={qualities}
           values={selectedSummary?.qualityValues ?? currentBelt.qualityAverages}
+          records={selectedObjectIsBelt ? currentBelt.blocks : null}
         />
         <WorkspaceJumpLinks
           objectId={selectedObjectId}

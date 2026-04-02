@@ -87,7 +87,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.029` |
+| Release-synced version | `0.01.030` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -98,7 +98,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace focuses on instantaneous transport state. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected property across the current belt content without losing the block ordering view. The side panel keeps the selected object summary visible for quick reading.
+The live workspace focuses on instantaneous transport state. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected property across the current belt content without losing the block ordering view. The side panel now separates profiled properties into quantitative averages, dominant mapped categorical values, and selector-driven categorical proportions when block detail is available.
 Route query state now preserves the current object and property context when the operator moves to another workspace through the top navigation.
 The side inspection panels now expose direct cross-workspace actions so the operator can jump into a more suitable view without resetting object or property context.
 
@@ -108,11 +108,11 @@ The simulator workspace turns profiled timestep history into a scenario-oriented
 
 ### Stockpile Workspace
 
-The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render. The pile visual now keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The workspace can also surface hovered cell details without leaving the current view mode.
+The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render. The pile visual now keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The sidebar now separates quantitative averages, dominant mapped categorical values, and selector-driven mass proportions for categorical `main` variables. The workspace can also surface hovered cell details without leaving the current view mode.
 
 ### Profiler Workspace
 
-The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. Summary history now loads on demand from the route API so the page can mount before fetching the full timeline table, while pile detail mode now mirrors the stockpile workspace by exposing pile anchors, near-pile anchor markers for `2D` and `3D` detail views, view-scaled numerical contrast when the visible value spread is too narrow, and hovered cell inspection inside the historical snapshot view.
+The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. Summary history now loads on demand from the route API so the page can mount before fetching the full timeline table, while pile detail mode now mirrors the stockpile workspace by exposing pile anchors, near-pile anchor markers for `2D` and `3D` detail views, view-scaled numerical contrast when the visible value spread is too narrow, hovered cell inspection inside the historical snapshot view, and the same tabbed split between quantitative values, dominant categorical names, and categorical mass proportions.
 
 ## Scope And Current Status
 
@@ -135,7 +135,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.029 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.030 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -251,7 +251,7 @@ types/
 
 ## Current Version
 
-`0.01.029`
+`0.01.030`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.
