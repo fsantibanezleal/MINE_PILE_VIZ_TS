@@ -13,6 +13,7 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
@@ -513,10 +514,10 @@ export function StockpileWorkspace({
           />
         ) : null}
         {dataset ? (
-          <QualityValueList
+          <ProfiledPropertiesPanel
             qualities={availableQualities}
             values={dataset.qualityAverages}
-            limit={availableQualities.length}
+            records={dataset.cells}
           />
         ) : null}
         <div className="inspector-stack">

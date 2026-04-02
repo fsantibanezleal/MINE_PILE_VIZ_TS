@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.030
+
+- Replaced the flat averaged-property list with a tabbed profiled-property panel in live, stockpile, and profiler workspaces.
+- Added categorical dominant-name reporting using category maps, with mass-weighted dominance when raw block or cell detail is available.
+- Added a selector-driven categorical proportion pie view with mass shares and labels for mapped categories.
+
 ### 0.01.029
 
 - Switched pile property coloring to an adaptive local domain when visible values occupy only a narrow slice of the configured range.

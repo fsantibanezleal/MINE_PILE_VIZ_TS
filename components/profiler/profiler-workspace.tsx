@@ -22,6 +22,7 @@ import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
@@ -510,10 +511,10 @@ export function ProfilerWorkspace({
           ]}
         />
         {selectedSummaryRow ? (
-          <QualityValueList
+          <ProfiledPropertiesPanel
             qualities={availableQualities}
             values={selectedSummaryRow.qualityValues}
-            limit={availableQualities.length}
+            records={detailSnapshot?.rows ?? null}
           />
         ) : null}
         <div className="inspector-stack">
