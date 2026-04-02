@@ -349,6 +349,140 @@ code {
   align-items: start;
 }
 
+.circuit-illustration {
+  width: 100%;
+  min-height: 620px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(124, 164, 201, 0.12);
+  background:
+    linear-gradient(180deg, rgba(11, 21, 35, 0.86), rgba(9, 18, 30, 0.92)),
+    radial-gradient(circle at 15% 10%, rgba(89, 221, 255, 0.14), transparent 28%);
+}
+
+.circuit-illustration__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.circuit-illustration__stage {
+  fill: rgba(12, 24, 39, 0.48);
+  stroke: rgba(124, 164, 201, 0.12);
+  stroke-width: 1.5;
+}
+
+.circuit-illustration__stage-label,
+.circuit-illustration__footnote {
+  fill: var(--text-secondary);
+  font-size: 14px;
+}
+
+.circuit-illustration__stage-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.circuit-illustration__edge {
+  fill: none;
+  stroke: rgba(89, 221, 255, 0.74);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.circuit-illustration__edge--virtual {
+  stroke: rgba(111, 132, 159, 0.64);
+  stroke-dasharray: 10 10;
+}
+
+.circuit-illustration__object {
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+
+.circuit-illustration__object--selected .circuit-illustration__belt,
+.circuit-illustration__object--selected .circuit-illustration__pile,
+.circuit-illustration__object--selected .circuit-illustration__virtual {
+  filter: drop-shadow(0 0 16px rgba(89, 221, 255, 0.26));
+}
+
+.circuit-illustration__belt {
+  fill: #34566f;
+  stroke: rgba(201, 225, 255, 0.16);
+  stroke-width: 2;
+}
+
+.circuit-illustration__belt-surface {
+  fill: #b9d3ee;
+  opacity: 0.9;
+}
+
+.circuit-illustration__roller {
+  fill: rgba(124, 164, 201, 0.8);
+}
+
+.circuit-illustration__pile {
+  fill: #e0a955;
+  stroke: rgba(255, 234, 186, 0.18);
+  stroke-width: 2;
+}
+
+.circuit-illustration__feed,
+.circuit-illustration__discharge {
+  stroke: rgba(89, 221, 255, 0.78);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.circuit-illustration__feed-marker {
+  fill: rgba(89, 221, 255, 0.82);
+}
+
+.circuit-illustration__discharge-marker {
+  fill: rgba(148, 171, 196, 0.88);
+}
+
+.circuit-illustration__virtual {
+  fill: rgba(111, 132, 159, 0.2);
+  stroke: rgba(148, 171, 196, 0.54);
+  stroke-width: 2;
+  stroke-dasharray: 8 8;
+}
+
+.circuit-illustration__node-title {
+  fill: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.circuit-illustration__node-meta {
+  fill: var(--text-secondary);
+  font-size: 12px;
+}
+
+.circuit-3d {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(89, 221, 255, 0.16), transparent 22%),
+    linear-gradient(180deg, rgba(11, 21, 35, 0.92), rgba(9, 18, 30, 0.96));
+}
+
+.circuit-3d__label {
+  padding: 6px 10px;
+  border: 1px solid rgba(124, 164, 201, 0.18);
+  border-radius: 999px;
+  background: rgba(8, 18, 31, 0.88);
+  color: var(--text-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+
+.circuit-3d__label--virtual {
+  color: var(--text-secondary);
+}
+
 .circuit-flow__panel {
   min-width: 0;
 }

@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/shell/app-shell";
-import { CircuitFlow } from "@/components/circuit/circuit-flow";
+import { CircuitWorkspace } from "@/components/circuit/circuit-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
@@ -59,7 +59,7 @@ export default async function CircuitPage() {
     return (
       <AppShell
         eyebrow="Circuit"
-        title="Modeled process topology"
+        title="Illustrated process overview"
         description="Inspect the staged flow of transport and accumulation objects from the local app-ready cache."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
@@ -73,7 +73,7 @@ export default async function CircuitPage() {
     return (
       <AppShell
         eyebrow="Circuit"
-        title="Modeled process topology"
+        title="Illustrated process overview"
         description="Inspect the staged flow of transport and accumulation objects from the local app-ready cache."
       >
         <DataUnavailable
@@ -89,8 +89,8 @@ export default async function CircuitPage() {
   return (
     <AppShell
       eyebrow="Circuit"
-      title="Modeled process topology"
-      description="The circuit page renders the configured object sequence, lets you isolate individual nodes, and exposes current object summaries without reading the original source artifacts."
+      title="Illustrated process overview"
+      description="The landing circuit page now prioritizes an illustrative 2D or 3D reading of the process area, while keeping the topology diagram available as a secondary structural mode."
       actions={
         <MetricGrid
           metrics={[
@@ -109,7 +109,7 @@ export default async function CircuitPage() {
           {state.summariesIssue.description}
         </InlineNotice>
       ) : null}
-      <CircuitFlow graph={state.graph} summaries={state.summaries} />
+      <CircuitWorkspace graph={state.graph} summaries={state.summaries} />
     </AppShell>
   );
 }

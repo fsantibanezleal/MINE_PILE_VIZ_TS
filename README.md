@@ -11,7 +11,7 @@ Mine Pile Visualizer is not intended to be only a developer sandbox. It is a wor
 - `/stockpiles`
 - `/profiler`
 
-The current baseline already provides a routed application shell, a staged circuit diagram, live belt block inspection, dimensional stockpile views for `1D`, `2D`, and `3D` objects, and history playback over profiler snapshots. The repository is intentionally decoupled from raw source-trace artifacts. At runtime it consumes only an app-ready local cache rooted at `.local/app-data/v1/` or an explicit `APP_DATA_ROOT` override.
+The current baseline already provides a routed application shell, an illustrative circuit overview with `2D`, `3D`, and diagram modes, live belt block inspection, dimensional stockpile views for `1D`, `2D`, and `3D` objects, and history playback over profiler snapshots. The repository is intentionally decoupled from raw source-trace artifacts. At runtime it consumes only an app-ready local cache rooted at `.local/app-data/v1/` or an explicit `APP_DATA_ROOT` override.
 
 ## Problem Framing
 
@@ -86,14 +86,14 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.008` |
+| Release-synced version | `0.01.009` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace renders the modeled area as a staged topology graph. It is the high-level structural view and the main reference for understanding object order, upstream and downstream relationships, and the currently selected object.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings.
 
 ### Live Workspace
 
@@ -111,7 +111,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Workspaces
 
-- `Circuit`: staged topology, sequence highlighting, and object inspection.
+- `Circuit`: illustrative `2D` and `3D` overview, diagram fallback, and object inspection.
 - `Live`: circuit context plus live belt block content and summary metrics.
 - `Stockpiles`: pile selection, property selection, dimension-aware rendering, and `3D` view modes.
 - `Profiler`: timestamp navigation, playback controls, circuit mode, and object-detail mode.
@@ -126,7 +126,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.008 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.009 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -238,6 +238,6 @@ types/
 
 ## Current Version
 
-`0.01.008`
+`0.01.009`
 
 Versioning uses the fixed-width format `x.xx.xxx`.

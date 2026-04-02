@@ -17,9 +17,12 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
 
   await page.goto("/circuit");
   await expect(
-    page.getByRole("heading", { name: "Modeled process topology" }),
+    page.getByRole("heading", { name: "Illustrated process overview" }),
   ).toBeVisible();
-  await expect(page.getByText("Plant Stockpile")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Illustration 2D" })).toBeVisible();
+  await expect(
+    page.getByLabel("Illustrated circuit overview").getByText("Plant Stockpile"),
+  ).toBeVisible();
 
   await page.getByRole("link", { name: "Live State" }).click();
   await expect(
