@@ -279,6 +279,10 @@ code {
   grid-template-columns: 300px minmax(0, 1fr) 320px;
 }
 
+.workspace-grid--double {
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
 .panel {
   padding: 22px;
 }
@@ -1070,6 +1074,7 @@ code {
   }
 
   .workspace-grid--triple,
+  .workspace-grid--double,
   .circuit-grid {
     grid-template-columns: 1fr;
   }

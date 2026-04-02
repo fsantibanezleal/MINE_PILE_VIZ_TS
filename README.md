@@ -4,9 +4,10 @@ Local-first web application for exploring circuit topology, live material state,
 
 ## Overview
 
-Mine Pile Visualizer is not intended to be only a developer sandbox. It is a working visualization surface organized around four complementary operator views:
+Mine Pile Visualizer is not intended to be only a developer sandbox. It is a working visualization surface organized around five complementary operator views:
 
 - `/circuit`
+- `/simulator`
 - `/live`
 - `/stockpiles`
 - `/profiler`
@@ -78,15 +79,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 
 | Indicator | Current State |
 |---|---|
-| Routed workspaces | `4` |
-| User-facing focus areas | circuit, live state, stockpiles, profiler history |
+| Routed workspaces | `5` |
+| User-facing focus areas | circuit, simulator, live state, stockpiles, profiler history |
 | Dimensional stockpile support | `1D`, `2D`, `3D` |
 | `3D` pile render modes | `surface`, `shell`, `full`, `slice` |
 | Runtime cache contract | JSON metadata + Arrow IPC tables |
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.023` |
+| Release-synced version | `0.01.024` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -101,6 +102,10 @@ The live workspace focuses on instantaneous transport state. Belt content is rep
 Route query state now preserves the current object and property context when the operator moves to another workspace through the top navigation.
 The side inspection panels now expose direct cross-workspace actions so the operator can jump into a more suitable view without resetting object or property context.
 
+### Simulator Workspace
+
+The simulator workspace turns profiled timestep history into a scenario-oriented route. It keeps time controls, object focus, and property focus in one place so the operator can scrub through the modeled circuit, inspect the active circuit step, and compare object mass ranking without leaving the route.
+
 ### Stockpile Workspace
 
 The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render. The pile visual now keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and the workspace can surface hovered cell details without leaving the current view mode.
@@ -114,6 +119,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 ### Current Workspaces
 
 - `Circuit`: illustrative `2D` and `3D` overview, diagram fallback, and object inspection.
+- `Simulator`: timestep-oriented circuit scenario playback backed by profiled summary history.
 - `Live`: circuit context plus live belt block content and summary metrics.
 - `Stockpiles`: pile selection, property selection, dimension-aware rendering, and `3D` view modes.
 - `Profiler`: timestamp navigation, playback controls, circuit mode, and object-detail mode.
@@ -129,7 +135,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.023 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.024 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -176,6 +182,7 @@ pnpm dev
 Open one of the routed workspaces:
 
 - `http://127.0.0.1:3000/circuit`
+- `http://127.0.0.1:3000/simulator`
 - `http://127.0.0.1:3000/live`
 - `http://127.0.0.1:3000/stockpiles`
 - `http://127.0.0.1:3000/profiler`
@@ -243,6 +250,6 @@ types/
 
 ## Current Version
 
-`0.01.023`
+`0.01.024`
 
 Versioning uses the fixed-width format `x.xx.xxx`.

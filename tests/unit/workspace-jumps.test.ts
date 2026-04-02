@@ -27,6 +27,11 @@ describe("getWorkspaceJumpTargets", () => {
         label: "Open Profiler",
         href: "/profiler?quality=q_num_cut&object=pile_stockpile",
       },
+      {
+        route: "simulator",
+        label: "Open Simulator",
+        href: "/simulator?quality=q_num_cut&object=pile_stockpile",
+      },
     ]);
   });
 

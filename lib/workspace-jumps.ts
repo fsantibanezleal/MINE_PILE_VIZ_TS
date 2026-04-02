@@ -1,7 +1,12 @@
 import { buildHrefWithQuery } from "@/lib/workspace-route-state";
 import type { ObjectType } from "@/types/app-data";
 
-export type WorkspaceRoute = "circuit" | "live" | "stockpiles" | "profiler";
+export type WorkspaceRoute =
+  | "circuit"
+  | "live"
+  | "stockpiles"
+  | "profiler"
+  | "simulator";
 
 export interface WorkspaceJumpTarget {
   route: WorkspaceRoute;
@@ -22,6 +27,7 @@ const WORKSPACE_JUMP_LABELS: Record<WorkspaceRoute, string> = {
   live: "Open Live State",
   stockpiles: "Open Stockpiles",
   profiler: "Open Profiler",
+  simulator: "Open Simulator",
 };
 
 export function getWorkspaceJumpTargets({
@@ -54,6 +60,11 @@ export function getWorkspaceJumpTargets({
     {
       route: "profiler",
       href: "/profiler",
+      enabled: isProfiled,
+    },
+    {
+      route: "simulator",
+      href: "/simulator",
       enabled: isProfiled,
     },
   ];
