@@ -4,13 +4,47 @@ import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import {
   appDataExists,
+  assertManifestCapability,
   getAppManifest,
   getCircuitGraph,
+  getConfiguredAppDataRoot,
   getProfilerIndex,
   getProfilerSummary,
   getQualityDefinitions,
 } from "@/lib/server/app-data";
+import { describeAppDataError } from "@/lib/server/app-data-errors";
 import { formatTimestamp } from "@/lib/format";
+
+async function loadProfilerPageState() {
+  try {
+    const [manifest, graph, index, summaryRows, qualities] = await Promise.all([
+      getAppManifest(),
+      getCircuitGraph(),
+      getProfilerIndex(),
+      getProfilerSummary(),
+      getQualityDefinitions(),
+    ]);
+    assertManifestCapability(manifest, "profiler", "Profiler view");
+
+    return {
+      kind: "ready" as const,
+      manifest,
+      graph,
+      index,
+      summaryRows,
+      qualities,
+    };
+  } catch (error) {
+    return {
+      kind: "error" as const,
+      issue: describeAppDataError(error, {
+        fallbackTitle: "Profiler view unavailable",
+        fallbackDescription:
+          "The profiler route could not load the required app-ready history files.",
+      }),
+    };
+  }
+}
 
 export default async function ProfilerPage() {
   if (!(await appDataExists())) {
@@ -20,18 +54,29 @@ export default async function ProfilerPage() {
         title="History explorer"
         description="Replay aggregated profiler snapshots through time for circuit and object-level inspection."
       >
-        <DataUnavailable />
+        <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
     );
   }
 
-  const [manifest, graph, index, summaryRows, qualities] = await Promise.all([
-    getAppManifest(),
-    getCircuitGraph(),
-    getProfilerIndex(),
-    getProfilerSummary(),
-    getQualityDefinitions(),
-  ]);
+  const state = await loadProfilerPageState();
+
+  if (state.kind === "error") {
+    return (
+      <AppShell
+        eyebrow="Profiler"
+        title="History explorer"
+        description="Replay aggregated profiler snapshots through time for circuit and object-level inspection."
+      >
+        <DataUnavailable
+          title={state.issue.title}
+          description={state.issue.description}
+          details={state.issue.details}
+          cacheRoot={getConfiguredAppDataRoot()}
+        />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -41,18 +86,21 @@ export default async function ProfilerPage() {
       actions={
         <MetricGrid
           metrics={[
-            { label: "Dataset", value: manifest.datasetLabel },
-            { label: "Profiled objects", value: String(index.objects.length) },
-            { label: "Latest UTC", value: formatTimestamp(manifest.latestTimestamp) },
+            { label: "Dataset", value: state.manifest.datasetLabel },
+            { label: "Profiled objects", value: String(state.index.objects.length) },
+            {
+              label: "Latest UTC",
+              value: formatTimestamp(state.manifest.latestTimestamp),
+            },
           ]}
         />
       }
     >
       <ProfilerWorkspace
-        graph={graph}
-        index={index}
-        summaryRows={summaryRows}
-        qualities={qualities}
+        graph={state.graph}
+        index={state.index}
+        summaryRows={state.summaryRows}
+        qualities={state.qualities}
       />
     </AppShell>
   );

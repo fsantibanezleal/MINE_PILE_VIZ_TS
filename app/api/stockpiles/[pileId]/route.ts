@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStockpileDataset } from "@/lib/server/app-data";
+import {
+  normalizeAppDataError,
+  toAppDataErrorPayload,
+} from "@/lib/server/app-data-errors";
 
 interface RouteContext {
   params: Promise<{
@@ -8,7 +12,19 @@ interface RouteContext {
 }
 
 export async function GET(_: Request, context: RouteContext) {
-  const { pileId } = await context.params;
-  const dataset = await getStockpileDataset(pileId);
-  return NextResponse.json(dataset);
+  try {
+    const { pileId } = await context.params;
+    const dataset = await getStockpileDataset(pileId);
+    return NextResponse.json(dataset);
+  } catch (error) {
+    const appError = normalizeAppDataError(error);
+    return NextResponse.json(
+      {
+        error: toAppDataErrorPayload(appError),
+      },
+      {
+        status: appError.status,
+      },
+    );
+  }
 }

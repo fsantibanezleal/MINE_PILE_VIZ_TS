@@ -4,12 +4,58 @@ import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import {
   appDataExists,
+  assertManifestCapability,
   getAppManifest,
+  getConfiguredAppDataRoot,
   getObjectRegistry,
   getQualityDefinitions,
   getStockpileDataset,
 } from "@/lib/server/app-data";
+import { describeAppDataError } from "@/lib/server/app-data-errors";
 import { formatTimestamp } from "@/lib/format";
+
+async function loadStockpilePageState() {
+  try {
+    const [manifest, registry, qualities] = await Promise.all([
+      getAppManifest(),
+      getObjectRegistry(),
+      getQualityDefinitions(),
+    ]);
+    assertManifestCapability(manifest, "stockpiles", "Stockpile view");
+
+    const pileEntries = registry.filter(
+      (entry) => entry.objectType === "pile" && entry.stockpileRef,
+    );
+
+    if (pileEntries.length === 0) {
+      return {
+        kind: "empty" as const,
+        title: "No stockpile datasets registered",
+        description:
+          "The stockpile route is enabled, but the object registry does not expose any pile with a stockpile reference.",
+      };
+    }
+
+    const initialDataset = await getStockpileDataset(pileEntries[0]!.objectId);
+
+    return {
+      kind: "ready" as const,
+      manifest,
+      pileEntries,
+      qualities,
+      initialDataset,
+    };
+  } catch (error) {
+    return {
+      kind: "error" as const,
+      issue: describeAppDataError(error, {
+        fallbackTitle: "Stockpile view unavailable",
+        fallbackDescription:
+          "The stockpile route could not load the required app-ready files.",
+      }),
+    };
+  }
+}
 
 export default async function StockpilesPage() {
   if (!(await appDataExists())) {
@@ -19,32 +65,45 @@ export default async function StockpilesPage() {
         title="Internal stockpile views"
         description="Inspect 1D, 2D, and 3D pile representations from the app-ready cache."
       >
-        <DataUnavailable />
+        <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
     );
   }
 
-  const [manifest, registry, qualities] = await Promise.all([
-    getAppManifest(),
-    getObjectRegistry(),
-    getQualityDefinitions(),
-  ]);
+  const state = await loadStockpilePageState();
 
-  const pileEntries = registry.filter((entry) => entry.objectType === "pile" && entry.stockpileRef);
+  if (state.kind === "error") {
+    return (
+      <AppShell
+        eyebrow="Stockpiles"
+        title="Internal stockpile views"
+        description="Inspect 1D, 2D, and 3D pile representations from the app-ready cache."
+      >
+        <DataUnavailable
+          title={state.issue.title}
+          description={state.issue.description}
+          details={state.issue.details}
+          cacheRoot={getConfiguredAppDataRoot()}
+        />
+      </AppShell>
+    );
+  }
 
-  if (pileEntries.length === 0) {
+  if (state.kind === "empty") {
     return (
       <AppShell
         eyebrow="Stockpiles"
         title="Internal stockpile views"
         description="No stockpile datasets are registered in the app-ready cache."
       >
-        <DataUnavailable />
+        <DataUnavailable
+          title={state.title}
+          description={state.description}
+          cacheRoot={getConfiguredAppDataRoot()}
+        />
       </AppShell>
     );
   }
-
-  const initialDataset = await getStockpileDataset(pileEntries[0]!.objectId);
 
   return (
     <AppShell
@@ -54,17 +113,20 @@ export default async function StockpilesPage() {
       actions={
         <MetricGrid
           metrics={[
-            { label: "Dataset", value: manifest.datasetLabel },
-            { label: "Pile objects", value: String(pileEntries.length) },
-            { label: "Latest UTC", value: formatTimestamp(manifest.latestTimestamp) },
+            { label: "Dataset", value: state.manifest.datasetLabel },
+            { label: "Pile objects", value: String(state.pileEntries.length) },
+            {
+              label: "Latest UTC",
+              value: formatTimestamp(state.manifest.latestTimestamp),
+            },
           ]}
         />
       }
     >
       <StockpileWorkspace
-        pileEntries={pileEntries}
-        qualities={qualities}
-        initialDataset={initialDataset}
+        pileEntries={state.pileEntries}
+        qualities={state.qualities}
+        initialDataset={state.initialDataset}
       />
     </AppShell>
   );
