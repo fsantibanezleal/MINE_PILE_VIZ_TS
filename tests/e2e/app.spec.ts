@@ -146,6 +146,7 @@ test("keeps the selected circuit object highlighted across illustration and diag
   ).toContainText("Plant Stockpile");
 
   await page.getByRole("button", { name: "Diagram" }).click();
+  await expect(page.getByTestId("circuit-stage-3")).toContainText("Accumulation");
   await expect(page.locator(".circuit-node--selected")).toContainText("Plant Stockpile");
 });
 
