@@ -102,6 +102,7 @@ Optional references:
 - `profilerRef`
 
 All references are paths relative to `.local/app-data/v1/`.
+References must remain inside the configured cache root. Absolute paths or escaping relative paths are treated as contract errors.
 
 ### `circuit.json`
 
@@ -175,6 +176,7 @@ Required fields:
 - `files`
 
 `files.cells` is required. `files.surface` and `files.shell` are optional acceleration artifacts.
+If `files.surface` or `files.shell` are omitted, unavailable, or unusable, the runtime will fall back to derived layers from `cells.arrow`.
 
 ### `profiler/index.json`
 
@@ -284,3 +286,5 @@ Required columns:
 - The application reads only from `.local/app-data/v1/`.
 - Missing required files should be treated as contract errors.
 - Optional acceleration files may be omitted; the UI will fall back to `cells.arrow`.
+- Manifest capabilities decide whether the corresponding routed workspace should be considered available.
+- When a route cannot load its required contract inputs, the UI should surface a route-level unavailable state instead of crashing the whole application.
