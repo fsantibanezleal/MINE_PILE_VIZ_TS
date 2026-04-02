@@ -36,12 +36,54 @@ function PileAnchorTrack({ title, anchors, kind }: PileAnchorTrackProps) {
 interface PileAnchorFrameProps {
   inputs: GraphAnchor[];
   outputs: GraphAnchor[];
+  showInFigureAnchors?: boolean;
   children: ReactNode;
+}
+
+interface PileInFigureAnchorLayerProps {
+  anchors: GraphAnchor[];
+  kind: "input" | "output";
+}
+
+function PileInFigureAnchorLayer({
+  anchors,
+  kind,
+}: PileInFigureAnchorLayerProps) {
+  const placements = getStockpileAnchorPlacements(anchors);
+  const token = kind === "input" ? "F" : "D";
+
+  if (placements.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`pile-anchor-overlay pile-anchor-overlay--${kind}`}
+      data-testid={`pile-anchor-overlay-${kind}`}
+      aria-hidden="true"
+    >
+      {placements.map(({ anchor, normalizedX }, index) => (
+        <div
+          key={anchor.id}
+          className={`pile-anchor-overlay__item pile-anchor-overlay__item--${kind}`}
+          style={{ left: `${normalizedX * 100}%` }}
+          title={anchor.label}
+        >
+          <span className="pile-anchor-overlay__line" />
+          <span className="pile-anchor-overlay__marker">
+            {token}
+            {index + 1}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function PileAnchorFrame({
   inputs,
   outputs,
+  showInFigureAnchors = false,
   children,
 }: PileAnchorFrameProps) {
   if (inputs.length === 0 && outputs.length === 0) {
@@ -51,7 +93,15 @@ export function PileAnchorFrame({
   return (
     <div className="pile-visual-frame">
       <PileAnchorTrack title={`Feeds (${inputs.length})`} anchors={inputs} kind="input" />
-      <div className="pile-visual-frame__content">{children}</div>
+      <div className="pile-visual-frame__content">
+        {showInFigureAnchors ? (
+          <>
+            <PileInFigureAnchorLayer anchors={inputs} kind="input" />
+            <PileInFigureAnchorLayer anchors={outputs} kind="output" />
+          </>
+        ) : null}
+        {children}
+      </div>
       <PileAnchorTrack
         title={`Discharges (${outputs.length})`}
         anchors={outputs}

@@ -361,7 +361,11 @@ export function ProfilerWorkspace({
 
     if (detailSnapshot.objectType === "pile" && selectedGraphNode) {
       detailView = (
-        <PileAnchorFrame inputs={selectedGraphNode.inputs} outputs={selectedGraphNode.outputs}>
+        <PileAnchorFrame
+          inputs={selectedGraphNode.inputs}
+          outputs={selectedGraphNode.outputs}
+          showInFigureAnchors={detailSnapshot.dimension >= 2}
+        >
           {detailView}
         </PileAnchorFrame>
       );

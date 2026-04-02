@@ -173,6 +173,55 @@ function createSnapshot(
   };
 }
 
+function create2DPileSnapshot(snapshotId: string): ProfilerSnapshot {
+  return {
+    objectId: "pile_a",
+    displayName: "Pile A",
+    objectType: "pile",
+    snapshotId,
+    timestamp: "2025-03-19T01:15:00Z",
+    dimension: 2,
+    rows: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 18,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.1 },
+      },
+      {
+        ix: 1,
+        iy: 0,
+        iz: 0,
+        massTon: 20,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.18 },
+      },
+      {
+        ix: 0,
+        iy: 1,
+        iz: 0,
+        massTon: 22,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.24 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 0,
+        massTon: 24,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.3 },
+      },
+    ],
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -252,11 +301,44 @@ describe("ProfilerWorkspace", () => {
 
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
+    expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
 
     fireEvent.mouseEnter(screen.getByLabelText("Pile cell 0,0,0"));
 
     expect(screen.getByText("Cell Focus")).toBeInTheDocument();
     expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
     expect(screen.getByText("20 t")).toBeInTheDocument();
+  });
+
+  it("adds in-figure anchors for 2D profiler pile detail snapshots", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(create2DPileSnapshot("20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByRole("heading", { name: "Pile A" });
+    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
+
+    const inputOverlay = await screen.findByTestId("pile-anchor-overlay-input");
+    const outputOverlay = screen.getByTestId("pile-anchor-overlay-output");
+
+    expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
+    expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
+    expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
+    expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
   });
 });

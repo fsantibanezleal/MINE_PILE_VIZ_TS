@@ -463,7 +463,11 @@ export function StockpileWorkspace({
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
         <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
         {dataset ? (
-          <PileAnchorFrame inputs={dataset.inputs} outputs={dataset.outputs}>
+          <PileAnchorFrame
+            inputs={dataset.inputs}
+            outputs={dataset.outputs}
+            showInFigureAnchors={dataset.dimension >= 2}
+          >
             {content}
           </PileAnchorFrame>
         ) : (

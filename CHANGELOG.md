@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.028
+
+- Added a second in-figure stockpile anchor layer for `2D` and `3D` pile views.
+- Kept the fixed external feed and discharge tracks while adding near-pile feed and discharge markers at their horizontal anchor positions.
+- Extended stockpile and profiler component coverage so the new in-figure anchor layer stays gated to dimensional pile views.
+
 ### 0.01.027
 
 - Improved spatial separation in the illustrative 2D and 3D circuit layouts.
