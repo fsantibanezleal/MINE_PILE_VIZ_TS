@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.042`
-- Active tracked version: `0.01.043`
+- Closed release baseline: `0.01.043`
+- Active tracked version: `0.01.044`
 
 ## Release History
+
+### 0.01.044
+
+- Reframed each routed workspace around an explicit source-of-truth statement so live, stockpile, profiler, and simulator views stop reading like equivalent data products.
+- Added route-basis summaries in page headers and workspaces to declare source, resolution, and time basis directly next to the active content.
+- Clarified profiler history as reduced historical summary and simulator state as a mixed central-pile-plus-live-route view.
 
 ### 0.01.043
 

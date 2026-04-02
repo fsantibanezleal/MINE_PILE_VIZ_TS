@@ -23,6 +23,7 @@ import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-pan
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
+import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
@@ -1262,11 +1263,12 @@ export function SimulatorWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Selection</div>
+        <div className="section-label">Selected route state</div>
         <h3>{centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}</h3>
         <p className="muted-text">
-          The simulator keeps pile content in the center and summarizes the currently selected
-          discharge route without exposing raw source artifacts.
+          The simulator combines one central pile state with the currently selected discharge
+          route. Today that means one pile snapshot in the center and current downstream belt
+          strips on the route itself.
         </p>
         <MetricGrid
           metrics={[
@@ -1290,8 +1292,28 @@ export function SimulatorWorkspace({
                   : centralData?.source === "current-stockpile"
                     ? "Current state"
                     : "Pending",
-            },
-          ]}
+              },
+            ]}
+          />
+        <RouteBasisPanel
+          source={
+            centralData?.source === "profiler-snapshot"
+              ? "Profiler pile snapshot + live route belts"
+              : centralData?.source === "current-stockpile"
+                ? "Current pile dataset + live route belts"
+                : "Pending"
+          }
+          resolution={
+            centralData ? `${centralData.dimension}D pile detail + dense belt blocks` : "Pending"
+          }
+          timeBasis={
+            centralData?.source === "profiler-snapshot"
+              ? "Selected pile timestep with current route belts"
+              : centralData?.source === "current-stockpile"
+                ? "Current pile and route state"
+                : "Pending"
+          }
+          note="The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
         />
         <MetricGrid
           metrics={[

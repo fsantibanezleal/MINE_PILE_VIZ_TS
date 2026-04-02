@@ -30,6 +30,7 @@ import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-pan
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
+import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -487,13 +488,13 @@ export function ProfilerWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Snapshot</div>
+        <div className="section-label">Historical summary snapshot</div>
         <h3>
           {selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"}
         </h3>
         <p className="muted-text">
-          Aggregated profiler snapshots provide lower-resolution content that can be replayed
-          through time without reading the original source artifacts.
+          Profiler content is historical and aggregated. It replays reduced-resolution
+          snapshots through time instead of exposing the dense current state.
         </p>
         <MetricGrid
           metrics={[
@@ -514,6 +515,12 @@ export function ProfilerWorkspace({
               value: effectiveSnapshotId || "N/A",
             },
           ]}
+        />
+        <RouteBasisPanel
+          source={mode === "circuit" ? "Profiler summary rows" : "Profiler detail snapshot"}
+          resolution={mode === "circuit" ? "Reduced circuit summaries" : "Reduced per-object rows"}
+          timeBasis={effectiveSnapshotId ? "Selected historical timestep" : "Pending"}
+          note="Use live or stockpiles when you need current dense state instead of historical summarized content."
         />
         <MetricGrid
           metrics={[

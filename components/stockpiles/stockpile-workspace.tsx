@@ -21,6 +21,7 @@ import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-pan
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
+import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -508,11 +509,11 @@ export function StockpileWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Dataset</div>
+        <div className="section-label">Dense current pile state</div>
         <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
         <p className="muted-text">
           {dataset
-            ? "Current view exposes normalized feed and reclaim anchors together with the selected property values for occupied cells."
+            ? "This route reads the current dense pile inventory, including occupied cells or voxels plus configured feed and reclaim geometry."
             : "Dense pile content is requested after selection so the route can mount without preloading the full voxel table."}
         </p>
         <MetricGrid
@@ -522,6 +523,14 @@ export function StockpileWorkspace({
             { label: "View", value: dataset ? (dataset.dimension === 3 ? viewMode : `${dataset.dimension}D`) : "Pending" },
             { label: "Rendered cells", value: String(visibleCellCount) },
           ]}
+        />
+        <RouteBasisPanel
+          source={dataset ? "Current pile dataset" : "Pending"}
+          resolution={
+            dataset ? `${dataset.dimension}D dense ${dataset.dimension === 3 ? "cells / voxels" : "cells"}` : "Pending"
+          }
+          timeBasis={dataset ? "Current pile snapshot" : "Pending"}
+          note="Use the profiler route when you need historical summaries instead of the current dense inventory."
         />
         {viewMode === "full" && dataset?.dimension === 3 ? (
           <MetricGrid
@@ -554,7 +563,7 @@ export function StockpileWorkspace({
             qualities={availableQualities}
             values={dataset.qualityAverages}
             records={dataset.cells}
-            totalMassTon={dataset.cells.reduce((sum, cell) => sum + cell.massTon, 0)}
+            totalMassTon={totalMass}
           />
         ) : null}
         <div className="inspector-stack">

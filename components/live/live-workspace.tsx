@@ -16,6 +16,7 @@ import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualitySelector } from "@/components/ui/quality-selector";
+import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import {
@@ -224,12 +225,12 @@ export function LiveWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Current Object</div>
+        <div className="section-label">Current runtime object</div>
         <h3>{selectedSummary?.displayName ?? currentBelt.displayName}</h3>
         <p className="muted-text">
           {selectedObjectIsBelt
-            ? "The selected belt snapshot exposes ordered material blocks for the current runtime state."
-            : "The current focus is an accumulation object or non-belt runtime object. Summary metrics remain available even when no belt strip applies."}
+            ? "This selection is reading a current dense belt snapshot with ordered block content from the live runtime cache."
+            : "This selection is reading the current object summary only. Live belt strips apply only to transport objects on this route."}
         </p>
         <MetricGrid
           metrics={[
@@ -249,6 +250,16 @@ export function LiveWorkspace({
               value: formatTimestamp(selectedSummary?.timestamp ?? currentBelt.timestamp),
             },
           ]}
+        />
+        <RouteBasisPanel
+          source={selectedObjectIsBelt ? "Current belt snapshot" : "Current object summary"}
+          resolution={selectedObjectIsBelt ? "Dense ordered blocks" : "Current summary metrics"}
+          timeBasis="Current runtime state"
+          note={
+            selectedObjectIsBelt
+              ? "Use this route when you need the actual current transport content block-by-block."
+              : "Use the stockpile or profiler routes when the selected object needs internal content or historical context."
+          }
         />
         <ProfiledPropertiesPanel
           qualities={qualities}

@@ -116,7 +116,7 @@ export default async function LivePage() {
     <AppShell
       eyebrow="Live State"
       title="Current belt and pile state"
-      description="The live state page overlays current mass and block content on the process map, then lets you inspect belt arrays block-by-block."
+      description="The live state page reads current runtime belt snapshots and current object summaries. It is the dense transport-state view for what is on belts now, not a historical replay surface."
       actions={
         <MetricGrid
           metrics={[
@@ -131,6 +131,9 @@ export default async function LivePage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
+            { label: "Source", value: "Current live snapshots" },
+            { label: "Resolution", value: "Dense belt blocks" },
+            { label: "Time basis", value: "Latest runtime state" },
           ]}
         />
       }
