@@ -7,6 +7,7 @@ import { CircuitDiagramCanvas } from "@/components/circuit/circuit-diagram-canva
 import { CircuitIllustration } from "@/components/circuit/circuit-illustration";
 import { CircuitInspector } from "@/components/circuit/circuit-inspector";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { deriveCircuitSequence } from "@/lib/circuit-sequence";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -59,6 +60,10 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
   const selectedSummary = useMemo(
     () => summaries.find((summary) => summary.objectId === selectedObjectId),
     [selectedObjectId, summaries],
+  );
+  const sequenceState = useMemo(
+    () => deriveCircuitSequence(graph, selectedObjectId),
+    [graph, selectedObjectId],
   );
   const physicalCount = graph.nodes.filter((node) => node.objectRole === "physical").length;
   const virtualCount = graph.nodes.length - physicalCount;
@@ -120,12 +125,14 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
         <CircuitDiagramCanvas
           graph={graph}
           selectedObjectId={selectedObjectId}
+          sequenceState={sequenceState}
           onSelect={handleSelectObject}
         />
       ) : (
         <CircuitIllustration
           graph={graph}
           selectedObjectId={selectedObjectId}
+          sequenceState={sequenceState}
           onSelect={handleSelectObject}
           mode={mode}
         />

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
+import type { CircuitSequenceState } from "@/lib/circuit-sequence";
 import type { CircuitGraph } from "@/types/app-data";
 import {
   buildCircuitPresentation,
@@ -16,19 +17,35 @@ type CircuitViewMode = "illustration-2d" | "illustration-3d";
 interface CircuitIllustrationProps {
   graph: CircuitGraph;
   selectedObjectId?: string;
+  sequenceState?: CircuitSequenceState | null;
   onSelect?: (objectId: string) => void;
   mode: CircuitViewMode;
 }
 
-function getNodeOpacity(selectedObjectId: string | undefined, nodeId: string) {
-  return selectedObjectId && selectedObjectId !== nodeId ? 0.34 : 1;
+function getNodeOpacity(
+  selectedObjectId: string | undefined,
+  sequenceState: CircuitSequenceState | null | undefined,
+  nodeId: string,
+) {
+  if (!selectedObjectId || !sequenceState) {
+    return 1;
+  }
+
+  return sequenceState.nodeIds.has(nodeId) ? 1 : 0.24;
 }
 
-function getNodeClassName(node: CircuitPresentationNode, selectedObjectId?: string) {
+function getNodeClassName(
+  node: CircuitPresentationNode,
+  selectedObjectId?: string,
+  sequenceState?: CircuitSequenceState | null,
+) {
   return [
     "circuit-illustration__object",
     `circuit-illustration__object--${node.visualKind}`,
     selectedObjectId === node.id ? "circuit-illustration__object--selected" : "",
+    sequenceState?.nodeIds.has(node.id) && selectedObjectId !== node.id
+      ? "circuit-illustration__object--sequence"
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -147,9 +164,11 @@ function renderNodeShape(node: CircuitPresentationNode) {
 function Illustration2D({
   graph,
   selectedObjectId,
+  sequenceState,
   onSelect,
 }: Omit<CircuitIllustrationProps, "mode">) {
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
+  const highlightedEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
 
   return (
     <section className="panel panel--canvas">
@@ -200,9 +219,18 @@ function Illustration2D({
               key={edge.id}
               d={edge.path}
               className={
-                edge.isVirtualLink
-                  ? "circuit-illustration__edge circuit-illustration__edge--virtual"
-                  : "circuit-illustration__edge"
+                [
+                  "circuit-illustration__edge",
+                  edge.isVirtualLink ? "circuit-illustration__edge--virtual" : "",
+                  selectedObjectId && highlightedEdgeIds.has(edge.id)
+                    ? "circuit-illustration__edge--active"
+                    : "",
+                  selectedObjectId && !highlightedEdgeIds.has(edge.id)
+                    ? "circuit-illustration__edge--muted"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")
               }
               markerEnd="url(#circuit-arrow)"
             />
@@ -211,8 +239,8 @@ function Illustration2D({
           {presentation.nodes.map((node) => (
             <g
               key={node.id}
-              className={getNodeClassName(node, selectedObjectId)}
-              style={{ opacity: getNodeOpacity(selectedObjectId, node.id) }}
+              className={getNodeClassName(node, selectedObjectId, sequenceState)}
+              style={{ opacity: getNodeOpacity(selectedObjectId, sequenceState, node.id) }}
               onClick={() => onSelect?.(node.id)}
             >
               {renderNodeShape(node)}
@@ -252,24 +280,39 @@ function Illustration2D({
 function Belt3D({
   node,
   selected,
+  inSequence,
   onSelect,
 }: {
   node: CircuitPresentationNode;
   selected: boolean;
+  inSequence: boolean;
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
   const z = node.objectRole === "physical" ? 0 : 9;
+  const opacity = inSequence ? 1 : 0.26;
 
   return (
     <group position={[x, 0.72, z]} onClick={() => onSelect?.(node.id)}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={[6.6, 0.9, 1.8]} />
-        <meshStandardMaterial color={selected ? "#59ddff" : "#2b8cff"} metalness={0.14} roughness={0.48} />
+        <meshStandardMaterial
+          color={selected ? "#59ddff" : "#2b8cff"}
+          metalness={0.14}
+          roughness={0.48}
+          transparent
+          opacity={opacity}
+        />
       </mesh>
       <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
         <boxGeometry args={[5.9, 0.28, 1.12]} />
-        <meshStandardMaterial color={selected ? "#c6f7ff" : "#b9d3ee"} metalness={0.04} roughness={0.66} />
+        <meshStandardMaterial
+          color={selected ? "#c6f7ff" : "#b9d3ee"}
+          metalness={0.04}
+          roughness={0.66}
+          transparent
+          opacity={opacity}
+        />
       </mesh>
       <Html center position={[0, 1.4, 0]} className="circuit-3d__label">
         <strong>{node.label}</strong>
@@ -281,28 +324,37 @@ function Belt3D({
 function Pile3D({
   node,
   selected,
+  inSequence,
   onSelect,
 }: {
   node: CircuitPresentationNode;
   selected: boolean;
+  inSequence: boolean;
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
   const z = node.objectRole === "physical" ? 0 : 9;
+  const opacity = inSequence ? 1 : 0.26;
 
   return (
     <group position={[x, 0, z]} onClick={() => onSelect?.(node.id)}>
       <mesh position={[0, 2.9, 0]} castShadow receiveShadow rotation={[0, Math.PI / 4, 0]}>
         <coneGeometry args={[3.3, 5.8, 4]} />
-        <meshStandardMaterial color={selected ? "#59ddff" : "#f4bc63"} metalness={0.04} roughness={0.76} />
+        <meshStandardMaterial
+          color={selected ? "#59ddff" : "#f4bc63"}
+          metalness={0.04}
+          roughness={0.76}
+          transparent
+          opacity={opacity}
+        />
       </mesh>
       <mesh position={[0, 6.4, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[0.18, 0.18, 1.2, 10]} />
-        <meshStandardMaterial color="#59ddff" />
+        <meshStandardMaterial color="#59ddff" transparent opacity={opacity} />
       </mesh>
       <mesh position={[0, 0.36, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.9, 0.72, 1.2]} />
-        <meshStandardMaterial color="#94abc4" />
+        <meshStandardMaterial color="#94abc4" transparent opacity={opacity} />
       </mesh>
       {node.inputs.map((anchor) => {
         const point = getPresentationAnchorPoint3d(node, anchor, "input");
@@ -311,11 +363,11 @@ function Pile3D({
           <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
             <mesh castShadow receiveShadow>
               <cylinderGeometry args={[0.18, 0.18, 1.2, 10]} />
-              <meshStandardMaterial color="#59ddff" />
+              <meshStandardMaterial color="#59ddff" transparent opacity={opacity} />
             </mesh>
             <mesh position={[0, 0.7, 0]} castShadow receiveShadow>
               <sphereGeometry args={[0.24, 12, 12]} />
-              <meshStandardMaterial color="#c6f7ff" />
+              <meshStandardMaterial color="#c6f7ff" transparent opacity={opacity} />
             </mesh>
           </group>
         );
@@ -327,7 +379,7 @@ function Pile3D({
           <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
             <mesh castShadow receiveShadow>
               <boxGeometry args={[0.72, 0.36, 0.96]} />
-              <meshStandardMaterial color="#94abc4" />
+              <meshStandardMaterial color="#94abc4" transparent opacity={opacity} />
             </mesh>
           </group>
         );
@@ -342,13 +394,16 @@ function Pile3D({
 function VirtualMarker3D({
   node,
   selected,
+  inSequence,
   onSelect,
 }: {
   node: CircuitPresentationNode;
   selected: boolean;
+  inSequence: boolean;
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
+  const opacity = inSequence ? 0.72 : 0.2;
 
   return (
     <group position={[x, 0.7, 9]} onClick={() => onSelect?.(node.id)}>
@@ -357,7 +412,7 @@ function VirtualMarker3D({
         <meshStandardMaterial
           color={selected ? "#59ddff" : "#6f849f"}
           transparent
-          opacity={0.72}
+          opacity={opacity}
           metalness={0.02}
           roughness={0.78}
         />
@@ -372,10 +427,14 @@ function VirtualMarker3D({
 function Illustration3D({
   graph,
   selectedObjectId,
+  sequenceState,
   onSelect,
 }: Omit<CircuitIllustrationProps, "mode">) {
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
   const spreadX = Math.max(18, presentation.stages.length * 6.4);
+  const highlightedNodeIds = sequenceState?.nodeIds ?? new Set<string>();
+  const highlightedEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
+  const hasSelection = Boolean(selectedObjectId);
 
   return (
     <section className="panel panel--canvas">
@@ -398,14 +457,37 @@ function Illustration3D({
             <Line
               key={edge.id}
               points={edge.points3d}
-              color={edge.isVirtualLink ? "#6f849f" : "#59ddff"}
-              lineWidth={edge.isVirtualLink ? 0.8 : 1.6}
+              color={
+                !hasSelection || highlightedEdgeIds.has(edge.id)
+                  ? edge.isVirtualLink
+                    ? "#94abc4"
+                    : "#59ddff"
+                  : "#48617a"
+              }
+              lineWidth={
+                !hasSelection
+                  ? edge.isVirtualLink
+                    ? 0.8
+                    : 1.6
+                  : highlightedEdgeIds.has(edge.id)
+                    ? 2.2
+                    : 0.8
+              }
               transparent
-              opacity={edge.isVirtualLink ? 0.5 : 0.78}
+              opacity={
+                !hasSelection
+                  ? edge.isVirtualLink
+                    ? 0.5
+                    : 0.78
+                  : highlightedEdgeIds.has(edge.id)
+                    ? 0.92
+                    : 0.16
+              }
             />
           ))}
           {presentation.nodes.map((node) => {
             const selected = node.id === selectedObjectId;
+            const inSequence = !hasSelection || highlightedNodeIds.has(node.id);
 
             if (node.visualKind === "physical-belt") {
               return (
@@ -413,6 +495,7 @@ function Illustration3D({
                   key={node.id}
                   node={node}
                   selected={selected}
+                  inSequence={inSequence}
                   onSelect={onSelect}
                 />
               );
@@ -424,6 +507,7 @@ function Illustration3D({
                   key={node.id}
                   node={node}
                   selected={selected}
+                  inSequence={inSequence}
                   onSelect={onSelect}
                 />
               );
@@ -434,6 +518,7 @@ function Illustration3D({
                 key={node.id}
                 node={node}
                 selected={selected}
+                inSequence={inSequence}
                 onSelect={onSelect}
               />
             );
@@ -448,6 +533,7 @@ function Illustration3D({
 export function CircuitIllustration({
   graph,
   selectedObjectId,
+  sequenceState,
   onSelect,
   mode,
 }: CircuitIllustrationProps) {
@@ -456,6 +542,7 @@ export function CircuitIllustration({
       <Illustration3D
         graph={graph}
         selectedObjectId={selectedObjectId}
+        sequenceState={sequenceState}
         onSelect={onSelect}
       />
     );
@@ -465,6 +552,7 @@ export function CircuitIllustration({
     <Illustration2D
       graph={graph}
       selectedObjectId={selectedObjectId}
+      sequenceState={sequenceState}
       onSelect={onSelect}
     />
   );

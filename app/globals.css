@@ -419,11 +419,22 @@ code {
   stroke: rgba(89, 221, 255, 0.74);
   stroke-width: 4;
   stroke-linecap: round;
+  transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease;
 }
 
 .circuit-illustration__edge--virtual {
   stroke: rgba(111, 132, 159, 0.64);
   stroke-dasharray: 10 10;
+}
+
+.circuit-illustration__edge--active {
+  stroke: rgba(89, 221, 255, 0.92);
+  stroke-width: 5;
+}
+
+.circuit-illustration__edge--muted {
+  stroke: rgba(124, 164, 201, 0.22);
+  opacity: 0.22;
 }
 
 .circuit-illustration__object {
@@ -435,6 +446,12 @@ code {
 .circuit-illustration__object--selected .circuit-illustration__pile,
 .circuit-illustration__object--selected .circuit-illustration__virtual {
   filter: drop-shadow(0 0 16px rgba(89, 221, 255, 0.26));
+}
+
+.circuit-illustration__object--sequence .circuit-illustration__belt,
+.circuit-illustration__object--sequence .circuit-illustration__pile,
+.circuit-illustration__object--sequence .circuit-illustration__virtual {
+  filter: drop-shadow(0 0 12px rgba(91, 140, 255, 0.16));
 }
 
 .circuit-illustration__belt {
@@ -549,6 +566,11 @@ code {
 .circuit-node--selected {
   border-color: rgba(89, 221, 255, 0.52);
   box-shadow: 0 18px 46px rgba(89, 221, 255, 0.18);
+}
+
+.circuit-node--sequence {
+  border-color: rgba(91, 140, 255, 0.34);
+  box-shadow: 0 14px 34px rgba(91, 140, 255, 0.1);
 }
 
 .circuit-node__header,

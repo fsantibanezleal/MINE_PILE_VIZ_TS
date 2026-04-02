@@ -136,3 +136,15 @@ test("shows every configured pile anchor in the 2D circuit illustration", async 
   await expect(selectedPile.locator(".circuit-illustration__feed-marker")).toHaveCount(2);
   await expect(selectedPile.locator(".circuit-illustration__discharge-marker")).toHaveCount(2);
 });
+
+test("keeps the selected circuit object highlighted across illustration and diagram modes", async ({
+  page,
+}) => {
+  await page.goto("/circuit?object=pile_stockpile");
+  await expect(
+    page.locator(".circuit-illustration__object--selected"),
+  ).toContainText("Plant Stockpile");
+
+  await page.getByRole("button", { name: "Diagram" }).click();
+  await expect(page.locator(".circuit-node--selected")).toContainText("Plant Stockpile");
+});

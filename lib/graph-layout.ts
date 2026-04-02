@@ -13,6 +13,7 @@ export interface CircuitNodeData extends Record<string, unknown> {
   stageIndex: number;
   isProfiled: boolean;
   dimension: CircuitNode["dimension"];
+  isInSequence?: boolean;
 }
 
 export function layoutCircuitGraph(
