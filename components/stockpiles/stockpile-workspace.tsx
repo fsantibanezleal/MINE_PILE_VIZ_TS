@@ -16,6 +16,7 @@ import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
+import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
 import {
   PileColumnView,
@@ -426,7 +427,13 @@ export function StockpileWorkspace({
         ) : null}
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
         <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
-        {content}
+        {dataset ? (
+          <PileAnchorFrame inputs={dataset.inputs} outputs={dataset.outputs}>
+            {content}
+          </PileAnchorFrame>
+        ) : (
+          content
+        )}
       </section>
 
       <aside className="panel">

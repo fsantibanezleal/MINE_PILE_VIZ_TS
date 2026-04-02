@@ -68,8 +68,26 @@ function createPileDataset(objectId: string, displayName: string, fe: number): P
     suggestedFullStride: 1,
     fullModeThreshold: 100,
     qualityAverages: { q_num_fe: fe },
-    inputs: [],
-    outputs: [],
+    inputs: [
+      {
+        id: `${objectId}-feed`,
+        label: `${displayName} Feed`,
+        kind: "input",
+        x: 0.25,
+        y: 0.15,
+        relatedObjectId: "belt_feed",
+      },
+    ],
+    outputs: [
+      {
+        id: `${objectId}-reclaim`,
+        label: `${displayName} Reclaim`,
+        kind: "output",
+        x: 0.75,
+        y: 0.9,
+        relatedObjectId: "belt_reclaim",
+      },
+    ],
     files: {
       cells: `stockpiles/${objectId}/cells.arrow`,
     },
@@ -155,15 +173,19 @@ describe("StockpileWorkspace", () => {
     );
 
     expect(screen.getByText("Loading stockpile dataset...")).toBeInTheDocument();
-    await screen.findByRole("heading", { name: "Pile A" });
+    await screen.findByText("Pile A Feed");
     expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_a");
+    expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
+    expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Pile"), {
       target: { value: "pile_b" },
     });
 
     expect(screen.getByText("Loading stockpile dataset...")).toBeInTheDocument();
-    await screen.findByRole("heading", { name: "Pile B" });
+    await screen.findByText("Pile B Feed");
+    expect(screen.getByText("Pile B Feed")).toBeInTheDocument();
+    expect(screen.getByText("Pile B Reclaim")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_b");

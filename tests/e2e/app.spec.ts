@@ -164,3 +164,16 @@ test("shows configured anchor inventory details for the selected pile in the cir
   await expect(inspector.getByText("Reclaim east")).toBeVisible();
   await expect(inspector.getByText("Virtual Outflow Mixer").first()).toBeVisible();
 });
+
+test("shows stockpile feed and discharge anchors on the pile view", async ({
+  page,
+}) => {
+  await page.goto("/stockpiles?object=pile_stockpile");
+
+  await expect(page.getByText("Feeds (2)")).toBeVisible();
+  await expect(page.getByText("Feed point west")).toBeVisible();
+  await expect(page.getByText("Feed point east")).toBeVisible();
+  await expect(page.getByText("Discharges (2)")).toBeVisible();
+  await expect(page.getByText("Reclaim west")).toBeVisible();
+  await expect(page.getByText("Reclaim east")).toBeVisible();
+});

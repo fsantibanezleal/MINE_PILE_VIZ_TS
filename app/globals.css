@@ -918,6 +918,99 @@ code {
   border: 1px solid rgba(124, 164, 201, 0.12);
 }
 
+.pile-visual-frame {
+  position: relative;
+  width: min(100%, 880px);
+  margin: 0 auto;
+  padding: 70px 20px 74px;
+}
+
+.pile-visual-frame__content {
+  position: relative;
+}
+
+.pile-anchor-track {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  pointer-events: none;
+}
+
+.pile-anchor-track--input {
+  top: 10px;
+}
+
+.pile-anchor-track--output {
+  bottom: 10px;
+}
+
+.pile-anchor-track__title {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pile-anchor-track--output .pile-anchor-track__title {
+  text-align: right;
+}
+
+.pile-anchor {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.pile-anchor--input {
+  top: 20px;
+  flex-direction: column;
+}
+
+.pile-anchor--output {
+  bottom: 20px;
+  flex-direction: column-reverse;
+}
+
+.pile-anchor__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 120px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 18, 31, 0.92);
+  border: 1px solid rgba(124, 164, 201, 0.18);
+  color: var(--text-primary);
+  font-size: 0.74rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+}
+
+.pile-anchor__line {
+  width: 2px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(89, 221, 255, 0.72);
+}
+
+.pile-anchor__marker {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(89, 221, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.pile-anchor--output .pile-anchor__marker {
+  border-radius: 3px;
+  background: rgba(148, 171, 196, 0.94);
+}
+
 .notice-card,
 .loading-banner,
 .empty-visual {
@@ -984,5 +1077,15 @@ code {
   .hero-panel__actions {
     width: 100%;
     flex-basis: auto;
+  }
+
+  .pile-visual-frame {
+    padding-top: 84px;
+    padding-bottom: 88px;
+  }
+
+  .pile-anchor__label {
+    max-width: 92px;
+    font-size: 0.7rem;
   }
 }
