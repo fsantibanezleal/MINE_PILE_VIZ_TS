@@ -140,11 +140,40 @@ code {
   background: rgba(77, 194, 255, 0.15);
 }
 
+.link-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(17, 33, 54, 0.68);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.link-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: rgba(77, 194, 255, 0.14);
+}
+
 .app-header__meta,
 .hero-panel__actions,
-.button-row {
+.button-row,
+.workspace-jumps__links {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workspace-jumps {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 

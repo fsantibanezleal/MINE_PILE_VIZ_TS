@@ -24,21 +24,21 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
     page.getByLabel("Illustrated circuit overview").getByText("Plant Stockpile"),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Live State" }).click();
+  await page.getByRole("link", { name: "Live State", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Current belt and pile state" }),
   ).toBeVisible();
   await expect(page.getByText("Block strip")).toBeVisible();
   await expect(page.getByText("Mass-weighted histogram")).toBeVisible();
 
-  await page.getByRole("link", { name: "Stockpiles" }).click();
+  await page.getByRole("link", { name: "Stockpiles", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Internal stockpile views" }),
   ).toBeVisible();
   await expect(page.getByText("Selection", { exact: true })).toBeVisible();
   await expect(page.getByText("Occupied cells", { exact: true }).first()).toBeVisible();
 
-  await page.getByRole("link", { name: "Profiler" }).click();
+  await page.getByRole("link", { name: "Profiler", exact: true }).click();
   await expect(page.getByRole("heading", { name: "History explorer" })).toBeVisible();
   await expect(page.getByText("Playback")).toBeVisible();
   expect(reactFlowContainerWarnings).toEqual([]);
@@ -94,7 +94,29 @@ test("preserves object and property context when moving between routed workspace
     page.locator('label:has-text("Property") select').first(),
   ).toHaveValue("q_num_cut");
 
-  await page.getByRole("link", { name: "Profiler" }).click();
+  await page.getByRole("link", { name: "Profiler", exact: true }).click();
+  await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut$/);
+  await expect(
+    page.locator('label:has-text("Object") select').first(),
+  ).toHaveValue("pile_stockpile");
+  await expect(
+    page.locator('label:has-text("Property") select').first(),
+  ).toHaveValue("q_num_cut");
+});
+
+test("opens related workspaces from inspection panels with preserved context", async ({
+  page,
+}) => {
+  await page.goto("/circuit?object=pile_stockpile&quality=q_num_cut");
+  await expect(page.getByRole("link", { name: "Open Stockpiles" })).toBeVisible();
+
+  await page.getByRole("link", { name: "Open Stockpiles" }).click();
+  await expect(page).toHaveURL(/\/stockpiles\?object=pile_stockpile&quality=q_num_cut$/);
+  await expect(
+    page.locator('label:has-text("Pile") select').first(),
+  ).toHaveValue("pile_stockpile");
+
+  await page.getByRole("link", { name: "Open Profiler" }).click();
   await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut$/);
   await expect(
     page.locator('label:has-text("Object") select').first(),

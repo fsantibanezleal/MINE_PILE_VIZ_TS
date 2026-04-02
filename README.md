@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.015` |
+| Release-synced version | `0.01.016` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -99,6 +99,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 The live workspace focuses on instantaneous transport state. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected property across the current belt content without losing the block ordering view. The side panel keeps the selected object summary visible for quick reading.
 Route query state now preserves the current object and property context when the operator moves to another workspace through the top navigation.
+The side inspection panels now expose direct cross-workspace actions so the operator can jump into a more suitable view without resetting object or property context.
 
 ### Stockpile Workspace
 
@@ -128,7 +129,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.015 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.016 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -242,6 +243,6 @@ types/
 
 ## Current Version
 
-`0.01.015`
+`0.01.016`
 
 Versioning uses the fixed-width format `x.xx.xxx`.

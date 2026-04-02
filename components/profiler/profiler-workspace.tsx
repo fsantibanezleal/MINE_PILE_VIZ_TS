@@ -24,6 +24,7 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
+import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
 import {
   PileColumnView,
@@ -276,6 +277,7 @@ export function ProfilerWorkspace({
   const selectedQuality =
     availableQualities.find((quality) => quality.id === selectedQualityId) ??
     availableQualities[0];
+  const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
 
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
@@ -465,6 +467,11 @@ export function ProfilerWorkspace({
             limit={availableQualities.length}
           />
         ) : null}
+        <WorkspaceJumpLinks
+          objectId={selectedObjectId}
+          objectType={selectedIndexEntry?.objectType}
+          isProfiled
+        />
       </aside>
     </div>
   );

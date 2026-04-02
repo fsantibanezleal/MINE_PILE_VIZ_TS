@@ -1,6 +1,7 @@
 "use client";
 
 import type { CircuitNode, ObjectSummary } from "@/types/app-data";
+import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 
 interface CircuitInspectorProps {
@@ -90,6 +91,11 @@ export function CircuitInspector({ node, summary }: CircuitInspectorProps) {
           <strong>{node.outputs.length}</strong>
         </div>
       </div>
+      <WorkspaceJumpLinks
+        objectId={node.objectId}
+        objectType={node.objectType}
+        isProfiled={node.isProfiled}
+      />
     </aside>
   );
 }

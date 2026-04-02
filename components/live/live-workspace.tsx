@@ -16,6 +16,7 @@ import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
+import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
@@ -65,6 +66,7 @@ export function LiveWorkspace({
 
   const selectedQuality = qualities.find((quality) => quality.id === selectedQualityId);
   const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
+  const selectedRegistryEntry = registry.find((entry) => entry.objectId === selectedObjectId);
   const selectedObjectIsBelt = beltEntries.some(
     (entry) => entry.objectId === selectedObjectId,
   );
@@ -251,6 +253,11 @@ export function LiveWorkspace({
         <QualityValueList
           qualities={qualities}
           values={selectedSummary?.qualityValues ?? currentBelt.qualityAverages}
+        />
+        <WorkspaceJumpLinks
+          objectId={selectedObjectId}
+          objectType={selectedRegistryEntry?.objectType}
+          isProfiled={selectedRegistryEntry?.isProfiled}
         />
       </aside>
     </div>
