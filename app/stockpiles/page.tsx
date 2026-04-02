@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { StockpileWorkspace } from "@/components/stockpiles/stockpile-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
@@ -120,11 +121,13 @@ export default async function StockpilesPage() {
         />
       }
     >
-      <StockpileWorkspace
-        pileEntries={state.pileEntries}
-        qualities={state.qualities}
-        initialPileId={state.initialPileId}
-      />
+      <Suspense fallback={<div className="panel">Loading route context...</div>}>
+        <StockpileWorkspace
+          pileEntries={state.pileEntries}
+          qualities={state.qualities}
+          initialPileId={state.initialPileId}
+        />
+      </Suspense>
     </AppShell>
   );
 }

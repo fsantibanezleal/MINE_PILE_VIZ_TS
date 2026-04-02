@@ -7,6 +7,14 @@ import type {
   QualityDefinition,
 } from "@/types/app-data";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/stockpiles",
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 const qualities: QualityDefinition[] = [
   {
     id: "q_num_fe",

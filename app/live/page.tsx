@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { LiveWorkspace } from "@/components/live/live-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
@@ -134,13 +135,15 @@ export default async function LivePage() {
         />
       }
     >
-      <LiveWorkspace
-        graph={state.graph}
-        summaries={state.summaries}
-        registry={state.registry}
-        qualities={state.qualities}
-        initialBelt={state.initialBelt}
-      />
+      <Suspense fallback={<div className="panel">Loading route context...</div>}>
+        <LiveWorkspace
+          graph={state.graph}
+          summaries={state.summaries}
+          registry={state.registry}
+          qualities={state.qualities}
+          initialBelt={state.initialBelt}
+        />
+      </Suspense>
     </AppShell>
   );
 }

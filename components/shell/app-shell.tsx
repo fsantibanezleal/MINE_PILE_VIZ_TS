@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { DatabaseZap, Radar } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-config";
 import { RouteNav } from "@/components/shell/route-nav";
@@ -26,7 +26,9 @@ export function AppShell({
           <h1>{APP_NAME}</h1>
           <p>{title}</p>
         </div>
-        <RouteNav />
+        <Suspense fallback={<nav className="top-nav" aria-label="Primary" />}>
+          <RouteNav />
+        </Suspense>
         <div className="app-header__meta">
           <span className="status-chip">
             <Radar size={14} />

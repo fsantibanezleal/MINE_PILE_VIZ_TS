@@ -9,6 +9,14 @@ import type {
   QualityDefinition,
 } from "@/types/app-data";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/profiler",
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/components/circuit/circuit-flow", () => ({
   CircuitFlow: ({
     selectedObjectId,

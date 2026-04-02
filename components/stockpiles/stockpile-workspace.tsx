@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   ObjectRegistryEntry,
   PileDataset,
@@ -20,6 +21,10 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import {
+  buildHrefWithQuery,
+  resolveQuerySelection,
+} from "@/lib/workspace-route-state";
 
 interface StockpileWorkspaceProps {
   pileEntries: ObjectRegistryEntry[];
@@ -52,9 +57,22 @@ export function StockpileWorkspace({
   qualities,
   initialPileId,
 }: StockpileWorkspaceProps) {
-  const [selectedPileId, setSelectedPileId] = useState(initialPileId);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSelectedPileId = resolveQuerySelection(
+    searchParams.get("object"),
+    pileEntries.map((entry) => entry.objectId),
+    initialPileId,
+  );
+  const initialSelectedQualityId = resolveQuerySelection(
+    searchParams.get("quality"),
+    qualities.map((quality) => quality.id),
+    qualities[0]?.id ?? "",
+  );
+  const [selectedPileId, setSelectedPileId] = useState(initialSelectedPileId);
   const [dataset, setDataset] = useState<PileDataset | null>(null);
-  const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
+  const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
   const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
@@ -85,6 +103,26 @@ export function StockpileWorkspace({
     setLoading(true);
     setLoadError(null);
     setSelectedPileId(nextPileId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextPileId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
+  function handleSelectQuality(nextQualityId: string) {
+    setSelectedQualityId(nextQualityId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        quality: nextQualityId,
+      }),
+      {
+        scroll: false,
+      },
+    );
   }
 
   useEffect(() => {
@@ -305,7 +343,7 @@ export function StockpileWorkspace({
           label="Property"
           qualities={availableQualities}
           value={effectiveQualityId}
-          onChange={setSelectedQualityId}
+          onChange={handleSelectQuality}
         />
         {dataset?.dimension === 3 ? (
           <>

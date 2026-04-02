@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { CircuitWorkspace } from "@/components/circuit/circuit-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
@@ -109,7 +110,9 @@ export default async function CircuitPage() {
           {state.summariesIssue.description}
         </InlineNotice>
       ) : null}
-      <CircuitWorkspace graph={state.graph} summaries={state.summaries} />
+      <Suspense fallback={<div className="panel">Loading route context...</div>}>
+        <CircuitWorkspace graph={state.graph} summaries={state.summaries} />
+      </Suspense>
     </AppShell>
   );
 }

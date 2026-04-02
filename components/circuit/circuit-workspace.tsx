@@ -1,11 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CircuitGraph, ObjectSummary } from "@/types/app-data";
 import { CircuitDiagramCanvas } from "@/components/circuit/circuit-diagram-canvas";
 import { CircuitIllustration } from "@/components/circuit/circuit-illustration";
 import { CircuitInspector } from "@/components/circuit/circuit-inspector";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import {
+  buildHrefWithQuery,
+  resolveQuerySelection,
+} from "@/lib/workspace-route-state";
 
 type CircuitWorkspaceMode = "illustration-2d" | "illustration-3d" | "diagram";
 
@@ -23,8 +28,29 @@ function getInitialSelection(graph: CircuitGraph) {
 }
 
 export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const validObjectIds = graph.nodes.map((node) => node.id);
+  const initialSelectedObjectId = resolveQuerySelection(
+    searchParams.get("object"),
+    validObjectIds,
+    getInitialSelection(graph),
+  );
   const [mode, setMode] = useState<CircuitWorkspaceMode>("illustration-2d");
-  const [selectedObjectId, setSelectedObjectId] = useState(getInitialSelection(graph));
+  const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
+
+  function handleSelectObject(nextObjectId: string) {
+    setSelectedObjectId(nextObjectId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextObjectId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
 
   const selectedNode = useMemo(
     () => graph.nodes.find((node) => node.id === selectedObjectId),
@@ -72,7 +98,7 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
           <span>Focus object</span>
           <select
             value={selectedObjectId}
-            onChange={(event) => setSelectedObjectId(event.target.value)}
+            onChange={(event) => handleSelectObject(event.target.value)}
           >
             {graph.nodes.map((node) => (
               <option key={node.id} value={node.id}>
@@ -94,13 +120,13 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
         <CircuitDiagramCanvas
           graph={graph}
           selectedObjectId={selectedObjectId}
-          onSelect={setSelectedObjectId}
+          onSelect={handleSelectObject}
         />
       ) : (
         <CircuitIllustration
           graph={graph}
           selectedObjectId={selectedObjectId}
-          onSelect={setSelectedObjectId}
+          onSelect={handleSelectObject}
           mode={mode}
         />
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   BeltSnapshot,
   CircuitGraph,
@@ -16,6 +17,10 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import {
+  buildHrefWithQuery,
+  resolveQuerySelection,
+} from "@/lib/workspace-route-state";
 
 interface LiveWorkspaceProps {
   graph: CircuitGraph;
@@ -32,15 +37,33 @@ export function LiveWorkspace({
   qualities,
   initialBelt,
 }: LiveWorkspaceProps) {
-  const [selectedObjectId, setSelectedObjectId] = useState(initialBelt.objectId);
-  const [selectedBeltId, setSelectedBeltId] = useState(initialBelt.objectId);
-  const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const allObjectIds = registry.map((entry) => entry.objectId);
+  const beltEntries = registry.filter((entry) => entry.objectType === "belt" && entry.liveRef);
+  const beltIds = beltEntries.map((entry) => entry.objectId);
+  const initialSelectedObjectId = resolveQuerySelection(
+    searchParams.get("object"),
+    allObjectIds,
+    initialBelt.objectId,
+  );
+  const initialSelectedQualityId = resolveQuerySelection(
+    searchParams.get("quality"),
+    qualities.map((quality) => quality.id),
+    qualities[0]?.id ?? "",
+  );
+  const initialSelectedBeltId = beltIds.includes(initialSelectedObjectId)
+    ? initialSelectedObjectId
+    : initialBelt.objectId;
+  const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
+  const [selectedBeltId, setSelectedBeltId] = useState(initialSelectedBeltId);
+  const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
   const [currentBelt, setCurrentBelt] = useState(initialBelt);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialSelectedBeltId !== initialBelt.objectId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const selectedQuality = qualities.find((quality) => quality.id === selectedQualityId);
-  const beltEntries = registry.filter((entry) => entry.objectType === "belt" && entry.liveRef);
   const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
   const selectedObjectIsBelt = beltEntries.some(
     (entry) => entry.objectId === selectedObjectId,
@@ -50,6 +73,14 @@ export function LiveWorkspace({
     const beltEntry = beltEntries.find((entry) => entry.objectId === nextObjectId);
 
     setSelectedObjectId(nextObjectId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextObjectId,
+      }),
+      {
+        scroll: false,
+      },
+    );
 
     if (!beltEntry) {
       return;
@@ -116,6 +147,18 @@ export function LiveWorkspace({
     };
   }, [currentBelt.objectId, selectedBeltId]);
 
+  function handleSelectQuality(nextQualityId: string) {
+    setSelectedQualityId(nextQualityId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        quality: nextQualityId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
   return (
     <div className="workspace-grid workspace-grid--triple">
       <aside className="panel">
@@ -137,7 +180,7 @@ export function LiveWorkspace({
           label="Color by"
           qualities={qualities}
           value={selectedQualityId}
-          onChange={setSelectedQualityId}
+          onChange={handleSelectQuality}
         />
         <MetricGrid
           metrics={[

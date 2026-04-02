@@ -82,3 +82,24 @@ test("updates stockpile 3D colors when the selected property changes", async ({
   expect(afterHash).not.toBe(beforeHash);
   expect(deprecatedThreeClockWarnings).toEqual([]);
 });
+
+test("preserves object and property context when moving between routed workspaces", async ({
+  page,
+}) => {
+  await page.goto("/stockpiles?object=pile_stockpile&quality=q_num_cut");
+  await expect(
+    page.locator('label:has-text("Pile") select').first(),
+  ).toHaveValue("pile_stockpile");
+  await expect(
+    page.locator('label:has-text("Property") select').first(),
+  ).toHaveValue("q_num_cut");
+
+  await page.getByRole("link", { name: "Profiler" }).click();
+  await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut$/);
+  await expect(
+    page.locator('label:has-text("Object") select').first(),
+  ).toHaveValue("pile_stockpile");
+  await expect(
+    page.locator('label:has-text("Property") select').first(),
+  ).toHaveValue("q_num_cut");
+});

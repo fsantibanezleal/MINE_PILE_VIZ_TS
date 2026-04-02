@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   CircuitGraph,
   ObjectSummary,
@@ -29,6 +30,10 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import {
+  buildHrefWithQuery,
+  resolveQuerySelection,
+} from "@/lib/workspace-route-state";
 
 interface ProfilerWorkspaceProps {
   graph: CircuitGraph;
@@ -55,10 +60,23 @@ export function ProfilerWorkspace({
   index,
   qualities,
 }: ProfilerWorkspaceProps) {
-  const initialObjectId = useRef(index.defaultObjectId);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialObjectId = resolveQuerySelection(
+    searchParams.get("object"),
+    index.objects.map((entry) => entry.objectId),
+    index.defaultObjectId,
+  );
+  const initialQualityId = resolveQuerySelection(
+    searchParams.get("quality"),
+    qualities.map((quality) => quality.id),
+    qualities[0]?.id ?? "",
+  );
+  const initialObjectIdRef = useRef(initialObjectId);
   const [mode, setMode] = useState<ProfilerMode>("circuit");
-  const [selectedObjectId, setSelectedObjectId] = useState(index.defaultObjectId);
-  const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
+  const [selectedObjectId, setSelectedObjectId] = useState(initialObjectId);
+  const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
@@ -95,7 +113,7 @@ export function ProfilerWorkspace({
 
         startTransition(() => {
           setSummaryRows(payload);
-          setLoadingDetail(payload.some((row) => row.objectId === initialObjectId.current));
+          setLoadingDetail(payload.some((row) => row.objectId === initialObjectIdRef.current));
         });
       })
       .catch((error: unknown) => {
@@ -143,6 +161,26 @@ export function ProfilerWorkspace({
     setDetailSnapshot(null);
     setSelectedObjectId(nextObjectId);
     setSelectedSnapshotId("");
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextObjectId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
+  function handleSelectQuality(nextQualityId: string) {
+    setSelectedQualityId(nextQualityId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        quality: nextQualityId,
+      }),
+      {
+        scroll: false,
+      },
+    );
   }
 
   useEffect(() => {
@@ -328,7 +366,7 @@ export function ProfilerWorkspace({
           label="Property"
           qualities={availableQualities}
           value={selectedQuality?.id ?? ""}
-          onChange={setSelectedQualityId}
+          onChange={handleSelectQuality}
         />
         <label className="field">
           <span>Snapshot</span>

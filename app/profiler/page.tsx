@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { ProfilerWorkspace } from "@/components/profiler/profiler-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
@@ -93,11 +94,13 @@ export default async function ProfilerPage() {
         />
       }
     >
-      <ProfilerWorkspace
-        graph={state.graph}
-        index={state.index}
-        qualities={state.qualities}
-      />
+      <Suspense fallback={<div className="panel">Loading route context...</div>}>
+        <ProfilerWorkspace
+          graph={state.graph}
+          index={state.index}
+          qualities={state.qualities}
+        />
+      </Suspense>
     </AppShell>
   );
 }
