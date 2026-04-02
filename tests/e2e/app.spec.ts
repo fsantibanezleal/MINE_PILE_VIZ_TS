@@ -2,6 +2,19 @@ import crypto from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 test("loads the primary pages with the synthetic contract cache", async ({ page }) => {
+  const reactFlowContainerWarnings: string[] = [];
+
+  page.on("console", (message) => {
+    const text = message.text();
+
+    if (
+      text.includes("reactflow.dev/error#004") ||
+      text.includes("React Flow parent container needs a width and a height")
+    ) {
+      reactFlowContainerWarnings.push(text);
+    }
+  });
+
   await page.goto("/circuit");
   await expect(
     page.getByRole("heading", { name: "Modeled process topology" }),
@@ -24,6 +37,7 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await page.getByRole("link", { name: "Profiler" }).click();
   await expect(page.getByRole("heading", { name: "History explorer" })).toBeVisible();
   await expect(page.getByText("Playback")).toBeVisible();
+  expect(reactFlowContainerWarnings).toEqual([]);
 });
 
 test("updates stockpile 3D colors when the selected property changes", async ({

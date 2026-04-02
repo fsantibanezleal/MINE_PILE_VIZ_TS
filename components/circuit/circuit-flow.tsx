@@ -90,36 +90,39 @@ export function CircuitFlow({
 
   return (
     <div className="circuit-grid">
-      <section className="panel panel--canvas">
-        <ReactFlow
-          nodes={flowNodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          fitView
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable
-          onNodeClick={(_, node) => {
-            if (!selectedObjectId) {
-              setInternalSelectedId(node.id);
-            }
-            onSelect?.(node.id);
-          }}
-        >
-          <Background color="rgba(91, 140, 255, 0.12)" gap={24} />
-          <Controls showInteractive={false} />
-          <MiniMap
-            pannable
-            zoomable
-            style={{
-              backgroundColor: "rgba(8, 18, 31, 0.92)",
-              border: "1px solid rgba(124, 164, 201, 0.14)",
+      <section className="panel panel--canvas circuit-flow__panel">
+        <div className="circuit-flow__viewport">
+          <ReactFlow
+            nodes={flowNodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            style={{ width: "100%", height: "100%" }}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable
+            onNodeClick={(_, node) => {
+              if (!selectedObjectId) {
+                setInternalSelectedId(node.id);
+              }
+              onSelect?.(node.id);
             }}
-            nodeColor={(node) =>
-              node.id === selectedId ? "#59ddff" : "rgba(91, 140, 255, 0.56)"
-            }
-          />
-        </ReactFlow>
+          >
+            <Background color="rgba(91, 140, 255, 0.12)" gap={24} />
+            <Controls showInteractive={false} />
+            <MiniMap
+              pannable
+              zoomable
+              style={{
+                backgroundColor: "rgba(8, 18, 31, 0.92)",
+                border: "1px solid rgba(124, 164, 201, 0.14)",
+              }}
+              nodeColor={(node) =>
+                node.id === selectedId ? "#59ddff" : "rgba(91, 140, 255, 0.56)"
+              }
+            />
+          </ReactFlow>
+        </div>
       </section>
 
       <aside className="panel panel--inspector">
