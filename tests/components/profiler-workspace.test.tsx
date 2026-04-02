@@ -1,0 +1,204 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { ProfilerWorkspace } from "@/components/profiler/profiler-workspace";
+import type {
+  CircuitGraph,
+  ProfilerIndex,
+  ProfilerSnapshot,
+  ProfilerSummaryRow,
+  QualityDefinition,
+} from "@/types/app-data";
+
+vi.mock("@/components/circuit/circuit-flow", () => ({
+  CircuitFlow: ({
+    selectedObjectId,
+    summaries,
+  }: {
+    selectedObjectId?: string;
+    summaries: Array<{ objectId: string }>;
+  }) => (
+    <div data-testid="circuit-flow">
+      {selectedObjectId ?? "none"}:{summaries.length}
+    </div>
+  ),
+}));
+
+const qualities: QualityDefinition[] = [
+  {
+    id: "q_num_fe",
+    kind: "numerical",
+    label: "Fe",
+    description: "Iron grade",
+    min: 0,
+    max: 2,
+    palette: ["#153a63", "#59ddff", "#f4bc63"],
+  },
+];
+
+const graph: CircuitGraph = {
+  stages: [{ index: 0, label: "Stage", nodeIds: ["pile_a", "belt_b"] }],
+  nodes: [
+    {
+      id: "pile_a",
+      objectId: "pile_a",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Pile A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: true,
+      shortDescription: "Pile",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "belt_b",
+      objectId: "belt_b",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Belt B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: true,
+      shortDescription: "Belt",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [],
+};
+
+const index: ProfilerIndex = {
+  defaultObjectId: "pile_a",
+  objects: [
+    {
+      objectId: "pile_a",
+      displayName: "Pile A",
+      objectType: "pile",
+      dimension: 1,
+      manifestRef: "profiler/objects/pile_a/manifest.json",
+    },
+    {
+      objectId: "belt_b",
+      displayName: "Belt B",
+      objectType: "belt",
+      dimension: 1,
+      manifestRef: "profiler/objects/belt_b/manifest.json",
+    },
+  ],
+};
+
+const summaryRows: ProfilerSummaryRow[] = [
+  {
+    snapshotId: "20250319010000",
+    timestamp: "2025-03-19T01:00:00Z",
+    objectId: "pile_a",
+    objectType: "pile",
+    displayName: "Pile A",
+    dimension: 1,
+    massTon: 100,
+    qualityValues: { q_num_fe: 1.1 },
+  },
+  {
+    snapshotId: "20250319011500",
+    timestamp: "2025-03-19T01:15:00Z",
+    objectId: "pile_a",
+    objectType: "pile",
+    displayName: "Pile A",
+    dimension: 1,
+    massTon: 120,
+    qualityValues: { q_num_fe: 1.2 },
+  },
+  {
+    snapshotId: "20250319011500",
+    timestamp: "2025-03-19T01:15:00Z",
+    objectId: "belt_b",
+    objectType: "belt",
+    displayName: "Belt B",
+    dimension: 1,
+    massTon: 80,
+    qualityValues: { q_num_fe: 1.4 },
+  },
+];
+
+function createSnapshot(
+  objectId: string,
+  displayName: string,
+  snapshotId: string,
+): ProfilerSnapshot {
+  return {
+    objectId,
+    displayName,
+    objectType: objectId === "pile_a" ? "pile" : "belt",
+    snapshotId,
+    timestamp: "2025-03-19T01:15:00Z",
+    dimension: 1,
+    rows: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 20,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.2 },
+      },
+    ],
+  };
+}
+
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+describe("ProfilerWorkspace", () => {
+  it("loads summary history on demand and requests a new snapshot when the selected object changes", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319011500"));
+      }
+
+      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
+        return jsonResponse(createSnapshot("belt_b", "Belt B", "20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    expect(screen.getByText("Loading profiler history...")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/profiler/summary");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/pile_a/snapshots/20250319011500",
+      );
+    });
+
+    await screen.findByRole("heading", { name: "Pile A" });
+    fireEvent.change(screen.getByLabelText("Object"), {
+      target: { value: "belt_b" },
+    });
+
+    expect(screen.getByText("Loading profiler snapshot...")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/belt_b/snapshots/20250319011500",
+      );
+    });
+    await screen.findByRole("heading", { name: "Belt B" });
+  });
+});

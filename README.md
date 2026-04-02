@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.012` |
+| Release-synced version | `0.01.013` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -123,6 +123,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 - The tracked repository does not keep source-trace serialization logic.
 - Runtime code depends only on the documented app-ready contract.
 - Local cache generation for sample or real datasets must stay outside tracked code.
+- The UI never reads the original `data/` tree directly.
 
 ### Current Boundaries
 
@@ -162,6 +163,7 @@ $env:APP_DATA_ROOT = "D:\path\to\app-data\v1"
 ```
 
 The required folder layout, JSON files, Arrow schemas, and semantics are documented in [App Data Contract](docs/app-data-contract.md).
+Operator-facing startup checks and local runtime expectations are documented in [Local Runtime Guide](docs/local-runtime-guide.md).
 
 ### 4. Run the application
 
@@ -235,9 +237,10 @@ types/
 ## Documentation Index
 
 - [App Data Contract](docs/app-data-contract.md)
+- [Local Runtime Guide](docs/local-runtime-guide.md)
 
 ## Current Version
 
-`0.01.012`
+`0.01.013`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
