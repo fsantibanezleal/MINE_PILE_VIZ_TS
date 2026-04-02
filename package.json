@@ -1,6 +1,6 @@
 {
   "name": "mine-pile-viz-ts",
-  "version": "0.01.037",
+  "version": "0.01.038",
   "private": true,
   "packageManager": "pnpm@10.7.1",
   "engines": {

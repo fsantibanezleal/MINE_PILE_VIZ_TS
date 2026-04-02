@@ -1,4 +1,5 @@
 import type { BeltSnapshot, QualityDefinition } from "@/types/app-data";
+import { deriveNumericExtrema } from "@/lib/data-stats";
 
 export interface NumericalMassHistogramBin {
   start: number;
@@ -154,8 +155,18 @@ export function buildBeltMassHistogram(
   const weightedMean =
     numericBlocks.reduce((sum, block) => sum + block.value * block.massTon, 0) /
     Math.max(representedMassTon, 1);
-  const min = Math.min(...numericBlocks.map((block) => block.value));
-  const max = Math.max(...numericBlocks.map((block) => block.value));
+  const domain = deriveNumericExtrema(numericBlocks, (block) => block.value);
+
+  if (!domain) {
+    return {
+      kind: "empty",
+      totalMassTon,
+      representedMassTon: 0,
+      reason: "The selected numerical property has no valid values on this belt snapshot.",
+    };
+  }
+
+  const { min, max } = domain;
 
   if (min === max) {
     return {

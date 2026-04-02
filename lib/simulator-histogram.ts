@@ -1,4 +1,5 @@
 import type { ProfilerSummaryRow, QualityDefinition } from "@/types/app-data";
+import { deriveNumericExtrema } from "@/lib/data-stats";
 
 export interface NumericalScenarioHistogramBin {
   start: number;
@@ -155,8 +156,18 @@ export function buildScenarioMassHistogram(
   const weightedMean =
     numericRows.reduce((sum, row) => sum + row.value * row.massTon, 0) /
     Math.max(representedMassTon, 1);
-  const min = Math.min(...numericRows.map((row) => row.value));
-  const max = Math.max(...numericRows.map((row) => row.value));
+  const domain = deriveNumericExtrema(numericRows, (row) => row.value);
+
+  if (!domain) {
+    return {
+      kind: "empty",
+      totalMassTon,
+      representedMassTon: 0,
+      reason: "The selected numerical property has no valid values in this scenario step.",
+    };
+  }
+
+  const { min, max } = domain;
 
   if (min === max) {
     return {
