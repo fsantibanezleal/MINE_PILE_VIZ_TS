@@ -9,7 +9,6 @@ import {
   getConfiguredAppDataRoot,
   getObjectRegistry,
   getQualityDefinitions,
-  getStockpileDataset,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
 import { formatTimestamp } from "@/lib/format";
@@ -36,14 +35,12 @@ async function loadStockpilePageState() {
       };
     }
 
-    const initialDataset = await getStockpileDataset(pileEntries[0]!.objectId);
-
     return {
       kind: "ready" as const,
       manifest,
       pileEntries,
       qualities,
-      initialDataset,
+      initialPileId: pileEntries[0]!.objectId,
     };
   } catch (error) {
     return {
@@ -126,7 +123,7 @@ export default async function StockpilesPage() {
       <StockpileWorkspace
         pileEntries={state.pileEntries}
         qualities={state.qualities}
-        initialDataset={state.initialDataset}
+        initialPileId={state.initialPileId}
       />
     </AppShell>
   );

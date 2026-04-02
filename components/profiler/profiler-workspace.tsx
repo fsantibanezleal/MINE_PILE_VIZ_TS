@@ -1,6 +1,13 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type {
   CircuitGraph,
   ObjectSummary,
@@ -26,7 +33,6 @@ import { formatMassTon, formatTimestamp } from "@/lib/format";
 interface ProfilerWorkspaceProps {
   graph: CircuitGraph;
   index: ProfilerIndex;
-  summaryRows: ProfilerSummaryRow[];
   qualities: QualityDefinition[];
 }
 
@@ -47,17 +53,70 @@ function getExtents(rows: ProfilerSnapshot["rows"]) {
 export function ProfilerWorkspace({
   graph,
   index,
-  summaryRows,
   qualities,
 }: ProfilerWorkspaceProps) {
+  const initialObjectId = useRef(index.defaultObjectId);
   const [mode, setMode] = useState<ProfilerMode>("circuit");
   const [selectedObjectId, setSelectedObjectId] = useState(index.defaultObjectId);
   const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
+  const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/profiler/summary")
+      .then(async (response) => {
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | {
+                error?: {
+                  message?: string;
+                };
+              }
+            | null;
+          throw new Error(
+            payload?.error?.message ?? "Failed to load profiler summaries.",
+          );
+        }
+
+        return (await response.json()) as ProfilerSummaryRow[];
+      })
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+
+        startTransition(() => {
+          setSummaryRows(payload);
+          setLoadingDetail(payload.some((row) => row.objectId === initialObjectId.current));
+        });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSummaryError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load profiler summaries.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingSummary(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedObjectRows = useMemo(
     () =>
@@ -81,6 +140,7 @@ export function ProfilerWorkspace({
 
     setLoadingDetail(true);
     setDetailError(null);
+    setDetailSnapshot(null);
     setSelectedObjectId(nextObjectId);
     setSelectedSnapshotId("");
   }
@@ -295,11 +355,17 @@ export function ProfilerWorkspace({
       </aside>
 
       <section className="panel panel--canvas">
+        {summaryError ? (
+          <InlineNotice tone="error" title="Profiler summary unavailable">
+            {summaryError}
+          </InlineNotice>
+        ) : null}
         {detailError ? (
           <InlineNotice tone="error" title="Profiler snapshot unavailable">
             {detailError}
           </InlineNotice>
         ) : null}
+        {loadingSummary ? <div className="loading-banner">Loading profiler history...</div> : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
         {mode === "detail" ? (
           <QualityLegend quality={selectedQuality} numericDomain={detailColorDomain} />
@@ -345,6 +411,13 @@ export function ProfilerWorkspace({
               label: "Snapshot",
               value: effectiveSnapshotId || "N/A",
             },
+          ]}
+        />
+        <MetricGrid
+          metrics={[
+            { label: "Summary rows", value: loadingSummary ? "Loading" : String(summaryRows.length) },
+            { label: "Snapshots", value: String(selectedObjectRows.length) },
+            { label: "Mode", value: mode },
           ]}
         />
         {selectedSummaryRow ? (

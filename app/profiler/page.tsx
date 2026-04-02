@@ -9,7 +9,6 @@ import {
   getCircuitGraph,
   getConfiguredAppDataRoot,
   getProfilerIndex,
-  getProfilerSummary,
   getQualityDefinitions,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
@@ -17,11 +16,10 @@ import { formatTimestamp } from "@/lib/format";
 
 async function loadProfilerPageState() {
   try {
-    const [manifest, graph, index, summaryRows, qualities] = await Promise.all([
+    const [manifest, graph, index, qualities] = await Promise.all([
       getAppManifest(),
       getCircuitGraph(),
       getProfilerIndex(),
-      getProfilerSummary(),
       getQualityDefinitions(),
     ]);
     assertManifestCapability(manifest, "profiler", "Profiler view");
@@ -31,7 +29,6 @@ async function loadProfilerPageState() {
       manifest,
       graph,
       index,
-      summaryRows,
       qualities,
     };
   } catch (error) {
@@ -99,7 +96,6 @@ export default async function ProfilerPage() {
       <ProfilerWorkspace
         graph={state.graph}
         index={state.index}
-        summaryRows={state.summaryRows}
         qualities={state.qualities}
       />
     </AppShell>

@@ -35,7 +35,7 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await expect(
     page.getByRole("heading", { name: "Internal stockpile views" }),
   ).toBeVisible();
-  await expect(page.getByText("Selection")).toBeVisible();
+  await expect(page.getByText("Selection", { exact: true })).toBeVisible();
   await expect(page.getByText("Occupied cells", { exact: true }).first()).toBeVisible();
 
   await page.getByRole("link", { name: "Profiler" }).click();

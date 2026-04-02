@@ -24,7 +24,7 @@ import { formatMassTon, formatTimestamp } from "@/lib/format";
 interface StockpileWorkspaceProps {
   pileEntries: ObjectRegistryEntry[];
   qualities: QualityDefinition[];
-  initialDataset: PileDataset;
+  initialPileId: string;
 }
 
 type SliceAxis = "x" | "y" | "z";
@@ -50,25 +50,24 @@ function getDefaultViewMode(dataset: PileDataset): StockpileViewMode {
 export function StockpileWorkspace({
   pileEntries,
   qualities,
-  initialDataset,
+  initialPileId,
 }: StockpileWorkspaceProps) {
-  const [selectedPileId, setSelectedPileId] = useState(initialDataset.objectId);
-  const [dataset, setDataset] = useState(initialDataset);
-  const [selectedQualityId, setSelectedQualityId] = useState(
-    initialDataset.defaultQualityId,
-  );
-  const [viewMode, setViewMode] = useState<StockpileViewMode>(
-    getDefaultViewMode(initialDataset),
-  );
+  const [selectedPileId, setSelectedPileId] = useState(initialPileId);
+  const [dataset, setDataset] = useState<PileDataset | null>(null);
+  const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
+  const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const selectedPileEntry =
+    pileEntries.find((entry) => entry.objectId === selectedPileId) ?? pileEntries[0];
   const availableQualities = qualities.filter((quality) =>
-    dataset.availableQualityIds.includes(quality.id),
+    dataset ? dataset.availableQualityIds.includes(quality.id) : false,
   );
-  const totalMass = dataset.cells.reduce((sum, cell) => sum + cell.massTon, 0);
+  const totalMass =
+    dataset?.cells.reduce((sum, cell) => sum + cell.massTon, 0) ?? 0;
   const effectiveQualityId =
     availableQualities.find((quality) => quality.id === selectedQualityId)?.id ??
     availableQualities[0]?.id ??
@@ -78,16 +77,18 @@ export function StockpileWorkspace({
   );
 
   function handleSelectPile(nextPileId: string) {
-    if (nextPileId !== dataset.objectId) {
-      setLoading(true);
-      setLoadError(null);
+    if (nextPileId === selectedPileId) {
+      return;
     }
 
+    setDataset(null);
+    setLoading(true);
+    setLoadError(null);
     setSelectedPileId(nextPileId);
   }
 
   useEffect(() => {
-    if (selectedPileId === dataset.objectId) {
+    if (!selectedPileId) {
       return;
     }
 
@@ -117,8 +118,13 @@ export function StockpileWorkspace({
 
         startTransition(() => {
           setDataset(payload);
-          setSelectedQualityId(payload.defaultQualityId);
+          setSelectedQualityId((current) =>
+            payload.availableQualityIds.includes(current)
+              ? current
+              : payload.defaultQualityId,
+          );
           setViewMode(getDefaultViewMode(payload));
+          setSliceAxis("z");
           setSliceIndex(0);
         });
       })
@@ -140,36 +146,36 @@ export function StockpileWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [dataset.objectId, selectedPileId]);
+  }, [selectedPileId]);
 
   const fullRenderPlan = useMemo(
     () =>
       buildAdaptiveFullRenderPlan({
-        cells: dataset.cells,
-        surfaceCells: dataset.surfaceCells,
-        threshold: dataset.fullModeThreshold,
-        suggestedStride: dataset.suggestedFullStride,
+        cells: dataset?.cells ?? [],
+        surfaceCells: dataset?.surfaceCells ?? [],
+        threshold: dataset?.fullModeThreshold ?? 1,
+        suggestedStride: dataset?.suggestedFullStride ?? 1,
       }),
     [
-      dataset.cells,
-      dataset.fullModeThreshold,
-      dataset.suggestedFullStride,
-      dataset.surfaceCells,
+      dataset?.cells,
+      dataset?.fullModeThreshold,
+      dataset?.suggestedFullStride,
+      dataset?.surfaceCells,
     ],
   );
 
   const sliceMax = Math.max(
     0,
     sliceAxis === "x"
-      ? dataset.extents.x - 1
+      ? (dataset?.extents.x ?? 1) - 1
       : sliceAxis === "y"
-        ? dataset.extents.y - 1
-        : dataset.extents.z - 1,
+        ? (dataset?.extents.y ?? 1) - 1
+        : (dataset?.extents.z ?? 1) - 1,
   );
   const effectiveSliceIndex = Math.min(sliceIndex, sliceMax);
 
   const sliceCells = useMemo(() => {
-    return dataset.cells.filter((cell) => {
+    return (dataset?.cells ?? []).filter((cell) => {
       if (sliceAxis === "x") {
         return cell.ix === effectiveSliceIndex;
       }
@@ -180,9 +186,9 @@ export function StockpileWorkspace({
 
       return cell.iz === effectiveSliceIndex;
     });
-  }, [dataset.cells, effectiveSliceIndex, sliceAxis]);
+  }, [dataset?.cells, effectiveSliceIndex, sliceAxis]);
   const visibleCellCount =
-    dataset.dimension === 3
+    dataset?.dimension === 3
       ? viewMode === "surface"
         ? dataset.surfaceCells.length
         : viewMode === "shell"
@@ -190,9 +196,9 @@ export function StockpileWorkspace({
           : viewMode === "slice"
             ? sliceCells.length
             : fullRenderPlan.renderedCellCount
-      : dataset.cells.length;
+      : dataset?.cells.length ?? 0;
   const colorDomain = useMemo(() => {
-    if (!selectedQuality || selectedQuality.kind !== "numerical") {
+    if (!dataset || !selectedQuality || selectedQuality.kind !== "numerical") {
       return undefined;
     }
 
@@ -213,20 +219,19 @@ export function StockpileWorkspace({
       cellsForDomain.map((cell) => cell.qualityValues[selectedQuality.id]),
       selectedQuality,
     );
-  }, [
-    dataset.cells,
-    dataset.dimension,
-    dataset.shellCells,
-    dataset.surfaceCells,
-    fullRenderPlan.cells,
-    selectedQuality,
-    sliceCells,
-    viewMode,
-  ]);
+  }, [dataset, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
 
   let content: ReactNode;
 
-  if (dataset.dimension === 1) {
+  if (!dataset) {
+    content = (
+      <InlineNotice tone={loadError ? "error" : "info"} title="Stockpile dataset loads on demand">
+        {loadError
+          ? "Select the pile again after the dataset becomes available."
+          : "Choose a stockpile to request its dense cell table only when this workspace needs it."}
+      </InlineNotice>
+    );
+  } else if (dataset.dimension === 1) {
     content = (
       <PileColumnView
         cells={dataset.cells}
@@ -302,7 +307,7 @@ export function StockpileWorkspace({
           value={effectiveQualityId}
           onChange={setSelectedQualityId}
         />
-        {dataset.dimension === 3 ? (
+        {dataset?.dimension === 3 ? (
           <>
             <div className="button-row">
               {(["surface", "shell", "full", "slice"] as StockpileViewMode[]).map((mode) => (
@@ -346,9 +351,9 @@ export function StockpileWorkspace({
         ) : null}
         <MetricGrid
           metrics={[
-            { label: "Dimension", value: `${dataset.dimension}D` },
-            { label: "Occupied cells", value: String(dataset.occupiedCellCount) },
-            { label: "Timestamp", value: formatTimestamp(dataset.timestamp) },
+            { label: "Dimension", value: dataset ? `${dataset.dimension}D` : "Pending" },
+            { label: "Occupied cells", value: dataset ? String(dataset.occupiedCellCount) : "Pending" },
+            { label: "Timestamp", value: dataset ? formatTimestamp(dataset.timestamp) : "Pending" },
           ]}
         />
       </aside>
@@ -365,7 +370,7 @@ export function StockpileWorkspace({
             cells at stride {fullRenderPlan.stride} to keep dense local views responsive.
           </InlineNotice>
         ) : null}
-        {dataset.dimension === 3 && viewMode !== "full" ? (
+        {dataset?.dimension === 3 && viewMode !== "full" ? (
           <InlineNotice tone="info" title="Interior voxels are not fully exposed in this mode">
             {viewMode === "surface"
               ? "Surface mode colors only the currently visible outer layer. Switch to full mode to paint every occupied voxel when the dataset size allows it."
@@ -374,7 +379,7 @@ export function StockpileWorkspace({
                 : "Slice mode colors only the active cross-section. Switch to full mode to paint every occupied voxel across the full pile."}
           </InlineNotice>
         ) : null}
-        {viewMode === "shell" && dataset.shellCells.length === 0 && dataset.surfaceCells.length > 0 ? (
+        {viewMode === "shell" && dataset && dataset.shellCells.length === 0 && dataset.surfaceCells.length > 0 ? (
           <InlineNotice tone="info" title="Shell artifact unavailable">
             This dataset does not expose a dedicated shell layer, so shell mode is using the
             surface layer instead.
@@ -387,20 +392,21 @@ export function StockpileWorkspace({
 
       <aside className="panel">
         <div className="section-label">Dataset</div>
-        <h3>{dataset.displayName}</h3>
+        <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
         <p className="muted-text">
-          Current view exposes normalized feed and reclaim anchors together with the selected
-          property values for occupied cells.
+          {dataset
+            ? "Current view exposes normalized feed and reclaim anchors together with the selected property values for occupied cells."
+            : "Dense pile content is requested after selection so the route can mount without preloading the full voxel table."}
         </p>
         <MetricGrid
           metrics={[
-            { label: "Mass", value: formatMassTon(totalMass) },
-            { label: "Surface cells", value: String(dataset.surfaceCellCount) },
-            { label: "View", value: dataset.dimension === 3 ? viewMode : `${dataset.dimension}D` },
+            { label: "Mass", value: dataset ? formatMassTon(totalMass) : "Pending" },
+            { label: "Surface cells", value: dataset ? String(dataset.surfaceCellCount) : "Pending" },
+            { label: "View", value: dataset ? (dataset.dimension === 3 ? viewMode : `${dataset.dimension}D`) : "Pending" },
             { label: "Rendered cells", value: String(visibleCellCount) },
           ]}
         />
-        {viewMode === "full" && dataset.dimension === 3 ? (
+        {viewMode === "full" && dataset?.dimension === 3 ? (
           <MetricGrid
             metrics={[
               { label: "Strategy", value: fullRenderPlan.strategy },
@@ -415,11 +421,13 @@ export function StockpileWorkspace({
             ]}
           />
         ) : null}
-        <QualityValueList
-          qualities={availableQualities}
-          values={dataset.qualityAverages}
-          limit={availableQualities.length}
-        />
+        {dataset ? (
+          <QualityValueList
+            qualities={availableQualities}
+            values={dataset.qualityAverages}
+            limit={availableQualities.length}
+          />
+        ) : null}
       </aside>
     </div>
   );
