@@ -13,6 +13,15 @@ export interface CircuitPresentationStage {
   width: number;
 }
 
+export interface CircuitPresentationStageFootprint3d {
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
+}
+
 export interface CircuitPresentationNode extends CircuitNode {
   visualKind: CircuitPresentationVisualKind;
   x: number;
@@ -62,6 +71,10 @@ const STAGE_FRAME_TOP = 26;
 const STAGE_FRAME_BOTTOM_PADDING = 86;
 const STAGE_LABEL_Y = 72;
 const FOOTNOTE_Y = PRESENTATION_HEIGHT - 28;
+const PRESENTATION_3D_X_SCALE = 26;
+const STAGE_FOOTPRINT_3D_Z = 3.6;
+const STAGE_FOOTPRINT_3D_HEIGHT = 0.18;
+const STAGE_FOOTPRINT_3D_DEPTH = 18.8;
 const LANE_TOP = 178;
 const LANE_BOTTOM = 654;
 const LANE_ORDER: CircuitPresentationVisualKind[] = [
@@ -315,7 +328,7 @@ export function getPresentationAnchorPoint3d(
   anchor: GraphAnchor | undefined,
   kind: "input" | "output",
 ) {
-  const centerX = node.x / 26;
+  const centerX = node.x / PRESENTATION_3D_X_SCALE;
   const centerZ = node.z;
 
   if (node.visualKind === "physical-pile") {
@@ -505,5 +518,18 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     stages,
     nodes,
     edges,
+  };
+}
+
+export function getPresentationStageFootprint3d(
+  stage: CircuitPresentationStage,
+): CircuitPresentationStageFootprint3d {
+  return {
+    x: (stage.x + stage.width / 2) / PRESENTATION_3D_X_SCALE,
+    y: STAGE_FOOTPRINT_3D_HEIGHT / 2,
+    z: STAGE_FOOTPRINT_3D_Z,
+    width: Math.max(4.4, stage.width / PRESENTATION_3D_X_SCALE - 0.64),
+    height: STAGE_FOOTPRINT_3D_HEIGHT,
+    depth: STAGE_FOOTPRINT_3D_DEPTH,
   };
 }

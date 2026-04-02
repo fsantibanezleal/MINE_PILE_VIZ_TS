@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.032
+
+- Added one ground-level stage box per stage in the `3D` circuit illustration.
+- Aligned the new stage footprints with the circuit presentation stage spans so they match the staged layout.
+- Added regression coverage for the 3D stage footprint mapping.
+
 ### 0.01.031
 
 - Expanded the vertical stage frame in the `2D` circuit illustration so each stage uses more of the available canvas height.

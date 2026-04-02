@@ -3,6 +3,7 @@ import {
   buildCircuitPresentation,
   getPresentationAnchorPoint,
   getPresentationAnchorPoint3d,
+  getPresentationStageFootprint3d,
   type CircuitPresentationNode,
 } from "@/lib/circuit-presentation";
 import type { CircuitGraph } from "@/types/app-data";
@@ -159,6 +160,42 @@ const laneSpreadGraph: CircuitGraph = {
   edges: [],
 };
 
+const multiStageGraph: CircuitGraph = {
+  stages: [
+    { index: 0, label: "Feed", nodeIds: ["belt_feed"] },
+    { index: 1, label: "Stockpile", nodeIds: ["pile_a"] },
+  ],
+  nodes: [
+    {
+      id: "belt_feed",
+      objectId: "belt_feed",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Feed Conveyor",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Feed conveyor",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "pile_a",
+      objectId: "pile_a",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Pile A",
+      stageIndex: 1,
+      dimension: 3,
+      isProfiled: false,
+      shortDescription: "Stockpile",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [],
+};
+
 describe("circuit pile anchor presentation", () => {
   it("separates belt and pile lanes inside the same stage", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -179,6 +216,18 @@ describe("circuit pile anchor presentation", () => {
     expect(presentation.height).toBeGreaterThanOrEqual(780);
     expect(presentation.stageFrameHeight).toBeGreaterThan(660);
     expect(Math.max(...nodeYs) - Math.min(...nodeYs)).toBeGreaterThan(440);
+  });
+
+  it("maps each stage into a ground footprint for the 3D illustration", () => {
+    const presentation = buildCircuitPresentation(multiStageGraph);
+    const footprints = presentation.stages.map((stage) =>
+      getPresentationStageFootprint3d(stage),
+    );
+
+    expect(footprints).toHaveLength(2);
+    expect(footprints[0]!.x).toBeLessThan(footprints[1]!.x);
+    expect(footprints.every((footprint) => footprint.width > 10)).toBe(true);
+    expect(footprints.every((footprint) => footprint.depth > 18)).toBe(true);
   });
 
   it("keeps multiple feed anchors distinct in the 2D illustration", () => {
