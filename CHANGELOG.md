@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.029
+
+- Switched pile property coloring to an adaptive local domain when visible values occupy only a narrow slice of the configured range.
+- Added explicit legend and workspace notices when pile views use view-scaled contrast.
+- Hardened runtime quality value coercion so numeric-like quality payloads do not silently collapse to fallback voxel colors.
+
 ### 0.01.028
 
 - Added a second in-figure stockpile anchor layer for `2D` and `3D` pile views.

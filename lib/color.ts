@@ -2,9 +2,12 @@ import type { QualityDefinition } from "@/types/app-data";
 
 const FALLBACK_COLOR = "#7ca4c9";
 
+export type NumericColorDomainMode = "configured" | "adaptive-local";
+
 export interface NumericColorDomain {
   min: number;
   max: number;
+  mode: NumericColorDomainMode;
 }
 
 function hexToRgb(hex: string) {
@@ -26,6 +29,37 @@ function rgbToHex(r: number, g: number, b: number) {
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function hasConfiguredDomain(definition: QualityDefinition | undefined) {
+  return (
+    definition?.kind === "numerical" &&
+    isFiniteNumber(definition.min) &&
+    isFiniteNumber(definition.max) &&
+    definition.max > definition.min
+  );
+}
+
+function buildAdaptiveLocalDomain(
+  min: number,
+  max: number,
+  configuredSpan = 0,
+): NumericColorDomain {
+  const localSpan = max - min;
+  const padding =
+    localSpan > 0
+      ? Math.max(localSpan * 0.08, configuredSpan * 0.01)
+      : Math.max(configuredSpan * 0.02, Math.max(Math.abs(min) * 0.04, 0.02));
+
+  return {
+    min: min - padding,
+    max: max + padding,
+    mode: "adaptive-local",
+  };
 }
 
 export function interpolatePalette(palette: string[], ratio: number): string {
@@ -89,26 +123,34 @@ export function deriveNumericColorDomain(
     return undefined;
   }
 
-  if (
-    typeof definition.min === "number" &&
-    Number.isFinite(definition.min) &&
-    typeof definition.max === "number" &&
-    Number.isFinite(definition.max) &&
-    definition.max > definition.min
-  ) {
-    return { min: definition.min, max: definition.max };
-  }
-
   const min = Math.min(...numericValues);
   const max = Math.max(...numericValues);
+  const configuredDomainIsValid = hasConfiguredDomain(definition);
+  const configuredMin = configuredDomainIsValid ? definition.min : undefined;
+  const configuredMax = configuredDomainIsValid ? definition.max : undefined;
+  const configuredSpan =
+    configuredDomainIsValid && configuredMin !== undefined && configuredMax !== undefined
+      ? configuredMax - configuredMin
+      : 0;
 
   if (min === max) {
-    const fallbackMin = definition.min ?? min;
-    const fallbackMax = definition.max ?? max;
-    return fallbackMin === fallbackMax
-      ? { min: fallbackMin, max: fallbackMin + 1 }
-      : { min: fallbackMin, max: fallbackMax };
+    if (configuredDomainIsValid && configuredMin !== undefined && configuredMax !== undefined) {
+      return { min: configuredMin, max: configuredMax, mode: "configured" };
+    }
+
+    return buildAdaptiveLocalDomain(min, max);
   }
 
-  return { min, max };
+  if (!configuredDomainIsValid || configuredMin === undefined || configuredMax === undefined) {
+    return buildAdaptiveLocalDomain(min, max);
+  }
+
+  const withinConfiguredBounds = min >= configuredMin && max <= configuredMax;
+  const localCoverage = configuredSpan > 0 ? (max - min) / configuredSpan : 1;
+
+  if (withinConfiguredBounds && localCoverage >= 0.4) {
+    return { min: configuredMin, max: configuredMax, mode: "configured" };
+  }
+
+  return buildAdaptiveLocalDomain(min, max, configuredSpan);
 }
