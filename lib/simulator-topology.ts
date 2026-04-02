@@ -1,4 +1,9 @@
-import type { CircuitGraph, CircuitNode, GraphAnchor, ObjectRole } from "@/types/app-data";
+import type {
+  CircuitGraph,
+  CircuitNode,
+  GraphAnchor,
+  ObjectRole,
+} from "@/types/app-data";
 
 export interface SimulatorDischargeBelt {
   objectId: string;
@@ -9,9 +14,20 @@ export interface SimulatorDischargeBelt {
   pathNodeIds: string[];
 }
 
+export interface SimulatorDischargeMergeNode {
+  objectId: string;
+  label: string;
+  objectRole: ObjectRole;
+  stageIndex: number;
+  pathNodeIds: string[];
+  downstreamBelts: SimulatorDischargeBelt[];
+}
+
 export interface SimulatorDischargeLane {
   output: GraphAnchor;
-  belts: SimulatorDischargeBelt[];
+  directBelts: SimulatorDischargeBelt[];
+  mergeNodes: SimulatorDischargeMergeNode[];
+  downstreamBelts: SimulatorDischargeBelt[];
 }
 
 function sortPileNodes(left: CircuitNode, right: CircuitNode) {
@@ -26,10 +42,60 @@ function sortPileNodes(left: CircuitNode, right: CircuitNode) {
   return left.label.localeCompare(right.label);
 }
 
+function sortBelts(left: SimulatorDischargeBelt, right: SimulatorDischargeBelt) {
+  if (left.depth !== right.depth) {
+    return left.depth - right.depth;
+  }
+
+  if (left.stageIndex !== right.stageIndex) {
+    return left.stageIndex - right.stageIndex;
+  }
+
+  return left.label.localeCompare(right.label);
+}
+
+function createBeltDescriptor(
+  node: CircuitNode,
+  depth: number,
+  pathNodeIds: string[],
+): SimulatorDischargeBelt {
+  return {
+    objectId: node.objectId,
+    label: node.label,
+    objectRole: node.objectRole,
+    stageIndex: node.stageIndex,
+    depth,
+    pathNodeIds,
+  };
+}
+
 export function getSimulatorPileNodes(graph: CircuitGraph) {
   return [...graph.nodes]
     .filter((node) => node.objectType === "pile")
     .sort(sortPileNodes);
+}
+
+export function getSimulatorLaneBelts(lane: SimulatorDischargeLane) {
+  const belts = new Map<string, SimulatorDischargeBelt>();
+
+  lane.directBelts.forEach((belt) => {
+    belts.set(belt.objectId, belt);
+  });
+  lane.downstreamBelts.forEach((belt) => {
+    if (!belts.has(belt.objectId)) {
+      belts.set(belt.objectId, belt);
+    }
+  });
+
+  lane.mergeNodes.forEach((mergeNode) => {
+    mergeNode.downstreamBelts.forEach((belt) => {
+      if (!belts.has(belt.objectId)) {
+        belts.set(belt.objectId, belt);
+      }
+    });
+  });
+
+  return [...belts.values()].sort(sortBelts);
 }
 
 export function buildSimulatorDischargeLanes(
@@ -52,18 +118,51 @@ export function buildSimulatorDischargeLanes(
   }
 
   return selectedNode.outputs.map((output) => {
-    const belts = new Map<string, SimulatorDischargeBelt>();
-    const queue: Array<{
-      nodeId: string;
-      depth: number;
-      pathNodeIds: string[];
-    }> = [
-      {
-        nodeId: output.relatedObjectId,
-        depth: 0,
-        pathNodeIds: [selectedNode.id, output.relatedObjectId],
-      },
-    ];
+    const directBelts = new Map<string, SimulatorDischargeBelt>();
+    const downstreamBelts = new Map<string, SimulatorDischargeBelt>();
+    const mergeNodes = new Map<string, SimulatorDischargeMergeNode>();
+    const directNode = nodeById.get(output.relatedObjectId);
+
+    if (!directNode) {
+      return {
+        output,
+        directBelts: [],
+        mergeNodes: [],
+        downstreamBelts: [],
+      };
+    }
+
+    const directPathNodeIds = [selectedNode.id, directNode.id];
+
+    if (directNode.objectType === "belt") {
+      directBelts.set(
+        directNode.objectId,
+        createBeltDescriptor(directNode, 0, directPathNodeIds),
+      );
+    } else if (
+      directNode.objectType === "pile" &&
+      directNode.objectRole === "virtual" &&
+      directNode.objectId !== selectedObjectId
+    ) {
+      mergeNodes.set(directNode.objectId, {
+        objectId: directNode.objectId,
+        label: directNode.label,
+        objectRole: directNode.objectRole,
+        stageIndex: directNode.stageIndex,
+        pathNodeIds: directPathNodeIds,
+        downstreamBelts: [],
+      });
+    }
+
+    const queue = (edgesBySource.get(directNode.id) ?? []).map((nextNodeId) => ({
+      nodeId: nextNodeId,
+      depth: 1,
+      pathNodeIds: [...directPathNodeIds, nextNodeId],
+      mergeNodeId:
+        directNode.objectType === "pile" && directNode.objectRole === "virtual"
+          ? directNode.objectId
+          : undefined,
+    }));
 
     while (queue.length > 0) {
       const current = queue.shift();
@@ -78,35 +177,52 @@ export function buildSimulatorDischargeLanes(
         continue;
       }
 
-      if (node.objectType === "belt" && !belts.has(node.objectId)) {
-        belts.set(node.objectId, {
-          objectId: node.objectId,
-          label: node.label,
-          objectRole: node.objectRole,
-          stageIndex: node.stageIndex,
-          depth: current.depth,
-          pathNodeIds: current.pathNodeIds,
-        });
+      if (
+        node.objectType === "pile" &&
+        node.objectRole === "physical" &&
+        node.objectId !== selectedObjectId
+      ) {
+        continue;
       }
 
-      const nextNodeIds = edgesBySource.get(node.id) ?? [];
+      if (node.objectType === "belt") {
+        const belt = createBeltDescriptor(node, current.depth, current.pathNodeIds);
 
-      nextNodeIds.forEach((nextNodeId) => {
+        if (!downstreamBelts.has(node.objectId)) {
+          downstreamBelts.set(node.objectId, belt);
+        }
+
+        if (current.mergeNodeId) {
+          const mergeNode = mergeNodes.get(current.mergeNodeId);
+
+          if (mergeNode && !mergeNode.downstreamBelts.some((entry) => entry.objectId === node.objectId)) {
+            mergeNode.downstreamBelts.push(belt);
+          }
+        }
+      }
+
+      if (node.objectType === "pile" && node.objectRole === "virtual") {
+        const existingMergeNode = mergeNodes.get(node.objectId);
+
+        if (!existingMergeNode) {
+          mergeNodes.set(node.objectId, {
+            objectId: node.objectId,
+            label: node.label,
+            objectRole: node.objectRole,
+            stageIndex: node.stageIndex,
+            pathNodeIds: current.pathNodeIds,
+            downstreamBelts: [],
+          });
+        }
+      }
+
+      const nextMergeNodeId =
+        node.objectType === "pile" && node.objectRole === "virtual"
+          ? node.objectId
+          : current.mergeNodeId;
+
+      (edgesBySource.get(node.id) ?? []).forEach((nextNodeId) => {
         if (current.pathNodeIds.includes(nextNodeId)) {
-          return;
-        }
-
-        const nextNode = nodeById.get(nextNodeId);
-
-        if (!nextNode) {
-          return;
-        }
-
-        if (
-          nextNode.objectType === "pile" &&
-          nextNode.objectRole === "physical" &&
-          nextNode.objectId !== selectedObjectId
-        ) {
           return;
         }
 
@@ -114,23 +230,27 @@ export function buildSimulatorDischargeLanes(
           nodeId: nextNodeId,
           depth: current.depth + 1,
           pathNodeIds: [...current.pathNodeIds, nextNodeId],
+          mergeNodeId: nextMergeNodeId,
         });
       });
     }
 
     return {
       output,
-      belts: [...belts.values()].sort((left, right) => {
-        if (left.depth !== right.depth) {
-          return left.depth - right.depth;
-        }
+      directBelts: [...directBelts.values()].sort(sortBelts),
+      mergeNodes: [...mergeNodes.values()]
+        .map((mergeNode) => ({
+          ...mergeNode,
+          downstreamBelts: [...mergeNode.downstreamBelts].sort(sortBelts),
+        }))
+        .sort((left, right) => {
+          if (left.stageIndex !== right.stageIndex) {
+            return left.stageIndex - right.stageIndex;
+          }
 
-        if (left.stageIndex !== right.stageIndex) {
-          return left.stageIndex - right.stageIndex;
-        }
-
-        return left.label.localeCompare(right.label);
-      }),
+          return left.label.localeCompare(right.label);
+        }),
+      downstreamBelts: [...downstreamBelts.values()].sort(sortBelts),
     };
   });
 }

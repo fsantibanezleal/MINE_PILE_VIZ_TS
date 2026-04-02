@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.042` |
+| Release-synced version | `0.01.043` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.041` |
-| Active tracked version | `0.01.042` |
+| Closed baseline | `0.01.042` |
+| Active tracked version | `0.01.043` |
 
 ## Current Frontend Views
 
@@ -112,7 +112,7 @@ The side inspection panels now expose direct cross-workspace actions so the oper
 
 ### Simulator Workspace
 
-The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section organizes one discharge lane per configured output. Each lane keeps the downstream belt content in its own column, including ordered block strips and mass-weighted histograms for each reachable live belt on that route. The simulator now also builds an aggregated summary for the currently selected discharge lane, so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card.
+The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section now treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The simulator also builds an aggregated summary for the currently selected discharge route, so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card.
 
 ### Stockpile Workspace
 
@@ -144,7 +144,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.042 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.043 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -260,7 +260,7 @@ types/
 
 ## Current Version
 
-`0.01.042`
+`0.01.043`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

@@ -1221,6 +1221,12 @@ code {
   gap: 12px;
 }
 
+.simulator-discharge__selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
 .simulator-discharge__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1236,6 +1242,35 @@ code {
   border-radius: 18px;
   border: 1px solid var(--border);
   background: var(--surface-card);
+}
+
+.simulator-discharge-lane__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.simulator-discharge-lane__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.simulator-discharge-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-panel-accent);
+}
+
+.simulator-discharge-stage__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .simulator-discharge-lane--active {
@@ -1302,6 +1337,27 @@ code {
   align-items: flex-end;
   color: var(--text-secondary);
   font-size: 0.82rem;
+}
+
+.simulator-merge-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-panel-accent);
+}
+
+.simulator-merge-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.simulator-merge-card__header h3 {
+  font-size: 1rem;
 }
 
 .pile-column {
@@ -1396,6 +1452,12 @@ code {
   flex-direction: column-reverse;
 }
 
+.pile-anchor--active .pile-anchor__label {
+  border-color: var(--border-strong);
+  background: var(--surface-control-active);
+  color: var(--text-primary);
+}
+
 .pile-anchor__label {
   display: inline-flex;
   align-items: center;
@@ -1428,6 +1490,14 @@ code {
   border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
+.pile-anchor--active .pile-anchor__line {
+  background: rgba(244, 188, 99, 0.88);
+}
+
+.pile-anchor--active .pile-anchor__marker {
+  background: rgba(244, 188, 99, 0.96);
+}
+
 .pile-anchor--output .pile-anchor__marker {
   border-radius: 3px;
   background: rgba(148, 171, 196, 0.94);
@@ -1456,6 +1526,14 @@ code {
 .pile-anchor-overlay__item--output {
   bottom: -18px;
   flex-direction: column;
+}
+
+.pile-anchor-overlay__item--active .pile-anchor-overlay__line {
+  background: linear-gradient(180deg, rgba(244, 188, 99, 0.16), rgba(244, 188, 99, 0.94));
+}
+
+.pile-anchor-overlay__item--input.pile-anchor-overlay__item--active .pile-anchor-overlay__line {
+  background: linear-gradient(180deg, rgba(244, 188, 99, 0.94), rgba(244, 188, 99, 0.16));
 }
 
 .pile-anchor-overlay__line {
@@ -1492,6 +1570,12 @@ code {
 
 .pile-anchor-overlay__item--output .pile-anchor-overlay__marker {
   color: var(--output-label);
+}
+
+.pile-anchor-overlay__item--active .pile-anchor-overlay__marker {
+  border-color: rgba(244, 188, 99, 0.48);
+  background: rgba(244, 188, 99, 0.14);
+  color: var(--accent-amber);
 }
 
 .notice-card,
