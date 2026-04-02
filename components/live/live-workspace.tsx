@@ -10,6 +10,7 @@ import type {
 } from "@/types/app-data";
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { BeltBlockStrip } from "@/components/live/belt-block-strip";
+import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
@@ -163,7 +164,11 @@ export function LiveWorkspace({
         <div className="belt-strip-panel">
           <div className="section-label">Block strip</div>
           {selectedObjectIsBelt ? (
-            <BeltBlockStrip snapshot={currentBelt} quality={selectedQuality} />
+            <>
+              <BeltBlockStrip snapshot={currentBelt} quality={selectedQuality} />
+              <div className="section-label">Mass-weighted histogram</div>
+              <BeltMassHistogram snapshot={currentBelt} quality={selectedQuality} />
+            </>
           ) : (
             <InlineNotice tone="info" title="No belt block strip for this object">
               The current graph focus is not a belt. Select a transport object to inspect
