@@ -2,6 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { DatabaseZap, Radar } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-config";
 import { RouteNav } from "@/components/shell/route-nav";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 
 interface AppShellProps {
   eyebrow: string;
@@ -34,6 +35,7 @@ export function AppShell({
             <Radar size={14} />
             Local
           </span>
+          <ThemeToggle />
           <span className="status-chip status-chip--muted">
             <DatabaseZap size={14} />
             v{APP_VERSION}

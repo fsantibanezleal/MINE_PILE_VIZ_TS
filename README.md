@@ -87,7 +87,8 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.034` |
+| Theme modes | dark, light |
+| Release-synced version | `0.01.035` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -132,10 +133,11 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 - Runtime code depends only on the documented app-ready contract.
 - Local cache generation for sample or real datasets must stay outside tracked code.
 - The UI never reads the original `data/` tree directly.
+- The routed shell now supports an operator-selectable dark or light theme, stored locally per browser.
 
 ### Current Boundaries
 
-- v0.01.034 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.035 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -251,7 +253,7 @@ types/
 
 ## Current Version
 
-`0.01.034`
+`0.01.035`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

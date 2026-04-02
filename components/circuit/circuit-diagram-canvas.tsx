@@ -22,6 +22,8 @@ import {
   type CircuitStageNodeData,
   layoutCircuitGraph,
 } from "@/lib/graph-layout";
+import { useTheme } from "@/components/shell/theme-provider";
+import { getThemeCanvasPalette } from "@/lib/theme";
 
 type CircuitFlowNode = Node<CircuitNodeData, "circuit">;
 type CircuitStageNode = Node<CircuitStageNodeData, "stage">;
@@ -93,10 +95,12 @@ export function CircuitDiagramCanvas({
   sequenceState,
   onSelect,
 }: CircuitDiagramCanvasProps) {
+  const { theme } = useTheme();
   const { stageNodes, nodes, edges } = useMemo(
     () => layoutCircuitGraph(graph.stages, graph.nodes, graph.edges),
     [graph.edges, graph.nodes, graph.stages],
   );
+  const palette = getThemeCanvasPalette(theme);
   const sequenceNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
   const sequenceEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
@@ -141,14 +145,12 @@ export function CircuitDiagramCanvas({
       style: {
         ...edge.style,
         opacity: !hasSelection ? 1 : isInSequence ? 1 : 0.18,
-        stroke: isInSequence
-          ? "rgba(89, 221, 255, 0.84)"
-          : "rgba(124, 164, 201, 0.22)",
+        stroke: isInSequence ? palette.edgeActive : palette.edgeMuted,
         strokeWidth: isInSequence ? 2.8 : 1.4,
       },
       labelStyle: {
         ...edge.labelStyle,
-        fill: isInSequence ? "#edf4ff" : "#6f849f",
+        fill: isInSequence ? palette.edgeLabelActive : palette.edgeLabelMuted,
       },
     } satisfies Edge;
   });
@@ -172,23 +174,21 @@ export function CircuitDiagramCanvas({
             }
           }}
         >
-          <Background color="rgba(91, 140, 255, 0.12)" gap={24} />
+          <Background color={palette.diagramGrid} gap={24} />
           <Controls showInteractive={false} />
           <MiniMap
             pannable
             zoomable
             style={{
-              backgroundColor: "rgba(8, 18, 31, 0.92)",
-              border: "1px solid rgba(124, 164, 201, 0.14)",
+              backgroundColor: palette.diagramMinimapBackground,
+              border: `1px solid ${palette.diagramMinimapBorder}`,
             }}
             nodeColor={(node) => {
               if (node.type === "stage") {
-                return "rgba(23, 59, 91, 0.36)";
+                return palette.diagramStageMinimap;
               }
 
-              return node.id === selectedObjectId
-                ? "#59ddff"
-                : "rgba(91, 140, 255, 0.56)";
+              return node.id === selectedObjectId ? "#59ddff" : palette.diagramNodeMinimap;
             }}
           />
         </ReactFlow>

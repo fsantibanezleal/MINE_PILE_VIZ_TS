@@ -4,7 +4,9 @@ import { useLayoutEffect, useRef } from "react";
 import { Canvas, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { useTheme } from "@/components/shell/theme-provider";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
+import { getThemeCanvasPalette } from "@/lib/theme";
 import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
 
 const THREE_CLOCK_DEPRECATION_PATTERN =
@@ -143,6 +145,8 @@ export function Pile3DCanvas({
   numericDomain,
   onHoverCellChange,
 }: Pile3DCanvasProps) {
+  const { theme } = useTheme();
+
   if (cells.length === 0) {
     return (
       <div className="empty-visual">
@@ -152,6 +156,7 @@ export function Pile3DCanvas({
   }
 
   const cameraDistance = Math.max(extents.x, extents.y, extents.z) * 1.5;
+  const palette = getThemeCanvasPalette(theme);
 
   return (
     <div className="pile-canvas">
@@ -166,12 +171,17 @@ export function Pile3DCanvas({
           far: cameraDistance * 12,
         }}
       >
-        <color attach="background" args={["#08101a"]} />
+        <color attach="background" args={[palette.sceneBackground]} />
         <ambientLight intensity={1.35} />
         <directionalLight position={[40, 80, 30]} intensity={1.7} />
         <directionalLight position={[-30, 30, -40]} intensity={0.8} />
         <gridHelper
-          args={[Math.max(extents.x, extents.y) + 8, Math.max(extents.x, extents.y) + 8]}
+          args={[
+            Math.max(extents.x, extents.y) + 8,
+            Math.max(extents.x, extents.y) + 8,
+            palette.sceneGridMajor,
+            palette.sceneGridMinor,
+          ]}
           position={[0, -extents.z / 2 - 0.1, 0]}
         />
         <axesHelper args={[Math.max(extents.x, extents.y, extents.z) * 0.5 + 2]} />
