@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.035
+
+- Added an optional application-wide dark and light theme toggle with persistent local preference.
+- Extended theme-aware surfaces across the routed shell, shared panels, diagram canvas, and `3D` views so light mode remains coherent instead of partial.
+- Added component and browser coverage for theme switching and persistence across route navigation.
+
 ### 0.01.034
 
 - Aligned qualitative dominant-category handling with categorical proportion semantics instead of relying only on `*_main` label counts.

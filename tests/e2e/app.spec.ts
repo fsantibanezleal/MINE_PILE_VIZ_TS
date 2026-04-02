@@ -44,6 +44,20 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   expect(reactFlowContainerWarnings).toEqual([]);
 });
 
+test("persists the selected application theme across route navigation", async ({ page }) => {
+  await page.goto("/circuit");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.getByRole("button", { name: "Toggle application theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  await page.getByRole("link", { name: "Live State", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
 test("updates stockpile 3D colors when the selected property changes", async ({
   page,
 }) => {

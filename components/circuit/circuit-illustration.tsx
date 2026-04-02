@@ -3,7 +3,9 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
+import { useTheme } from "@/components/shell/theme-provider";
 import type { CircuitSequenceState } from "@/lib/circuit-sequence";
+import { getThemeCanvasPalette } from "@/lib/theme";
 import type { CircuitGraph } from "@/types/app-data";
 import {
   buildCircuitPresentation,
@@ -433,9 +435,17 @@ function VirtualMarker3D({
 function StageBase3D({
   stage,
   active,
+  stageBaseIdleColor,
+  stageBaseActiveColor,
+  stageTopIdleColor,
+  stageTopActiveColor,
 }: {
   stage: CircuitPresentationStage;
   active: boolean;
+  stageBaseIdleColor: string;
+  stageBaseActiveColor: string;
+  stageTopIdleColor: string;
+  stageTopActiveColor: string;
 }) {
   const footprint = getPresentationStageFootprint3d(stage);
 
@@ -444,7 +454,7 @@ function StageBase3D({
       <mesh receiveShadow>
         <boxGeometry args={[footprint.width, footprint.height, footprint.depth]} />
         <meshStandardMaterial
-          color={active ? "#173b5b" : "#0d2237"}
+          color={active ? stageBaseActiveColor : stageBaseIdleColor}
           emissive={active ? "#153d62" : "#091321"}
           emissiveIntensity={active ? 0.48 : 0.2}
           metalness={0.04}
@@ -456,7 +466,7 @@ function StageBase3D({
       <mesh position={[0, footprint.height / 2 + 0.02, 0]} receiveShadow>
         <boxGeometry args={[footprint.width - 0.18, 0.03, footprint.depth - 0.18]} />
         <meshStandardMaterial
-          color={active ? "#255d8a" : "#163149"}
+          color={active ? stageTopActiveColor : stageTopIdleColor}
           emissive={active ? "#1d4f78" : "#0f2031"}
           emissiveIntensity={active ? 0.3 : 0.14}
           metalness={0.02}
@@ -475,7 +485,9 @@ function Illustration3D({
   sequenceState,
   onSelect,
 }: Omit<CircuitIllustrationProps, "mode">) {
+  const { theme } = useTheme();
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
+  const palette = getThemeCanvasPalette(theme);
   const spreadX = Math.max(20, presentation.width / 26);
   const highlightedNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
   const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
@@ -503,7 +515,7 @@ function Illustration3D({
           dpr={[1, 1.5]}
           camera={{ position: [spreadX * 0.38, 16, 34], fov: 40, near: 0.1, far: 300 }}
         >
-          <color attach="background" args={["#08101a"]} />
+          <color attach="background" args={[palette.sceneBackground]} />
           <ambientLight intensity={1.15} />
           <directionalLight position={[18, 22, 14]} intensity={1.8} castShadow />
           <directionalLight position={[-14, 10, -18]} intensity={0.72} />
@@ -513,10 +525,15 @@ function Illustration3D({
             position={[spreadX / 2 - 4, -0.02, 3.6]}
           >
             <planeGeometry args={[spreadX + 20, 40]} />
-            <meshStandardMaterial color="#102033" />
+            <meshStandardMaterial color={palette.sceneGround} />
           </mesh>
           <gridHelper
-            args={[spreadX + 18, presentation.stages.length * 8 + 10, "#1f3c5a", "#153149"]}
+            args={[
+              spreadX + 18,
+              presentation.stages.length * 8 + 10,
+              palette.sceneGridMajor,
+              palette.sceneGridMinor,
+            ]}
             position={[spreadX / 2 - 4, 0, 3.6]}
           />
           {presentation.stages.map((stage) => (
@@ -524,6 +541,10 @@ function Illustration3D({
               key={stage.index}
               stage={stage}
               active={activeStageIndexes.has(stage.index)}
+              stageBaseIdleColor={palette.stageBaseIdle}
+              stageBaseActiveColor={palette.stageBaseActive}
+              stageTopIdleColor={palette.stageTopIdle}
+              stageTopActiveColor={palette.stageTopActive}
             />
           ))}
           {presentation.edges.map((edge) => (
