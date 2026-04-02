@@ -25,6 +25,19 @@ const categoricalQuality: QualityDefinition = {
   ],
 };
 
+const stringCategoricalQuality: QualityDefinition = {
+  id: "q_cat_mineral",
+  kind: "categorical",
+  label: "Mineral",
+  description: "Predominant mineral",
+  palette: ["#2f90ff", "#f4bc63", "#46d6a7"],
+  categories: [
+    { value: "calcopirita", label: "Chalcopyrite", color: "#f4bc63" },
+    { value: "bornita", label: "Bornite", color: "#2f90ff" },
+    { value: "pirita", label: "Pyrite", color: "#46d6a7" },
+  ],
+};
+
 const snapshot: BeltSnapshot = {
   objectId: "belt_cv200",
   displayName: "CV 200",
@@ -95,6 +108,36 @@ describe("buildBeltMassHistogram", () => {
       ["Oxide", 30],
       ["Mixed", 30],
       ["Sulfide", 60],
+    ]);
+  });
+
+  it("aggregates string-valued categorical blocks by mapped label and mass", () => {
+    const histogram = buildBeltMassHistogram(
+      {
+        ...snapshot,
+        qualityAverages: { ...snapshot.qualityAverages, q_cat_mineral: "bornita" },
+        blocks: snapshot.blocks.map((block, index) => ({
+          ...block,
+          qualityValues: {
+            ...block.qualityValues,
+            q_cat_mineral:
+              index < 2 ? "calcopirita" : index === 2 ? "bornita" : "pirita",
+          },
+        })),
+      },
+      stringCategoricalQuality,
+    );
+
+    expect(histogram.kind).toBe("categorical");
+
+    if (histogram.kind !== "categorical") {
+      return;
+    }
+
+    expect(histogram.bins.map((bin) => [bin.label, bin.massTon])).toEqual([
+      ["Chalcopyrite", 30],
+      ["Bornite", 30],
+      ["Pyrite", 60],
     ]);
   });
 });

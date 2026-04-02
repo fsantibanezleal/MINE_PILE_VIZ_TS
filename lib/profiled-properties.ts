@@ -1,7 +1,12 @@
 import { getQualityColor } from "@/lib/color";
+import {
+  findQualityCategory,
+  getQualityValueKey,
+} from "@/lib/quality-values";
 import type {
   QualityCategory,
   QualityDefinition,
+  QualityValue,
   QualityValueMap,
 } from "@/types/app-data";
 
@@ -31,7 +36,7 @@ export interface DominantCategoricalEntry {
 
 export interface CategoricalProportionSegment {
   qualityId: string | null;
-  value: number | null;
+  value: QualityValue;
   token: string | null;
   label: string;
   color: string;
@@ -140,15 +145,9 @@ export function splitProfiledQualities(
 
 export function findMatchingCategory(
   quality: QualityDefinition,
-  value: number | null | undefined,
+  value: QualityValue | undefined,
 ): QualityCategory | undefined {
-  if (quality.kind !== "categorical" || !isFiniteNumber(value)) {
-    return undefined;
-  }
-
-  return quality.categories?.find(
-    (category) => Math.abs(category.value - value) <= CATEGORY_TOLERANCE,
-  );
+  return findQualityCategory(quality, value);
 }
 
 export function buildCategoricalDistributionGroups(
@@ -203,7 +202,7 @@ function buildSegmentsFromMainRecords(
   const grouped = new Map<
     string,
     {
-      value: number | null;
+      value: QualityValue;
       label: string;
       color: string;
       massTon: number;
@@ -216,13 +215,15 @@ function buildSegmentsFromMainRecords(
     const rawValue = record.qualityValues[quality.id];
     const massTon = isFiniteNumber(record.massTon) ? record.massTon : 0;
 
-    if (!isFiniteNumber(rawValue) || massTon <= 0) {
+    if ((rawValue === null || rawValue === undefined) || massTon <= 0) {
       continue;
     }
 
     totalMassTon += massTon;
     const category = findMatchingCategory(quality, rawValue);
-    const key = category ? String(category.value) : `unmapped:${rawValue}`;
+    const key =
+      (category ? getQualityValueKey(category.value) : getQualityValueKey(rawValue)) ??
+      `unmapped:${String(rawValue)}`;
     const current = grouped.get(key);
 
     if (current) {
@@ -274,7 +275,7 @@ function buildSegmentsFromProportionRecords(
     string,
     {
       qualityId: string | null;
-      value: number | null;
+      value: QualityValue;
       token: string | null;
       label: string;
       color: string;

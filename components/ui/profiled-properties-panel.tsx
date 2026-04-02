@@ -112,21 +112,25 @@ export function ProfiledPropertiesPanel({
       {tab === "quantitative" ? (
         numericalQualities.length > 0 ? (
           <div className="quality-list">
-            {numericalQualities.map((quality) => (
-              <div key={quality.id} className="quality-list__item">
-                <span className="quality-list__meta">
-                  <i
-                    className="quality-dot"
-                    style={{
-                      backgroundColor:
-                        quality.palette[quality.palette.length - 1] ?? "#7ca4c9",
-                    }}
-                  />
-                  {quality.label}
-                </span>
-                <strong>{formatNumber(values[quality.id])}</strong>
-              </div>
-            ))}
+            {numericalQualities.map((quality) => {
+              const value = values[quality.id];
+
+              return (
+                <div key={quality.id} className="quality-list__item">
+                  <span className="quality-list__meta">
+                    <i
+                      className="quality-dot"
+                      style={{
+                        backgroundColor:
+                          quality.palette[quality.palette.length - 1] ?? "#7ca4c9",
+                      }}
+                    />
+                    {quality.label}
+                  </span>
+                  <strong>{formatNumber(typeof value === "number" ? value : null)}</strong>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="muted-text">

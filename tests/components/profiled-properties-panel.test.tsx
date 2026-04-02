@@ -65,6 +65,18 @@ const qualities: QualityDefinition[] = [
       { value: 11003, label: "CFP C", color: "#f4bc63" },
     ],
   },
+  {
+    id: "q_cat_mineral_main",
+    kind: "categorical",
+    label: "Mineral",
+    description: "Predominant mineral",
+    palette: ["#2f90ff", "#f4bc63", "#46d6a7"],
+    categories: [
+      { value: "calcopirita", label: "Chalcopyrite", color: "#f4bc63" },
+      { value: "bornita", label: "Bornite", color: "#2f90ff" },
+      { value: "pirita", label: "Pyrite", color: "#46d6a7" },
+    ],
+  },
 ];
 
 const values: QualityValueMap = {
@@ -74,6 +86,7 @@ const values: QualityValueMap = {
   q_cat_materialtype_prop_oxido2: 0.5,
   q_cat_materialtype_prop_other: 0.3,
   q_cat_cfp_main: 11002,
+  q_cat_mineral_main: "calcopirita",
 };
 
 const records = [
@@ -86,6 +99,7 @@ const records = [
       q_cat_materialtype_prop_oxido2: 0.15,
       q_cat_materialtype_prop_other: 0.4,
       q_cat_cfp_main: 11002,
+      q_cat_mineral_main: "calcopirita",
     },
   },
   {
@@ -97,6 +111,7 @@ const records = [
       q_cat_materialtype_prop_oxido2: 0.8,
       q_cat_materialtype_prop_other: 0.15,
       q_cat_cfp_main: 11002,
+      q_cat_mineral_main: "bornita",
     },
   },
   {
@@ -108,6 +123,7 @@ const records = [
       q_cat_materialtype_prop_oxido2: 0.4,
       q_cat_materialtype_prop_other: 0.5,
       q_cat_cfp_main: 11003,
+      q_cat_mineral_main: "bornita",
     },
   },
 ];
@@ -134,6 +150,7 @@ describe("ProfiledPropertiesPanel", () => {
     expect(screen.getByText("Oxide 2")).toBeInTheDocument();
     expect(screen.getByText("40.83% from explicit distribution")).toBeInTheDocument();
     expect(screen.getByText("CFP B")).toBeInTheDocument();
+    expect(screen.getByText("Bornite")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Proportions" }));
 
@@ -158,5 +175,15 @@ describe("ProfiledPropertiesPanel", () => {
     expect(screen.getByText("CFP C")).toBeInTheDocument();
     expect(screen.getByText("83.33%")).toBeInTheDocument();
     expect(screen.getByText("16.67%")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Qualitative property"), {
+      target: { value: "q_cat_mineral_main" },
+    });
+
+    expect(screen.getByText("Predominant-label estimate")).toBeInTheDocument();
+    expect(screen.getByText("Bornite")).toBeInTheDocument();
+    expect(screen.getByText("Chalcopyrite")).toBeInTheDocument();
+    expect(screen.getAllByText("30 t")).toHaveLength(2);
+    expect(screen.getAllByText("50%")).toHaveLength(2);
   });
 });

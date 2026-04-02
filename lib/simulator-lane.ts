@@ -4,6 +4,7 @@ import type {
   QualityDefinition,
   QualityValueMap,
 } from "@/types/app-data";
+import { getQualityValueKey } from "@/lib/quality-values";
 
 export interface SimulatorLaneSnapshot {
   snapshot: BeltSnapshot;
@@ -36,25 +37,42 @@ function buildQualityAverages(
       const representedMassTon = validBlocks.reduce((sum, block) => sum + block.massTon, 0);
       qualityValues[quality.id] =
         validBlocks.reduce((sum, block) => {
-          return sum + (block.qualityValues[quality.id] ?? 0) * block.massTon;
+          const value = block.qualityValues[quality.id];
+          return sum + (typeof value === "number" ? value : 0) * block.massTon;
         }, 0) / Math.max(representedMassTon, 1);
       return;
     }
 
-    const groupedMass = new Map<number, number>();
+    const groupedMass = new Map<string, { value: QualityValueMap[string]; massTon: number }>();
 
     blocks.forEach((block) => {
       const value = block.qualityValues[quality.id];
 
-      if (typeof value !== "number" || !Number.isFinite(value) || block.massTon <= 0) {
+      if ((value === null || value === undefined) || block.massTon <= 0) {
         return;
       }
 
-      groupedMass.set(value, (groupedMass.get(value) ?? 0) + block.massTon);
+      const key = getQualityValueKey(value);
+
+      if (!key) {
+        return;
+      }
+
+      const current = groupedMass.get(key);
+
+      if (current) {
+        current.massTon += block.massTon;
+        return;
+      }
+
+      groupedMass.set(key, {
+        value,
+        massTon: block.massTon,
+      });
     });
 
-    const dominant = [...groupedMass.entries()].sort((left, right) => right[1] - left[1])[0];
-    qualityValues[quality.id] = dominant?.[0] ?? null;
+    const dominant = [...groupedMass.values()].sort((left, right) => right.massTon - left.massTon)[0];
+    qualityValues[quality.id] = dominant?.value ?? null;
   });
 
   return qualityValues;

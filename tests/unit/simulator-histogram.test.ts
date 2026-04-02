@@ -24,6 +24,19 @@ const categoricalQuality: QualityDefinition = {
   ],
 };
 
+const stringCategoricalQuality: QualityDefinition = {
+  id: "q_cat_mineral",
+  kind: "categorical",
+  label: "Mineral",
+  description: "Predominant mineral",
+  palette: ["#2f90ff", "#f4bc63", "#46d6a7"],
+  categories: [
+    { value: "calcopirita", label: "Chalcopyrite", color: "#f4bc63" },
+    { value: "bornita", label: "Bornite", color: "#2f90ff" },
+    { value: "pirita", label: "Pyrite", color: "#46d6a7" },
+  ],
+};
+
 const rows: ProfilerSummaryRow[] = [
   {
     snapshotId: "20250319010000",
@@ -75,5 +88,29 @@ describe("buildScenarioMassHistogram", () => {
     expect(histogram.representedMassTon).toBe(160);
     expect(histogram.bins).toHaveLength(2);
     expect(histogram.bins.map((bin) => bin.label)).toEqual(["Primary", "Secondary"]);
+  });
+
+  it("builds a categorical mass-weighted histogram from string-valued scenario rows", () => {
+    const histogram = buildScenarioMassHistogram(
+      rows.map((row, index) => ({
+        ...row,
+        qualityValues: {
+          ...row.qualityValues,
+          q_cat_mineral: index === 0 ? "calcopirita" : "bornita",
+        },
+      })),
+      stringCategoricalQuality,
+    );
+
+    expect(histogram.kind).toBe("categorical");
+    if (histogram.kind !== "categorical") {
+      return;
+    }
+
+    expect(histogram.representedMassTon).toBe(160);
+    expect(histogram.bins.map((bin) => [bin.label, bin.massTon])).toEqual([
+      ["Chalcopyrite", 100],
+      ["Bornite", 60],
+    ]);
   });
 });

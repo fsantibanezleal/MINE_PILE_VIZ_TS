@@ -40,7 +40,7 @@ export const qualityDefinitionSchema = z.object({
   categories: z
     .array(
       z.object({
-        value: z.number(),
+        value: z.union([z.number(), z.string()]),
         label: z.string(),
         color: z.string(),
       }),
@@ -111,7 +111,7 @@ export const objectSummarySchema = z.object({
   timestamp: z.string(),
   massTon: z.number(),
   status: z.string(),
-  qualityValues: z.record(z.string(), z.number().nullable()),
+  qualityValues: z.record(z.string(), z.union([z.number(), z.string(), z.null()])),
   metrics: z.record(z.string(), z.union([z.number(), z.string()])).optional(),
 });
 
@@ -133,7 +133,7 @@ export const pileDatasetMetaSchema = z.object({
   viewModes: z.array(z.enum(["surface", "shell", "full", "slice"])),
   suggestedFullStride: z.number(),
   fullModeThreshold: z.number(),
-  qualityAverages: z.record(z.string(), z.number().nullable()),
+  qualityAverages: z.record(z.string(), z.union([z.number(), z.string(), z.null()])),
   inputs: z.array(graphAnchorSchema),
   outputs: z.array(graphAnchorSchema),
   files: z.object({

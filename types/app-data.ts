@@ -2,9 +2,10 @@ export type QualityKind = "numerical" | "categorical";
 export type ObjectType = "belt" | "pile";
 export type ObjectRole = "physical" | "virtual";
 export type StockpileViewMode = "surface" | "shell" | "full" | "slice";
+export type QualityValue = string | number | null;
 
 export interface QualityCategory {
-  value: number;
+  value: string | number;
   label: string;
   color: string;
 }
@@ -104,7 +105,7 @@ export interface CircuitGraph {
 }
 
 export interface QualityValueMap {
-  [qualityId: string]: number | null;
+  [qualityId: string]: QualityValue;
 }
 
 export interface ObjectSummary {

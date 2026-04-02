@@ -26,6 +26,7 @@ import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import { findQualityCategory, getQualityValueKey } from "@/lib/quality-values";
 import {
   buildAdaptiveFullRenderPlan,
   deriveShellCells,
@@ -128,25 +129,42 @@ function buildSummaryValuesFromCells(
       const representedMass = numericCells.reduce((sum, cell) => sum + cell.massTon, 0);
       qualityValues[quality.id] =
         numericCells.reduce((sum, cell) => {
-          return sum + (cell.qualityValues[quality.id] ?? 0) * cell.massTon;
+          const value = cell.qualityValues[quality.id];
+          return sum + (typeof value === "number" ? value : 0) * cell.massTon;
         }, 0) / Math.max(representedMass, 1);
       return;
     }
 
-    const groupedMass = new Map<number, number>();
+    const groupedMass = new Map<string, { value: QualityValueMap[string]; massTon: number }>();
 
     cells.forEach((cell) => {
       const value = cell.qualityValues[quality.id];
 
-      if (typeof value !== "number" || !Number.isFinite(value) || cell.massTon <= 0) {
+      if ((value === null || value === undefined) || cell.massTon <= 0) {
         return;
       }
 
-      groupedMass.set(value, (groupedMass.get(value) ?? 0) + cell.massTon);
+      const key = getQualityValueKey(value);
+
+      if (!key) {
+        return;
+      }
+
+      const current = groupedMass.get(key);
+
+      if (current) {
+        current.massTon += cell.massTon;
+        return;
+      }
+
+      groupedMass.set(key, {
+        value,
+        massTon: cell.massTon,
+      });
     });
 
-    const dominant = [...groupedMass.entries()].sort((left, right) => right[1] - left[1])[0];
-    qualityValues[quality.id] = dominant?.[0] ?? null;
+    const dominant = [...groupedMass.values()].sort((left, right) => right.massTon - left.massTon)[0];
+    qualityValues[quality.id] = dominant?.value ?? null;
   });
 
   return qualityValues;
@@ -682,6 +700,10 @@ export function SimulatorWorkspace({
     hoveredCell && visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
       ? hoveredCell
       : null;
+  const activeHoveredCellQualityValue =
+    activeHoveredCell && selectedQuality
+      ? activeHoveredCell.qualityValues[selectedQuality.id]
+      : null;
   const visibleCellCount =
     centralData?.dimension === 3
       ? viewMode === "surface"
@@ -714,7 +736,10 @@ export function SimulatorWorkspace({
         : centralData.cells;
 
     return deriveNumericColorDomain(
-      cellsForDomain.map((cell) => cell.qualityValues[selectedQuality.id]),
+      cellsForDomain.map((cell) => {
+        const value = cell.qualityValues[selectedQuality.id];
+        return typeof value === "number" ? value : null;
+      }),
       selectedQuality,
     );
   }, [centralData, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
@@ -1147,13 +1172,15 @@ export function SimulatorWorkspace({
                     label: selectedQuality?.label ?? "Property",
                     value:
                       selectedQuality?.kind === "categorical"
-                        ? selectedQuality.categories?.find(
-                            (category) =>
-                              category.value === activeHoveredCell.qualityValues[selectedQuality.id],
+                        ? findQualityCategory(
+                            selectedQuality,
+                            activeHoveredCellQualityValue,
                           )?.label ??
-                          String(activeHoveredCell.qualityValues[selectedQuality.id] ?? "N/A")
+                          String(activeHoveredCellQualityValue ?? "N/A")
                         : formatNumber(
-                            activeHoveredCell.qualityValues[selectedQuality?.id ?? ""],
+                            typeof activeHoveredCellQualityValue === "number"
+                              ? activeHoveredCellQualityValue
+                              : null,
                           ),
                   },
                 ]}

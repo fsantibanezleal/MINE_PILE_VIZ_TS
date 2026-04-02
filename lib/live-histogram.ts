@@ -1,4 +1,4 @@
-import type { BeltSnapshot, QualityDefinition } from "@/types/app-data";
+import type { BeltSnapshot, QualityDefinition, QualityValue } from "@/types/app-data";
 import { deriveNumericExtrema } from "@/lib/data-stats";
 
 export interface NumericalMassHistogramBin {
@@ -10,7 +10,7 @@ export interface NumericalMassHistogramBin {
 }
 
 export interface CategoricalMassHistogramBin {
-  value: number | null;
+  value: QualityValue;
   label: string;
   color: string;
   massTon: number;
@@ -90,7 +90,7 @@ export function buildBeltMassHistogram(
     snapshot.blocks.forEach((block) => {
       const rawValue = block.qualityValues[quality.id];
 
-      if (typeof rawValue !== "number" || Number.isNaN(rawValue)) {
+      if (rawValue === null || rawValue === undefined) {
         return;
       }
 

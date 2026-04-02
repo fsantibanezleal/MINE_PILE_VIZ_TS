@@ -58,6 +58,18 @@ const qualities: QualityDefinition[] = [
     max: 1,
     palette: ["#999999"],
   },
+  {
+    id: "q_cat_mineral_main",
+    kind: "categorical",
+    label: "Mineral",
+    description: "Predominant mineral",
+    palette: ["#2f90ff", "#f4bc63", "#46d6a7"],
+    categories: [
+      { value: "calcopirita", label: "Chalcopyrite", color: "#f4bc63" },
+      { value: "bornita", label: "Bornite", color: "#2f90ff" },
+      { value: "pirita", label: "Pyrite", color: "#46d6a7" },
+    ],
+  },
 ];
 
 const values: QualityValueMap = {
@@ -66,6 +78,7 @@ const values: QualityValueMap = {
   q_cat_materialtype_prop_oxido1: 0.2,
   q_cat_materialtype_prop_oxido2: 0.5,
   q_cat_materialtype_prop_other: 0.3,
+  q_cat_mineral_main: "calcopirita",
 };
 
 const records: ProfiledPropertyRecord[] = [
@@ -77,6 +90,7 @@ const records: ProfiledPropertyRecord[] = [
       q_cat_materialtype_prop_oxido1: 0.45,
       q_cat_materialtype_prop_oxido2: 0.15,
       q_cat_materialtype_prop_other: 0.4,
+      q_cat_mineral_main: "calcopirita",
     },
   },
   {
@@ -87,6 +101,7 @@ const records: ProfiledPropertyRecord[] = [
       q_cat_materialtype_prop_oxido1: 0.05,
       q_cat_materialtype_prop_oxido2: 0.8,
       q_cat_materialtype_prop_other: 0.15,
+      q_cat_mineral_main: "bornita",
     },
   },
   {
@@ -97,6 +112,7 @@ const records: ProfiledPropertyRecord[] = [
       q_cat_materialtype_prop_oxido1: 0.1,
       q_cat_materialtype_prop_oxido2: 0.4,
       q_cat_materialtype_prop_other: 0.5,
+      q_cat_mineral_main: "bornita",
     },
   },
 ];
@@ -108,6 +124,7 @@ describe("profiled properties helpers", () => {
     expect(result.numericalQualities.map((quality) => quality.id)).toEqual(["q_num_fe"]);
     expect(result.categoricalQualities.map((quality) => quality.id)).toEqual([
       "q_cat_materialtype_main",
+      "q_cat_mineral_main",
     ]);
     expect(result.proportionQualities.map((quality) => quality.id)).toEqual([
       "q_cat_materialtype_prop_oxido1",
@@ -122,9 +139,13 @@ describe("profiled properties helpers", () => {
       qualities,
     );
 
-    expect(groups).toHaveLength(1);
-    expect(groups[0]?.mainQuality.id).toBe("q_cat_materialtype_main");
-    expect(groups[0]?.proportionQualities.map((quality) => quality.id)).toEqual([
+    expect(groups).toHaveLength(2);
+    const materialGroup = groups.find(
+      (group) => group.mainQuality.id === "q_cat_materialtype_main",
+    );
+
+    expect(materialGroup?.mainQuality.id).toBe("q_cat_materialtype_main");
+    expect(materialGroup?.proportionQualities.map((quality) => quality.id)).toEqual([
       "q_cat_materialtype_prop_oxido1",
       "q_cat_materialtype_prop_oxido2",
       "q_cat_materialtype_prop_other",
@@ -183,11 +204,51 @@ describe("profiled properties helpers", () => {
       60,
     );
 
-    expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({
+    expect(entries).toHaveLength(2);
+    const materialEntry = entries.find(
+      (entry) => entry.quality.id === "q_cat_materialtype_main",
+    );
+
+    expect(materialEntry).toMatchObject({
       label: "Oxide 2",
       source: "proportion-records",
     });
-    expect(entries[0]?.ratio).toBeCloseTo(24.5 / 60, 5);
+    expect(materialEntry?.ratio).toBeCloseTo(24.5 / 60, 5);
+  });
+
+  it("resolves string-valued categorical dominance by mass and maps it to dictionary labels", () => {
+    const entries = buildDominantCategoricalEntries(
+      qualities.filter((quality) => quality.kind === "categorical"),
+      qualities,
+      values,
+      records,
+      60,
+    );
+    const mineralEntry = entries.find((entry) => entry.quality.id === "q_cat_mineral_main");
+
+    expect(mineralEntry).toMatchObject({
+      label: "Bornite",
+      source: "main-records",
+    });
+    expect(mineralEntry?.ratio).toBeCloseTo(0.5, 5);
+  });
+
+  it("builds qualitative distributions from string-valued main labels when no explicit proportions exist", () => {
+    const breakdown = buildCategoricalProportionBreakdown(
+      qualities.find((quality) => quality.id === "q_cat_mineral_main")!,
+      qualities,
+      values,
+      records,
+      60,
+    );
+
+    expect(breakdown?.source).toBe("main-records");
+    expect(breakdown?.dominant?.label).toBe("Bornite");
+    expect(breakdown?.segments.map((segment) => segment.label)).toEqual([
+      "Bornite",
+      "Chalcopyrite",
+    ]);
+    expect(breakdown?.segments[0]?.ratio).toBeCloseTo(0.5, 5);
+    expect(breakdown?.segments[1]?.ratio).toBeCloseTo(0.5, 5);
   });
 });

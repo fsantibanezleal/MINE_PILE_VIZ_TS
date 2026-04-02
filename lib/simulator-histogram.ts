@@ -1,4 +1,8 @@
-import type { ProfilerSummaryRow, QualityDefinition } from "@/types/app-data";
+import type {
+  ProfilerSummaryRow,
+  QualityDefinition,
+  QualityValue,
+} from "@/types/app-data";
 import { deriveNumericExtrema } from "@/lib/data-stats";
 
 export interface NumericalScenarioHistogramBin {
@@ -10,7 +14,7 @@ export interface NumericalScenarioHistogramBin {
 }
 
 export interface CategoricalScenarioHistogramBin {
-  value: number | null;
+  value: QualityValue;
   label: string;
   color: string;
   massTon: number;
@@ -90,7 +94,7 @@ export function buildScenarioMassHistogram(
     rows.forEach((row) => {
       const rawValue = row.qualityValues[quality.id];
 
-      if (typeof rawValue !== "number" || Number.isNaN(rawValue)) {
+      if (rawValue === null || rawValue === undefined) {
         return;
       }
 

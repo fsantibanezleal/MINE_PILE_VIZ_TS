@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.037`
-- Active tracked version: `0.01.038`
+- Closed release baseline: `0.01.038`
+- Active tracked version: `0.01.039`
 
 ## Release History
+
+### 0.01.039
+
+- Extended qualitative value handling so profiled properties, histograms, legends, and hover inspectors support both numeric-coded categories and string-valued category tokens.
+- Changed dominant qualitative aggregation to stay mass-weighted across live, stockpile, profiler, and simulator views without collapsing categorical values into numeric assumptions.
+- Added regression coverage for string-valued categorical summaries, distributions, and histograms, and tightened the runtime contract typing around mixed quality-value payloads.
 
 ### 0.01.038
 

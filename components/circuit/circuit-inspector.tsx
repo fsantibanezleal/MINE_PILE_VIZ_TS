@@ -2,7 +2,7 @@
 
 import type { GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
-import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 
 interface CircuitInspectorProps {
   node?: CircuitNode;
@@ -107,7 +107,13 @@ export function CircuitInspector({
               .map(([qualityId, value]) => (
                 <div key={qualityId} className="quality-list__item">
                   <span>{qualityId}</span>
-                  <strong>{value === null ? "N/A" : value.toFixed(3)}</strong>
+                  <strong>
+                    {value === null
+                      ? "N/A"
+                      : typeof value === "number"
+                        ? formatNumber(value)
+                        : value}
+                  </strong>
                 </div>
               ))}
           </div>

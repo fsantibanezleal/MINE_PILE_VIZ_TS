@@ -35,6 +35,7 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import { findQualityCategory } from "@/lib/quality-values";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -295,7 +296,10 @@ export function ProfilerWorkspace({
     }
 
     return deriveNumericColorDomain(
-      detailSnapshot.rows.map((row) => row.qualityValues[selectedQuality.id]),
+      detailSnapshot.rows.map((row) => {
+        const value = row.qualityValues[selectedQuality.id];
+        return typeof value === "number" ? value : null;
+      }),
       selectedQuality,
     );
   }, [detailSnapshot, selectedQuality]);
@@ -312,8 +316,13 @@ export function ProfilerWorkspace({
     hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
       ? "N/A"
       : selectedQuality?.kind === "numerical"
-        ? formatNumber(hoveredCellPropertyValue)
-        : String(hoveredCellPropertyValue);
+        ? formatNumber(
+            typeof hoveredCellPropertyValue === "number"
+              ? hoveredCellPropertyValue
+              : null,
+          )
+        : findQualityCategory(selectedQuality, hoveredCellPropertyValue)?.label ??
+          String(hoveredCellPropertyValue);
 
   let detailView: ReactNode = null;
 

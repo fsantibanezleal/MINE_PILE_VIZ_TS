@@ -11,6 +11,7 @@ import type {
 } from "@/types/app-data";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
+import { findQualityCategory } from "@/lib/quality-values";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
@@ -264,7 +265,10 @@ export function StockpileWorkspace({
         : dataset.cells;
 
     return deriveNumericColorDomain(
-      cellsForDomain.map((cell) => cell.qualityValues[selectedQuality.id]),
+      cellsForDomain.map((cell) => {
+        const value = cell.qualityValues[selectedQuality.id];
+        return typeof value === "number" ? value : null;
+      }),
       selectedQuality,
     );
   }, [dataset, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
@@ -292,6 +296,17 @@ export function StockpileWorkspace({
     activeHoveredCell && selectedQuality
       ? activeHoveredCell.qualityValues[selectedQuality.id]
       : null;
+  const hoveredCellPropertyDisplay =
+    hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
+      ? "N/A"
+      : selectedQuality?.kind === "categorical"
+        ? findQualityCategory(selectedQuality, hoveredCellPropertyValue)?.label ??
+          String(hoveredCellPropertyValue)
+        : formatNumber(
+            typeof hoveredCellPropertyValue === "number"
+              ? hoveredCellPropertyValue
+              : null,
+          );
 
   let content: ReactNode;
 
@@ -537,10 +552,7 @@ export function StockpileWorkspace({
                   },
                   {
                     label: selectedQuality?.label ?? "Property",
-                    value:
-                      hoveredCellPropertyValue === null
-                        ? "N/A"
-                        : formatNumber(hoveredCellPropertyValue),
+                    value: hoveredCellPropertyDisplay,
                   },
                 ]}
               />

@@ -1,5 +1,6 @@
 import type { QualityDefinition } from "@/types/app-data";
 import { deriveNumericExtrema } from "@/lib/data-stats";
+import { findQualityCategory } from "@/lib/quality-values";
 
 const FALLBACK_COLOR = "#7ca4c9";
 
@@ -88,7 +89,7 @@ export function interpolatePalette(palette: string[], ratio: number): string {
 
 export function getQualityColor(
   definition: QualityDefinition | undefined,
-  value: number | null | undefined,
+  value: string | number | null | undefined,
   domain?: NumericColorDomain,
 ): string {
   if (!definition || value === null || value === undefined || Number.isNaN(value)) {
@@ -96,10 +97,11 @@ export function getQualityColor(
   }
 
   if (definition.kind === "categorical") {
-    return (
-      definition.categories?.find((category) => category.value === value)?.color ??
-      FALLBACK_COLOR
-    );
+    return findQualityCategory(definition, value)?.color ?? FALLBACK_COLOR;
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return FALLBACK_COLOR;
   }
 
   const min = domain?.min ?? definition.min ?? 0;

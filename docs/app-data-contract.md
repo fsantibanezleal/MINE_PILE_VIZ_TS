@@ -80,6 +80,9 @@ Categorical qualities should also provide:
 - `categories[]`
 - each category needs `value`, `label`, `color`
 
+Categorical `value` may be either a numeric code or a string token. The runtime treats these as
+categorical identities, not as numerical quantities.
+
 Qualitative distribution channels may also be emitted as additional numerical quality definitions
 when the exporter has access to categorical proportion outputs.
 
@@ -174,6 +177,10 @@ Required fields per item:
 
 `qualityValues` is a JSON object keyed by quality id.
 
+- numerical qualities should emit finite numbers
+- categorical qualities may emit either numeric codes or string tokens, as long as they match one
+  of the configured category definitions
+
 ### `stockpiles/<pile_id>/meta.json`
 
 Required fields:
@@ -198,6 +205,9 @@ Required fields:
 
 `files.cells` is required. `files.surface` and `files.shell` are optional acceleration artifacts.
 If `files.surface` or `files.shell` are omitted, unavailable, or unusable, the runtime will fall back to derived layers from `cells.arrow`.
+
+`qualityAverages` follows the same rules as `qualityValues`: numerical entries must be numeric,
+while qualitative `*_main` entries may be numeric codes or string tokens.
 
 ### `profiler/index.json`
 
