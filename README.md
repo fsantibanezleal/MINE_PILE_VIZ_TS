@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
-| Release-synced version | `0.01.022` |
+| Release-synced version | `0.01.023` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Current Frontend Views
@@ -107,7 +107,7 @@ The stockpile workspace exposes internal structure for accumulation objects. It 
 
 ### Profiler Workspace
 
-The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. Summary history now loads on demand from the route API so the page can mount before fetching the full timeline table.
+The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. Summary history now loads on demand from the route API so the page can mount before fetching the full timeline table, while pile detail mode now mirrors the stockpile workspace by exposing pile anchors and hovered cell inspection inside the historical snapshot view.
 
 ## Scope And Current Status
 
@@ -129,7 +129,7 @@ The profiler workspace adds time navigation. It lets the operator inspect profil
 
 ### Current Boundaries
 
-- v0.01.022 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- v0.01.023 is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -243,6 +243,6 @@ types/
 
 ## Current Version
 
-`0.01.022`
+`0.01.023`
 
 Versioning uses the fixed-width format `x.xx.xxx`.

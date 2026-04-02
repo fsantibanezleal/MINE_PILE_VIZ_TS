@@ -56,8 +56,26 @@ const graph: CircuitGraph = {
       dimension: 1,
       isProfiled: true,
       shortDescription: "Pile",
-      inputs: [],
-      outputs: [],
+      inputs: [
+        {
+          id: "pile-a-in",
+          label: "Pile A Feed",
+          kind: "input",
+          x: 0.25,
+          y: 0.15,
+          relatedObjectId: "belt_b",
+        },
+      ],
+      outputs: [
+        {
+          id: "pile-a-out",
+          label: "Pile A Reclaim",
+          kind: "output",
+          x: 0.75,
+          y: 0.9,
+          relatedObjectId: "belt_b",
+        },
+      ],
     },
     {
       id: "belt_b",
@@ -208,5 +226,37 @@ describe("ProfilerWorkspace", () => {
       );
     });
     await screen.findByRole("heading", { name: "Belt B" });
+  });
+
+  it("shows pile anchors and hovered cell details in profiler detail mode", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByRole("heading", { name: "Pile A" });
+    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
+
+    expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
+    expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByLabelText("Pile cell 0,0,0"));
+
+    expect(screen.getByText("Cell Focus")).toBeInTheDocument();
+    expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
+    expect(screen.getByText("20 t")).toBeInTheDocument();
   });
 });

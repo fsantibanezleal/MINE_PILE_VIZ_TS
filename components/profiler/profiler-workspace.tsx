@@ -12,6 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   CircuitGraph,
   ObjectSummary,
+  PileCellRecord,
   ProfilerIndex,
   ProfilerSnapshot,
   ProfilerSummaryRow,
@@ -25,12 +26,13 @@ import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
+import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
 import {
   PileColumnView,
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
-import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -43,6 +45,10 @@ interface ProfilerWorkspaceProps {
 }
 
 type ProfilerMode = "circuit" | "detail";
+
+function isSameCell(left: PileCellRecord, right: PileCellRecord) {
+  return left.ix === right.ix && left.iy === right.iy && left.iz === right.iz;
+}
 
 function getExtents(rows: ProfilerSnapshot["rows"]) {
   if (rows.length === 0) {
@@ -86,6 +92,7 @@ export function ProfilerWorkspace({
   const [playing, setPlaying] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +167,7 @@ export function ProfilerWorkspace({
     setLoadingDetail(true);
     setDetailError(null);
     setDetailSnapshot(null);
+    setHoveredCell(null);
     setSelectedObjectId(nextObjectId);
     setSelectedSnapshotId("");
     router.replace(
@@ -173,6 +181,7 @@ export function ProfilerWorkspace({
   }
 
   function handleSelectQuality(nextQualityId: string) {
+    setHoveredCell(null);
     setSelectedQualityId(nextQualityId);
     router.replace(
       buildHrefWithQuery(pathname, searchParams, {
@@ -195,6 +204,7 @@ export function ProfilerWorkspace({
           (row) => row.snapshotId === current,
         );
         const nextIndex = currentIndex >= selectedObjectRows.length - 1 ? 0 : currentIndex + 1;
+        setHoveredCell(null);
         setLoadingDetail(true);
         return selectedObjectRows[nextIndex]?.snapshotId ?? current;
       });
@@ -278,6 +288,7 @@ export function ProfilerWorkspace({
     availableQualities.find((quality) => quality.id === selectedQualityId) ??
     availableQualities[0];
   const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
+  const selectedGraphNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
 
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
@@ -294,6 +305,21 @@ export function ProfilerWorkspace({
       selectedQuality,
     );
   }, [detailSnapshot, selectedQuality]);
+  const activeHoveredCell =
+    hoveredCell &&
+    detailSnapshot?.rows.some((row) => isSameCell(row, hoveredCell))
+      ? hoveredCell
+      : null;
+  const hoveredCellPropertyValue =
+    activeHoveredCell && selectedQuality
+      ? activeHoveredCell.qualityValues[selectedQuality.id]
+      : null;
+  const hoveredCellPropertyDisplay =
+    hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
+      ? "N/A"
+      : selectedQuality?.kind === "numerical"
+        ? formatNumber(hoveredCellPropertyValue)
+        : String(hoveredCellPropertyValue);
 
   let detailView: ReactNode = null;
 
@@ -304,6 +330,7 @@ export function ProfilerWorkspace({
           cells={detailSnapshot.rows}
           quality={selectedQuality}
           numericDomain={detailColorDomain}
+          onHoverCellChange={setHoveredCell}
         />
       );
     } else if (detailSnapshot.dimension === 2) {
@@ -316,6 +343,7 @@ export function ProfilerWorkspace({
           rows={detailExtents.y}
           xAccessor={(cell) => cell.ix}
           yAccessor={(cell) => cell.iy}
+          onHoverCellChange={setHoveredCell}
         />
       );
     } else {
@@ -326,7 +354,16 @@ export function ProfilerWorkspace({
           extents={detailExtents}
           quality={selectedQuality}
           numericDomain={detailColorDomain}
+          onHoverCellChange={setHoveredCell}
         />
+      );
+    }
+
+    if (detailSnapshot.objectType === "pile" && selectedGraphNode) {
+      detailView = (
+        <PileAnchorFrame inputs={selectedGraphNode.inputs} outputs={selectedGraphNode.outputs}>
+          {detailView}
+        </PileAnchorFrame>
       );
     }
   }
@@ -467,6 +504,44 @@ export function ProfilerWorkspace({
             limit={availableQualities.length}
           />
         ) : null}
+        <div className="inspector-stack">
+          <div className="section-label">Cell Focus</div>
+          {mode !== "detail" ? (
+            <p className="muted-text">
+              Switch to detail mode to inspect hovered pile or belt cells from the current
+              profiler snapshot.
+            </p>
+          ) : activeHoveredCell ? (
+            <>
+              <MetricGrid
+                metrics={[
+                  {
+                    label: "Indices",
+                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
+                  },
+                  {
+                    label: "Mass",
+                    value: formatMassTon(activeHoveredCell.massTon),
+                  },
+                  {
+                    label: selectedQuality?.label ?? "Property",
+                    value: hoveredCellPropertyDisplay,
+                  },
+                ]}
+              />
+              <QualityValueList
+                qualities={availableQualities}
+                values={activeHoveredCell.qualityValues}
+                limit={Math.min(availableQualities.length, 6)}
+              />
+            </>
+          ) : (
+            <p className="muted-text">
+              Hover a cell or voxel in the active profiler detail view to inspect its
+              coordinates, mass, and property values.
+            </p>
+          )}
+        </div>
         <WorkspaceJumpLinks
           objectId={selectedObjectId}
           objectType={selectedIndexEntry?.objectType}
