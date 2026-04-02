@@ -11,12 +11,19 @@ export function QualityLegend({ quality, numericDomain }: QualityLegendProps) {
     return null;
   }
 
+  const numericDomainLabel =
+    quality.kind === "numerical"
+      ? numericDomain?.mode === "adaptive-local"
+        ? "Numerical · view-scaled"
+        : "Numerical · configured range"
+      : "Categorical";
+
   return (
     <div className="quality-legend">
       <div className="section-label">Color legend</div>
       <div className="quality-legend__title-row">
         <strong>{quality.label}</strong>
-        <span>{quality.kind === "categorical" ? "Categorical" : "Numerical"}</span>
+        <span>{numericDomainLabel}</span>
       </div>
       {quality.kind === "categorical" ? (
         <div className="quality-legend__categories">

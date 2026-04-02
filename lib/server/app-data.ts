@@ -227,13 +227,27 @@ function mapQualityValues(
   row: Record<string, unknown>,
   qualityIds: string[],
 ): Record<string, number | null> {
+  const coerceQualityValue = (rawValue: unknown) => {
+    if (typeof rawValue === "number" && Number.isFinite(rawValue)) {
+      return rawValue;
+    }
+
+    if (typeof rawValue === "bigint") {
+      const value = Number(rawValue);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof rawValue === "string" && rawValue.trim().length > 0) {
+      const value = Number(rawValue);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    return null;
+  };
+
   return Object.fromEntries(
     qualityIds.map((qualityId) => {
-      const rawValue = row[qualityId];
-      return [
-        qualityId,
-        typeof rawValue === "number" && Number.isFinite(rawValue) ? rawValue : null,
-      ];
+      return [qualityId, coerceQualityValue(row[qualityId])];
     }),
   );
 }

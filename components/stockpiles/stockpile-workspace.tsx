@@ -461,6 +461,12 @@ export function StockpileWorkspace({
           </InlineNotice>
         ) : null}
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
+        {selectedQuality?.kind === "numerical" && colorDomain?.mode === "adaptive-local" ? (
+          <InlineNotice tone="info" title="View-scaled contrast active">
+            The current visible cells occupy only a narrow slice of the configured property
+            range, so the pile view is using a local color domain to keep voxel contrast readable.
+          </InlineNotice>
+        ) : null}
         <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
         {dataset ? (
           <PileAnchorFrame

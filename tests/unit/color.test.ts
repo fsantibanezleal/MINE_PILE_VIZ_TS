@@ -23,15 +23,34 @@ const cutDefinition: QualityDefinition = {
 };
 
 describe("color helpers", () => {
-  it("prefers configured quality bounds when deriving numerical domains", () => {
+  it("switches to a view-scaled domain when the visible values occupy only a narrow slice of the configured range", () => {
     const domain = deriveNumericColorDomain([1.25, 1.3, 1.36], feDefinition);
 
-    expect(domain).toEqual({ min: 0, max: 2 });
+    expect(domain).toMatchObject({
+      mode: "adaptive-local",
+    });
+    expect(domain?.min ?? 0).toBeLessThan(1.25);
+    expect(domain?.max ?? 0).toBeGreaterThan(1.36);
+    expect(domain?.max ?? 0).toBeLessThan(2);
+  });
+
+  it("keeps configured bounds when the visible values span a broad portion of the configured range", () => {
+    const domain = deriveNumericColorDomain([0.15, 1.2], feDefinition);
+
+    expect(domain).toEqual({ min: 0, max: 2, mode: "configured" });
   });
 
   it("produces different colors for different numerical properties with the same raw value", () => {
-    const feColor = getQualityColor(feDefinition, 1.25, deriveNumericColorDomain([1.25], feDefinition));
-    const cutColor = getQualityColor(cutDefinition, 1.25, deriveNumericColorDomain([1.25], cutDefinition));
+    const feColor = getQualityColor(
+      feDefinition,
+      1.25,
+      deriveNumericColorDomain([1.22, 1.25, 1.29], feDefinition),
+    );
+    const cutColor = getQualityColor(
+      cutDefinition,
+      1.25,
+      deriveNumericColorDomain([1.18, 1.25, 1.36], cutDefinition),
+    );
 
     expect(feColor).not.toBe(cutColor);
   });

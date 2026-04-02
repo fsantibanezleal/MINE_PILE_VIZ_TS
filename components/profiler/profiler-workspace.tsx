@@ -448,6 +448,14 @@ export function ProfilerWorkspace({
         ) : null}
         {loadingSummary ? <div className="loading-banner">Loading profiler history...</div> : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
+        {mode === "detail" &&
+        selectedQuality?.kind === "numerical" &&
+        detailColorDomain?.mode === "adaptive-local" ? (
+          <InlineNotice tone="info" title="View-scaled contrast active">
+            The active profiler detail snapshot is using a local color domain so the visible
+            pile or belt cells keep enough contrast for property inspection.
+          </InlineNotice>
+        ) : null}
         {mode === "detail" ? (
           <QualityLegend quality={selectedQuality} numericDomain={detailColorDomain} />
         ) : null}
