@@ -299,7 +299,7 @@ describe("ProfilerWorkspace", () => {
     await screen.findByRole("heading", { name: "Pile A" });
     fireEvent.click(screen.getByRole("button", { name: "Detail" }));
 
-    expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
+    await screen.findByText("Pile A Feed");
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
@@ -333,6 +333,7 @@ describe("ProfilerWorkspace", () => {
     await screen.findByRole("heading", { name: "Pile A" });
     fireEvent.click(screen.getByRole("button", { name: "Detail" }));
 
+    await screen.findByText("Pile A Feed");
     const inputOverlay = await screen.findByTestId("pile-anchor-overlay-input");
     const outputOverlay = screen.getByTestId("pile-anchor-overlay-output");
 

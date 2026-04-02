@@ -1,9 +1,13 @@
+import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SimulatorWorkspace } from "@/components/simulator/simulator-workspace";
 import type {
+  BeltSnapshot,
   CircuitGraph,
+  PileDataset,
   ProfilerIndex,
+  ProfilerSnapshot,
   ProfilerSummaryRow,
   QualityDefinition,
 } from "@/types/app-data";
@@ -16,17 +20,13 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/components/circuit/circuit-flow", () => ({
-  CircuitFlow: ({
-    selectedObjectId,
-    summaries,
-  }: {
-    selectedObjectId?: string;
-    summaries: Array<{ objectId: string }>;
-  }) => (
-    <div data-testid="circuit-flow">
-      {selectedObjectId ?? "none"}:{summaries.length}
-    </div>
+vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
+  Pile3DCanvas: () => <div data-testid="pile-3d-canvas">3D pile</div>,
+}));
+
+vi.mock("@/components/stockpiles/pile-anchor-frame", () => ({
+  PileAnchorFrame: ({ children }: { children: ReactNode }) => (
+    <div data-testid="pile-anchor-frame">{children}</div>
   ),
 }));
 
@@ -43,7 +43,11 @@ const qualities: QualityDefinition[] = [
 ];
 
 const graph: CircuitGraph = {
-  stages: [{ index: 0, label: "Stage", nodeIds: ["pile_a", "belt_b"] }],
+  stages: [
+    { index: 0, label: "Accumulation", nodeIds: ["pile_a"] },
+    { index: 1, label: "Discharge", nodeIds: ["vbelt_lane", "vpile_mix"] },
+    { index: 2, label: "Transport", nodeIds: ["belt_b"] },
+  ],
   nodes: [
     {
       id: "pile_a",
@@ -52,11 +56,55 @@ const graph: CircuitGraph = {
       objectRole: "physical",
       label: "Pile A",
       stageIndex: 0,
-      dimension: 1,
+      dimension: 3,
       isProfiled: true,
-      shortDescription: "Pile",
+      shortDescription: "Central pile",
+      inputs: [],
+      outputs: [
+        {
+          id: "out-west",
+          label: "West reclaim",
+          kind: "output",
+          x: 0.3,
+          y: 0.9,
+          relatedObjectId: "vbelt_lane",
+        },
+      ],
+    },
+    {
+      id: "vbelt_lane",
+      objectId: "vbelt_lane",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Virtual Lane",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual discharge lane",
       inputs: [],
       outputs: [],
+    },
+    {
+      id: "vpile_mix",
+      objectId: "vpile_mix",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Virtual Mixer",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual pile",
+      inputs: [],
+      outputs: [
+        {
+          id: "out-b",
+          label: "To CV301",
+          kind: "output",
+          x: 0.5,
+          y: 0.9,
+          relatedObjectId: "belt_b",
+        },
+      ],
     },
     {
       id: "belt_b",
@@ -64,15 +112,19 @@ const graph: CircuitGraph = {
       objectType: "belt",
       objectRole: "physical",
       label: "Belt B",
-      stageIndex: 0,
+      stageIndex: 2,
       dimension: 1,
       isProfiled: true,
-      shortDescription: "Belt",
+      shortDescription: "Physical downstream belt",
       inputs: [],
       outputs: [],
     },
   ],
-  edges: [],
+  edges: [
+    { id: "e1", source: "pile_a", target: "vbelt_lane", label: "west" },
+    { id: "e2", source: "vbelt_lane", target: "vpile_mix", label: "mix" },
+    { id: "e3", source: "vpile_mix", target: "belt_b", label: "belt" },
+  ],
 };
 
 const index: ProfilerIndex = {
@@ -82,15 +134,8 @@ const index: ProfilerIndex = {
       objectId: "pile_a",
       displayName: "Pile A",
       objectType: "pile",
-      dimension: 1,
+      dimension: 3,
       manifestRef: "profiler/objects/pile_a/manifest.json",
-    },
-    {
-      objectId: "belt_b",
-      displayName: "Belt B",
-      objectType: "belt",
-      dimension: 1,
-      manifestRef: "profiler/objects/belt_b/manifest.json",
     },
   ],
 };
@@ -102,9 +147,9 @@ const summaryRows: ProfilerSummaryRow[] = [
     objectId: "pile_a",
     objectType: "pile",
     displayName: "Pile A",
-    dimension: 1,
-    massTon: 100,
-    qualityValues: { q_num_fe: 1.1 },
+    dimension: 3,
+    massTon: 95,
+    qualityValues: { q_num_fe: 1.04 },
   },
   {
     snapshotId: "20250319011500",
@@ -112,21 +157,167 @@ const summaryRows: ProfilerSummaryRow[] = [
     objectId: "pile_a",
     objectType: "pile",
     displayName: "Pile A",
-    dimension: 1,
-    massTon: 120,
-    qualityValues: { q_num_fe: 1.2 },
-  },
-  {
-    snapshotId: "20250319011500",
-    timestamp: "2025-03-19T01:15:00Z",
-    objectId: "belt_b",
-    objectType: "belt",
-    displayName: "Belt B",
-    dimension: 1,
-    massTon: 80,
-    qualityValues: { q_num_fe: 1.4 },
+    dimension: 3,
+    massTon: 104,
+    qualityValues: { q_num_fe: 1.14 },
   },
 ];
+
+const profilerSnapshot: ProfilerSnapshot = {
+  objectId: "pile_a",
+  displayName: "Pile A",
+  objectType: "pile",
+  snapshotId: "20250319011500",
+  timestamp: "2025-03-19T01:15:00Z",
+  dimension: 3,
+  rows: [
+    {
+      ix: 0,
+      iy: 0,
+      iz: 0,
+      massTon: 50,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.1 },
+    },
+    {
+      ix: 1,
+      iy: 0,
+      iz: 0,
+      massTon: 54,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.18 },
+    },
+  ],
+};
+
+const currentVirtualPile: PileDataset = {
+  objectId: "vpile_mix",
+  displayName: "Virtual Mixer",
+  objectRole: "virtual",
+  timestamp: "2025-03-19T01:15:00Z",
+  dimension: 1,
+  extents: { x: 1, y: 1, z: 3 },
+  occupiedCellCount: 3,
+  surfaceCellCount: 1,
+  defaultQualityId: "q_num_fe",
+  availableQualityIds: ["q_num_fe"],
+  viewModes: ["full"],
+  suggestedFullStride: 1,
+  fullModeThreshold: 12,
+  qualityAverages: { q_num_fe: 1.22 },
+  inputs: [],
+  outputs: [
+    {
+      id: "out-b",
+      label: "To CV301",
+      kind: "output",
+      x: 0.5,
+      y: 0.9,
+      relatedObjectId: "belt_b",
+    },
+  ],
+  files: { cells: "stockpiles/vpile_mix/cells.arrow" },
+  cells: [
+    {
+      ix: 0,
+      iy: 0,
+      iz: 0,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.16 },
+    },
+    {
+      ix: 0,
+      iy: 0,
+      iz: 1,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.22 },
+    },
+    {
+      ix: 0,
+      iy: 0,
+      iz: 2,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.28 },
+    },
+  ],
+  surfaceCells: [
+    {
+      ix: 0,
+      iy: 0,
+      iz: 2,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.28 },
+    },
+  ],
+  shellCells: [],
+};
+
+const virtualBelt: BeltSnapshot = {
+  objectId: "vbelt_lane",
+  displayName: "Virtual Lane",
+  timestamp: "2025-03-19T01:15:00Z",
+  totalMassTon: 36,
+  blockCount: 2,
+  qualityAverages: { q_num_fe: 1.18 },
+  blocks: [
+    {
+      position: 0,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.16 },
+    },
+    {
+      position: 1,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.2 },
+    },
+  ],
+};
+
+const physicalBelt: BeltSnapshot = {
+  objectId: "belt_b",
+  displayName: "Belt B",
+  timestamp: "2025-03-19T01:15:00Z",
+  totalMassTon: 54,
+  blockCount: 3,
+  qualityAverages: { q_num_fe: 1.24 },
+  blocks: [
+    {
+      position: 0,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.2 },
+    },
+    {
+      position: 1,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.24 },
+    },
+    {
+      position: 2,
+      massTon: 18,
+      timestampOldestMs: 1742346000000,
+      timestampNewestMs: 1742346900000,
+      qualityValues: { q_num_fe: 1.28 },
+    },
+  ],
+};
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -138,12 +329,28 @@ function jsonResponse(payload: unknown, status = 200) {
 }
 
 describe("SimulatorWorkspace", () => {
-  it("loads timestep summaries and updates the scenario state when controls change", async () => {
+  it("centers the simulator on piles and renders downstream belt content under each output", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
       if (url.endsWith("/api/profiler/summary")) {
         return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(profilerSnapshot);
+      }
+
+      if (url.endsWith("/api/stockpiles/vpile_mix")) {
+        return jsonResponse(currentVirtualPile);
+      }
+
+      if (url.endsWith("/api/live/belts/vbelt_lane")) {
+        return jsonResponse(virtualBelt);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_b")) {
+        return jsonResponse(physicalBelt);
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -153,28 +360,37 @@ describe("SimulatorWorkspace", () => {
 
     render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
 
-    expect(screen.getByText("Loading simulator scenario...")).toBeInTheDocument();
+    expect(screen.getByText("Loading simulator history...")).toBeInTheDocument();
+
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/profiler/summary");
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("circuit-flow")).toHaveTextContent("pile_a:2");
+      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
     });
-    expect(screen.getByText("Mass Ranking")).toBeInTheDocument();
-    expect(screen.getByText("Histogram bins")).toBeInTheDocument();
-    expect(screen.getByLabelText("Scenario mass-weighted histogram")).toBeInTheDocument();
-    expect(screen.getAllByText("120 t").length).toBeGreaterThan(0);
 
-    fireEvent.change(screen.getByLabelText("Object"), {
-      target: { value: "belt_b" },
-    });
-    expect(screen.getByTestId("circuit-flow")).toHaveTextContent("belt_b:2");
+    expect(screen.getByRole("button", { name: /West reclaim/i })).toBeInTheDocument();
+    expect(screen.getByText("Virtual Lane")).toBeInTheDocument();
+    expect(screen.getByText("Belt B")).toBeInTheDocument();
+    expect(screen.getByLabelText("Virtual Lane block strip")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Virtual Lane mass-weighted histogram"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Time step"), {
-      target: { value: "0" },
+    fireEvent.change(screen.getByLabelText("Central pile"), {
+      target: { value: "vpile_mix" },
     });
-    expect(screen.getByTestId("circuit-flow")).toHaveTextContent("belt_b:1");
-    expect(screen.getAllByText("100 t").length).toBeGreaterThan(0);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/vpile_mix");
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
+    });
+
+    expect(screen.getByRole("button", { name: /To CV301/i })).toBeInTheDocument();
   });
 });

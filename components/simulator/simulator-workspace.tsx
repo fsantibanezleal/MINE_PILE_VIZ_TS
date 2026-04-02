@@ -5,24 +5,51 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircuitFlow } from "@/components/circuit/circuit-flow";
+import { BeltBlockStrip } from "@/components/live/belt-block-strip";
+import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
+import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
+import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
+import {
+  PileColumnView,
+  PileHeatmapView,
+} from "@/components/stockpiles/pile-views";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
+import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { SimulatorMassHistogram } from "@/components/simulator/simulator-mass-histogram";
+import { QualityValueList } from "@/components/ui/quality-value-list";
+import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
+import { deriveNumericColorDomain } from "@/lib/color";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import {
+  buildAdaptiveFullRenderPlan,
+  deriveShellCells,
+  deriveSurfaceCells,
+} from "@/lib/stockpile-rendering";
+import {
+  buildSimulatorDischargeLanes,
+  getSimulatorPileNodes,
+  type SimulatorDischargeBelt,
+} from "@/lib/simulator-topology";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
 } from "@/lib/workspace-route-state";
 import type {
+  BeltSnapshot,
   CircuitGraph,
-  ObjectSummary,
+  PileCellRecord,
+  PileDataset,
   ProfilerIndex,
+  ProfilerSnapshot,
   ProfilerSummaryRow,
   QualityDefinition,
+  QualityValueMap,
+  StockpileViewMode,
 } from "@/types/app-data";
 
 interface SimulatorWorkspaceProps {
@@ -31,16 +58,254 @@ interface SimulatorWorkspaceProps {
   qualities: QualityDefinition[];
 }
 
-function toObjectSummary(row: ProfilerSummaryRow): ObjectSummary {
-  return {
-    objectId: row.objectId,
-    objectType: row.objectType,
-    displayName: row.displayName,
-    timestamp: row.timestamp,
-    massTon: row.massTon,
-    status: "Scenario step",
-    qualityValues: row.qualityValues,
+type SliceAxis = "x" | "y" | "z";
+type SimulatorSource = "current-stockpile" | "profiler-snapshot";
+
+interface SimulatorCentralObjectData {
+  objectId: string;
+  displayName: string;
+  objectRole: "physical" | "virtual";
+  timestamp: string;
+  dimension: 1 | 2 | 3;
+  extents: {
+    x: number;
+    y: number;
+    z: number;
   };
+  occupiedCellCount: number;
+  surfaceCellCount: number;
+  defaultQualityId: string;
+  availableQualityIds: string[];
+  viewModes: StockpileViewMode[];
+  suggestedFullStride: number;
+  fullModeThreshold: number;
+  qualityAverages: QualityValueMap;
+  inputs: PileDataset["inputs"];
+  outputs: PileDataset["outputs"];
+  cells: PileCellRecord[];
+  surfaceCells: PileCellRecord[];
+  shellCells: PileCellRecord[];
+  source: SimulatorSource;
+  snapshotId?: string;
+}
+
+interface DischargeLaneCardProps {
+  belt: SimulatorDischargeBelt;
+  snapshot?: BeltSnapshot;
+  quality: QualityDefinition | undefined;
+  loading: boolean;
+  error?: string;
+}
+
+function isSameCell(left: PileCellRecord, right: PileCellRecord) {
+  return left.ix === right.ix && left.iy === right.iy && left.iz === right.iz;
+}
+
+function getRowsExtents(rows: PileCellRecord[]) {
+  if (rows.length === 0) {
+    return { x: 1, y: 1, z: 1 };
+  }
+
+  return {
+    x: Math.max(...rows.map((row) => row.ix)) + 1,
+    y: Math.max(...rows.map((row) => row.iy)) + 1,
+    z: Math.max(...rows.map((row) => row.iz)) + 1,
+  };
+}
+
+function buildSummaryValuesFromCells(
+  cells: PileCellRecord[],
+  qualities: QualityDefinition[],
+) {
+  const qualityValues: QualityValueMap = {};
+
+  qualities.forEach((quality) => {
+    if (quality.kind === "numerical") {
+      const numericCells = cells.filter((cell) => {
+        const value = cell.qualityValues[quality.id];
+        return typeof value === "number" && Number.isFinite(value) && cell.massTon > 0;
+      });
+
+      if (numericCells.length === 0) {
+        qualityValues[quality.id] = null;
+        return;
+      }
+
+      const representedMass = numericCells.reduce((sum, cell) => sum + cell.massTon, 0);
+      qualityValues[quality.id] =
+        numericCells.reduce((sum, cell) => {
+          return sum + (cell.qualityValues[quality.id] ?? 0) * cell.massTon;
+        }, 0) / Math.max(representedMass, 1);
+      return;
+    }
+
+    const groupedMass = new Map<number, number>();
+
+    cells.forEach((cell) => {
+      const value = cell.qualityValues[quality.id];
+
+      if (typeof value !== "number" || !Number.isFinite(value) || cell.massTon <= 0) {
+        return;
+      }
+
+      groupedMass.set(value, (groupedMass.get(value) ?? 0) + cell.massTon);
+    });
+
+    const dominant = [...groupedMass.entries()].sort((left, right) => right[1] - left[1])[0];
+    qualityValues[quality.id] = dominant?.[0] ?? null;
+  });
+
+  return qualityValues;
+}
+
+function normalizeDatasetData(dataset: PileDataset): SimulatorCentralObjectData {
+  return {
+    objectId: dataset.objectId,
+    displayName: dataset.displayName,
+    objectRole: dataset.objectRole,
+    timestamp: dataset.timestamp,
+    dimension: dataset.dimension,
+    extents: dataset.extents,
+    occupiedCellCount: dataset.occupiedCellCount,
+    surfaceCellCount: dataset.surfaceCellCount,
+    defaultQualityId: dataset.defaultQualityId,
+    availableQualityIds: dataset.availableQualityIds,
+    viewModes: dataset.viewModes,
+    suggestedFullStride: dataset.suggestedFullStride,
+    fullModeThreshold: dataset.fullModeThreshold,
+    qualityAverages: dataset.qualityAverages,
+    inputs: dataset.inputs,
+    outputs: dataset.outputs,
+    cells: dataset.cells,
+    surfaceCells: dataset.surfaceCells,
+    shellCells: dataset.shellCells,
+    source: "current-stockpile",
+  };
+}
+
+function normalizeSnapshotData(
+  snapshot: ProfilerSnapshot,
+  graph: CircuitGraph,
+  summaryRow: ProfilerSummaryRow | undefined,
+  qualities: QualityDefinition[],
+): SimulatorCentralObjectData {
+  const selectedNode = graph.nodes.find((node) => node.objectId === snapshot.objectId);
+  const extents = getRowsExtents(snapshot.rows);
+  const surfaceCells = deriveSurfaceCells(snapshot.rows);
+  const shellCells = deriveShellCells(snapshot.rows);
+  const qualityAverages = summaryRow?.qualityValues ?? buildSummaryValuesFromCells(snapshot.rows, qualities);
+  const defaultQualityId =
+    qualities.find((quality) => quality.id in qualityAverages)?.id ?? qualities[0]?.id ?? "";
+  const availableQualityIds = qualities
+    .filter(
+      (quality) =>
+        quality.id in qualityAverages ||
+        snapshot.rows.some((row) => quality.id in row.qualityValues),
+    )
+    .map((quality) => quality.id);
+
+  return {
+    objectId: snapshot.objectId,
+    displayName: snapshot.displayName,
+    objectRole: "physical",
+    timestamp: snapshot.timestamp,
+    dimension: snapshot.dimension,
+    extents,
+    occupiedCellCount: snapshot.rows.length,
+    surfaceCellCount: surfaceCells.length,
+    defaultQualityId,
+    availableQualityIds,
+    viewModes:
+      snapshot.dimension === 3 ? ["surface", "shell", "full", "slice"] : ["full"],
+    suggestedFullStride: 1,
+    fullModeThreshold: Math.max(snapshot.rows.length, 1),
+    qualityAverages,
+    inputs: selectedNode?.inputs ?? [],
+    outputs: selectedNode?.outputs ?? [],
+    cells: snapshot.rows,
+    surfaceCells,
+    shellCells,
+    source: "profiler-snapshot",
+    snapshotId: snapshot.snapshotId,
+  };
+}
+
+async function fetchJson<T>(url: string, fallbackMessage: string) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | {
+          error?: {
+            message?: string;
+          };
+        }
+      | null;
+
+    throw new Error(payload?.error?.message ?? fallbackMessage);
+  }
+
+  return (await response.json()) as T;
+}
+
+function getDefaultViewMode(dataset: SimulatorCentralObjectData): StockpileViewMode {
+  if (dataset.dimension !== 3) {
+    return dataset.viewModes[0] ?? "full";
+  }
+
+  const canSafelyRenderFull =
+    dataset.viewModes.includes("full") &&
+    dataset.occupiedCellCount <= dataset.fullModeThreshold;
+
+  if (canSafelyRenderFull) {
+    return "full";
+  }
+
+  return dataset.viewModes.includes("surface")
+    ? "surface"
+    : (dataset.viewModes[0] ?? "full");
+}
+
+function SimulatorDischargeLaneCard({
+  belt,
+  snapshot,
+  quality,
+  loading,
+  error,
+}: DischargeLaneCardProps) {
+  return (
+    <article className="simulator-belt-card">
+      <div className="simulator-belt-card__header">
+        <div>
+          <div className="section-label">{belt.objectRole === "virtual" ? "Virtual belt" : "Belt"}</div>
+          <h3>{belt.label}</h3>
+        </div>
+        <div className="simulator-belt-card__meta">
+          <span>Stage {belt.stageIndex + 1}</span>
+          <strong>Depth {belt.depth}</strong>
+        </div>
+      </div>
+      {loading ? <div className="loading-banner">Loading belt content...</div> : null}
+      {error ? (
+        <InlineNotice tone="error" title="Belt snapshot unavailable">
+          {error}
+        </InlineNotice>
+      ) : null}
+      {snapshot ? (
+        <div className="belt-strip-panel">
+          <MetricGrid
+            metrics={[
+              { label: "Blocks", value: String(snapshot.blockCount) },
+              { label: "Mass", value: formatMassTon(snapshot.totalMassTon) },
+              { label: "Current UTC", value: formatTimestamp(snapshot.timestamp) },
+            ]}
+          />
+          <BeltBlockStrip snapshot={snapshot} quality={quality} />
+          <BeltMassHistogram snapshot={snapshot} quality={quality} />
+        </div>
+      ) : null}
+    </article>
+  );
 }
 
 export function SimulatorWorkspace({
@@ -51,66 +316,108 @@ export function SimulatorWorkspace({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialObjectId = resolveQuerySelection(
+  const pileNodes = useMemo(() => getSimulatorPileNodes(graph), [graph]);
+  const pileIds = pileNodes.map((node) => node.objectId);
+  const fallbackPileId =
+    pileIds.includes(index.defaultObjectId) ? index.defaultObjectId : (pileIds[0] ?? "");
+  const initialSelectedObjectId = resolveQuerySelection(
     searchParams.get("object"),
-    index.objects.map((entry) => entry.objectId),
-    index.defaultObjectId,
+    pileIds,
+    fallbackPileId,
   );
-  const initialQualityId = resolveQuerySelection(
+  const initialSelectedQualityId = resolveQuerySelection(
     searchParams.get("quality"),
     qualities.map((quality) => quality.id),
     qualities[0]?.id ?? "",
   );
-  const [selectedObjectId, setSelectedObjectId] = useState(initialObjectId);
-  const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
-  const [selectedTimestamp, setSelectedTimestamp] = useState(searchParams.get("time") ?? "");
+
+  const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
+  const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
+  const [selectedOutputId, setSelectedOutputId] = useState("");
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [centralData, setCentralData] = useState<SimulatorCentralObjectData | null>(null);
+  const [centralError, setCentralError] = useState<string | null>(null);
+  const [loadingCentral, setLoadingCentral] = useState(true);
+  const [beltSnapshots, setBeltSnapshots] = useState<Record<string, BeltSnapshot>>({});
+  const [beltErrors, setBeltErrors] = useState<Record<string, string>>({});
+  const [loadingBelts, setLoadingBelts] = useState(() =>
+    buildSimulatorDischargeLanes(graph, initialSelectedObjectId).some(
+      (lane) => lane.belts.length > 0,
+    ),
+  );
   const [playing, setPlaying] = useState(false);
-  const [histogramBinCount, setHistogramBinCount] = useState(6);
+  const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
+  const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
+  const [sliceIndex, setSliceIndex] = useState(0);
+  const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
+
+  const selectedNode = pileNodes.find((node) => node.objectId === selectedObjectId) ?? pileNodes[0];
+  const selectedObjectRows = useMemo(
+    () =>
+      summaryRows
+        .filter((row) => row.objectId === selectedObjectId)
+        .sort((left, right) => left.timestamp.localeCompare(right.timestamp)),
+    [selectedObjectId, summaryRows],
+  );
+  const latestSnapshotId =
+    selectedObjectRows[selectedObjectRows.length - 1]?.snapshotId ?? "";
+  const hasProfilerHistory = selectedObjectRows.length > 0;
+  const effectiveSnapshotId = hasProfilerHistory
+    ? selectedObjectRows.some((row) => row.snapshotId === selectedSnapshotId)
+      ? selectedSnapshotId
+      : latestSnapshotId
+    : "";
+  const selectedSummaryRow = selectedObjectRows.find(
+    (row) => row.snapshotId === effectiveSnapshotId,
+  );
+  const dischargeLanes = useMemo(
+    () => (selectedNode ? buildSimulatorDischargeLanes(graph, selectedObjectId) : []),
+    [graph, selectedNode, selectedObjectId],
+  );
+  const availableQualities = qualities.filter((quality) =>
+    centralData ? centralData.availableQualityIds.includes(quality.id) : true,
+  );
+  const effectiveQualityId =
+    availableQualities.find((quality) => quality.id === selectedQualityId)?.id ??
+    availableQualities[0]?.id ??
+    "";
+  const selectedQuality = availableQualities.find(
+    (quality) => quality.id === effectiveQualityId,
+  );
+  const effectiveSelectedOutputId =
+    dischargeLanes.some((lane) => lane.output.id === selectedOutputId)
+      ? selectedOutputId
+      : (dischargeLanes[0]?.output.id ?? "");
+  const activeLane =
+    dischargeLanes.find((lane) => lane.output.id === effectiveSelectedOutputId) ??
+    dischargeLanes[0];
 
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/profiler/summary")
-      .then(async (response) => {
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as
-            | {
-                error?: {
-                  message?: string;
-                };
-              }
-            | null;
-          throw new Error(
-            payload?.error?.message ?? "Failed to load simulator summary rows.",
-          );
-        }
-
-        return (await response.json()) as ProfilerSummaryRow[];
-      })
+    fetchJson<ProfilerSummaryRow[]>(
+      "/api/profiler/summary",
+      "Failed to load simulator summary rows.",
+    )
       .then((payload) => {
         if (cancelled) {
           return;
         }
 
-        startTransition(() => {
-          setSummaryRows(payload);
-        });
+        setSummaryRows(payload);
+        setLoadingSummary(false);
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setLoadError(
+          setSummaryError(
             error instanceof Error
               ? error.message
               : "Failed to load simulator summary rows.",
           );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
+          setLoadingSummary(false);
         }
       });
 
@@ -119,229 +426,712 @@ export function SimulatorWorkspace({
     };
   }, []);
 
-  const timestamps = useMemo(
-    () =>
-      Array.from(new Set(summaryRows.map((row) => row.timestamp))).sort((left, right) =>
-        left.localeCompare(right),
-      ),
-    [summaryRows],
-  );
-  const latestTimestamp = timestamps[timestamps.length - 1] ?? "";
-  const effectiveTimestamp = resolveQuerySelection(
-    selectedTimestamp,
-    timestamps,
-    latestTimestamp,
-  );
-  const selectedRows = useMemo(
-    () => summaryRows.filter((row) => row.timestamp === effectiveTimestamp),
-    [effectiveTimestamp, summaryRows],
-  );
-  const availableQualities = useMemo(
-    () =>
-      qualities.filter((quality) =>
-        summaryRows.some((row) => quality.id in row.qualityValues),
-      ),
-    [qualities, summaryRows],
-  );
-  const selectedQuality =
-    availableQualities.find((quality) => quality.id === selectedQualityId) ??
-    availableQualities[0];
-  const selectedSummary = selectedRows.find((row) => row.objectId === selectedObjectId);
-  const selectedScenarioIndex = Math.max(0, timestamps.indexOf(effectiveTimestamp));
-  const totalMassTon = selectedRows.reduce((sum, row) => sum + row.massTon, 0);
-  const rankedRows = [...selectedRows]
-    .sort((left, right) => right.massTon - left.massTon)
-    .slice(0, 6);
-  const scenarioSummaries = selectedRows.map(toObjectSummary);
+  useEffect(() => {
+    if (loadingSummary || !selectedObjectId) {
+      return;
+    }
 
-  function replaceQuery(values: Record<string, string>) {
-    router.replace(buildHrefWithQuery(pathname, searchParams, values), {
-      scroll: false,
-    });
-  }
+    let cancelled = false;
 
-  function handleSelectObject(nextObjectId: string) {
-    setSelectedObjectId(nextObjectId);
-    replaceQuery({ object: nextObjectId });
-  }
+    const request = hasProfilerHistory && effectiveSnapshotId
+      ? fetchJson<ProfilerSnapshot>(
+          `/api/profiler/objects/${selectedObjectId}/snapshots/${effectiveSnapshotId}`,
+          "Failed to load simulator snapshot.",
+        ).then((payload) =>
+          normalizeSnapshotData(payload, graph, selectedSummaryRow, qualities),
+        )
+      : fetchJson<PileDataset>(
+          `/api/stockpiles/${selectedObjectId}`,
+          "Failed to load stockpile dataset.",
+        ).then(normalizeDatasetData);
 
-  function handleSelectQuality(nextQualityId: string) {
-    setSelectedQualityId(nextQualityId);
-    replaceQuery({ quality: nextQualityId });
-  }
+    request
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
 
-  function handleSelectTimestamp(nextTimestamp: string) {
-    setSelectedTimestamp(nextTimestamp);
-    replaceQuery({ time: nextTimestamp });
-  }
+        startTransition(() => {
+          setCentralData(payload);
+          setSelectedQualityId((current) =>
+            payload.availableQualityIds.includes(current)
+              ? current
+              : payload.defaultQualityId,
+          );
+          setViewMode(getDefaultViewMode(payload));
+          setSliceAxis("z");
+          setSliceIndex(0);
+        });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setCentralError(
+            error instanceof Error ? error.message : "Failed to load simulator data.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingCentral(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    effectiveSnapshotId,
+    graph,
+    hasProfilerHistory,
+    loadingSummary,
+    qualities,
+    selectedObjectId,
+    selectedSummaryRow,
+  ]);
 
   useEffect(() => {
-    if (!playing || timestamps.length <= 1) {
+    if (!playing || selectedObjectRows.length <= 1) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      const currentIndex = timestamps.indexOf(effectiveTimestamp);
-      const nextIndex =
-        currentIndex >= timestamps.length - 1 || currentIndex < 0 ? 0 : currentIndex + 1;
-      const nextTimestamp = timestamps[nextIndex] ?? effectiveTimestamp;
-      setSelectedTimestamp(nextTimestamp);
-      router.replace(buildHrefWithQuery(pathname, searchParams, { time: nextTimestamp }), {
-        scroll: false,
+      setSelectedSnapshotId((current) => {
+        const currentIndex = selectedObjectRows.findIndex(
+          (row) => row.snapshotId === current,
+        );
+        const nextIndex =
+          currentIndex >= selectedObjectRows.length - 1 ? 0 : currentIndex + 1;
+        setLoadingCentral(true);
+        setCentralError(null);
+        setCentralData(null);
+        setHoveredCell(null);
+        return selectedObjectRows[nextIndex]?.snapshotId ?? current;
       });
-    }, 1100);
+    }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [effectiveTimestamp, pathname, playing, router, searchParams, timestamps]);
+  }, [playing, selectedObjectRows]);
+
+  useEffect(() => {
+    const uniqueBeltIds = [...new Set(dischargeLanes.flatMap((lane) => lane.belts.map((belt) => belt.objectId)))];
+
+    if (uniqueBeltIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    Promise.all(
+      uniqueBeltIds.map(async (beltId) => {
+        try {
+          const snapshot = await fetchJson<BeltSnapshot>(
+            `/api/live/belts/${beltId}`,
+            "Failed to load downstream belt snapshot.",
+          );
+
+          return {
+            beltId,
+            snapshot,
+            error: null,
+          };
+        } catch (error) {
+          return {
+            beltId,
+            snapshot: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to load downstream belt snapshot.",
+          };
+        }
+      }),
+    )
+      .then((results) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextSnapshots: Record<string, BeltSnapshot> = {};
+        const nextErrors: Record<string, string> = {};
+
+        results.forEach((result) => {
+          if (result.snapshot) {
+            nextSnapshots[result.beltId] = result.snapshot;
+          }
+
+          if (result.error) {
+            nextErrors[result.beltId] = result.error;
+          }
+        });
+
+        startTransition(() => {
+          setBeltSnapshots(nextSnapshots);
+          setBeltErrors(nextErrors);
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingBelts(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dischargeLanes]);
+
+  function handleSelectObject(nextObjectId: string) {
+    if (nextObjectId === selectedObjectId || !pileIds.includes(nextObjectId)) {
+      return;
+    }
+
+    setLoadingCentral(true);
+    setCentralError(null);
+    setCentralData(null);
+    setHoveredCell(null);
+    setSelectedOutputId("");
+    setBeltSnapshots({});
+    setBeltErrors({});
+    setLoadingBelts(
+      buildSimulatorDischargeLanes(graph, nextObjectId).some(
+        (lane) => lane.belts.length > 0,
+      ),
+    );
+    setSelectedObjectId(nextObjectId);
+    setSelectedSnapshotId("");
+    setPlaying(false);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextObjectId,
+      }),
+      { scroll: false },
+    );
+  }
+
+  function handleSelectQuality(nextQualityId: string) {
+    setSelectedQualityId(nextQualityId);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        quality: nextQualityId,
+      }),
+      { scroll: false },
+    );
+  }
+
+  function handleSelectOutput(nextOutputId: string) {
+    setSelectedOutputId(nextOutputId);
+  }
+
+  const totalMassTon =
+    selectedSummaryRow?.massTon ??
+    centralData?.cells.reduce((sum, cell) => sum + cell.massTon, 0) ??
+    0;
+  const snapshotIndex = selectedObjectRows.findIndex(
+    (row) => row.snapshotId === effectiveSnapshotId,
+  );
+
+  const fullRenderPlan = useMemo(
+    () =>
+      buildAdaptiveFullRenderPlan({
+        cells: centralData?.cells ?? [],
+        surfaceCells: centralData?.surfaceCells ?? [],
+        threshold: centralData?.fullModeThreshold ?? 1,
+        suggestedStride: centralData?.suggestedFullStride ?? 1,
+      }),
+    [
+      centralData?.cells,
+      centralData?.fullModeThreshold,
+      centralData?.suggestedFullStride,
+      centralData?.surfaceCells,
+    ],
+  );
+  const sliceMax = Math.max(
+    0,
+    sliceAxis === "x"
+      ? (centralData?.extents.x ?? 1) - 1
+      : sliceAxis === "y"
+        ? (centralData?.extents.y ?? 1) - 1
+        : (centralData?.extents.z ?? 1) - 1,
+  );
+  const effectiveSliceIndex = Math.min(sliceIndex, sliceMax);
+  const sliceCells = useMemo(() => {
+    return (centralData?.cells ?? []).filter((cell) => {
+      if (sliceAxis === "x") {
+        return cell.ix === effectiveSliceIndex;
+      }
+
+      if (sliceAxis === "y") {
+        return cell.iy === effectiveSliceIndex;
+      }
+
+      return cell.iz === effectiveSliceIndex;
+    });
+  }, [centralData?.cells, effectiveSliceIndex, sliceAxis]);
+
+  const visibleCellsForHover =
+    !centralData
+      ? []
+      : centralData.dimension === 3
+        ? viewMode === "surface"
+          ? centralData.surfaceCells
+          : viewMode === "shell"
+            ? (centralData.shellCells.length > 0
+                ? centralData.shellCells
+                : centralData.surfaceCells)
+            : viewMode === "slice"
+              ? sliceCells
+              : fullRenderPlan.cells
+        : centralData.cells;
+  const activeHoveredCell =
+    hoveredCell && visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
+      ? hoveredCell
+      : null;
+  const visibleCellCount =
+    centralData?.dimension === 3
+      ? viewMode === "surface"
+        ? centralData.surfaceCells.length
+        : viewMode === "shell"
+          ? (centralData.shellCells.length > 0
+              ? centralData.shellCells
+              : centralData.surfaceCells).length
+          : viewMode === "slice"
+            ? sliceCells.length
+            : fullRenderPlan.renderedCellCount
+      : centralData?.cells.length ?? 0;
+
+  const colorDomain = useMemo(() => {
+    if (!centralData || !selectedQuality || selectedQuality.kind !== "numerical") {
+      return undefined;
+    }
+
+    const cellsForDomain =
+      centralData.dimension === 3
+        ? viewMode === "surface"
+          ? centralData.surfaceCells
+          : viewMode === "shell"
+            ? centralData.shellCells.length > 0
+              ? centralData.shellCells
+              : centralData.surfaceCells
+            : viewMode === "slice"
+              ? sliceCells
+              : fullRenderPlan.cells
+        : centralData.cells;
+
+    return deriveNumericColorDomain(
+      cellsForDomain.map((cell) => cell.qualityValues[selectedQuality.id]),
+      selectedQuality,
+    );
+  }, [centralData, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
+
+  const activeLaneMassTon =
+    activeLane?.belts.reduce(
+      (sum, belt) => sum + (beltSnapshots[belt.objectId]?.totalMassTon ?? 0),
+      0,
+    ) ?? 0;
+  const activeLaneLoadedCount =
+    activeLane?.belts.filter((belt) => beltSnapshots[belt.objectId]).length ?? 0;
+
+  let centralContent: ReactNode = (
+    <InlineNotice tone={centralError ? "error" : "info"} title="Pile content loads on demand">
+      {centralError
+        ? centralError
+        : "Select a pile or virtual pile to inspect its current or profiled content."}
+    </InlineNotice>
+  );
+
+  if (centralData) {
+    if (centralData.dimension === 1) {
+      centralContent = (
+        <PileColumnView
+          cells={centralData.cells}
+          quality={selectedQuality}
+          numericDomain={colorDomain}
+          onHoverCellChange={setHoveredCell}
+        />
+      );
+    } else if (centralData.dimension === 2) {
+      centralContent = (
+        <PileHeatmapView
+          cells={centralData.cells}
+          quality={selectedQuality}
+          numericDomain={colorDomain}
+          columns={centralData.extents.x}
+          rows={centralData.extents.y}
+          xAccessor={(cell) => cell.ix}
+          yAccessor={(cell) => cell.iy}
+          onHoverCellChange={setHoveredCell}
+        />
+      );
+    } else if (viewMode === "slice") {
+      centralContent = (
+        <PileHeatmapView
+          cells={sliceCells}
+          quality={selectedQuality}
+          numericDomain={colorDomain}
+          columns={
+            sliceAxis === "y" ? centralData.extents.x : centralData.extents.y
+          }
+          rows={sliceAxis === "z" ? centralData.extents.y : centralData.extents.z}
+          xAccessor={(cell) => (sliceAxis === "y" ? cell.ix : cell.iy)}
+          yAccessor={(cell) => (sliceAxis === "z" ? cell.iy : cell.iz)}
+          onHoverCellChange={setHoveredCell}
+        />
+      );
+    } else {
+      const cells =
+        viewMode === "surface"
+          ? centralData.surfaceCells
+          : viewMode === "shell"
+            ? centralData.shellCells.length > 0
+              ? centralData.shellCells
+              : centralData.surfaceCells
+            : fullRenderPlan.cells;
+
+      centralContent = (
+        <Pile3DCanvas
+          key={`${centralData.objectId}:${centralData.source}:${viewMode}:${effectiveQualityId}`}
+          cells={cells}
+          extents={centralData.extents}
+          quality={selectedQuality}
+          numericDomain={colorDomain}
+          onHoverCellChange={setHoveredCell}
+        />
+      );
+    }
+  }
 
   return (
-    <div className="workspace-grid workspace-grid--double">
-      <aside className="panel panel--stack">
+    <div className="workspace-grid workspace-grid--triple">
+      <aside className="panel">
         <div className="section-label">Scenario</div>
         <label className="field">
-          <span>Object</span>
+          <span>Central pile</span>
           <select
             value={selectedObjectId}
             onChange={(event) => handleSelectObject(event.target.value)}
           >
-            {index.objects.map((entry) => (
-              <option key={entry.objectId} value={entry.objectId}>
-                {entry.displayName}
+            {pileNodes.map((node) => (
+              <option key={node.objectId} value={node.objectId}>
+                {node.label}
               </option>
             ))}
           </select>
         </label>
         <QualitySelector
-          label="Property"
+          label="Color by"
           qualities={availableQualities}
-          value={selectedQuality?.id ?? ""}
+          value={effectiveQualityId}
           onChange={handleSelectQuality}
         />
-        <label className="field">
-          <span>Time step</span>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, timestamps.length - 1)}
-            value={selectedScenarioIndex}
-            onChange={(event) => {
-              const nextTimestamp = timestamps[Number(event.target.value)] ?? effectiveTimestamp;
-              handleSelectTimestamp(nextTimestamp);
-            }}
-          />
-        </label>
-        <button
-          type="button"
-          className="segmented-button segmented-button--active"
-          onClick={() => setPlaying((current) => !current)}
-        >
-          {playing ? "Pause" : "Play"}
-        </button>
-        {selectedQuality?.kind === "numerical" ? (
-          <label className="field">
-            <span>Histogram bins</span>
-            <input
-              type="range"
-              min={4}
-              max={16}
-              value={histogramBinCount}
-              onChange={(event) => setHistogramBinCount(Number(event.target.value))}
-            />
-          </label>
-        ) : null}
-        <MetricGrid
-          metrics={[
-            {
-              label: "Current UTC",
-              value: effectiveTimestamp ? formatTimestamp(effectiveTimestamp) : "Pending",
-            },
-            { label: "Active objects", value: String(selectedRows.length) },
-            { label: "Scenario mass", value: formatMassTon(totalMassTon) },
-          ]}
-        />
-        <MetricGrid
-          metrics={[
-            {
-              label: "Selected object",
-              value: selectedSummary?.displayName ?? "Out of step",
-            },
-            {
-              label: "Selected mass",
-              value: selectedSummary ? formatMassTon(selectedSummary.massTon) : "N/A",
-            },
-            {
-              label: selectedQuality?.label ?? "Property",
-              value:
-                selectedSummary && selectedQuality
-                  ? selectedQuality.kind === "numerical"
-                    ? formatNumber(selectedSummary.qualityValues[selectedQuality.id])
-                    : String(selectedSummary.qualityValues[selectedQuality.id] ?? "N/A")
-                  : "N/A",
-            },
-          ]}
-        />
-        <div className="section-label">Mass Ranking</div>
-        {rankedRows.length > 0 ? (
-          <div className="quality-list">
-            {rankedRows.map((row) => {
-              const propertyValue = selectedQuality
-                ? row.qualityValues[selectedQuality.id]
-                : null;
-
-              return (
-                <div key={`${row.timestamp}:${row.objectId}`} className="quality-list__item">
-                  <div className="quality-list__meta">
-                    <strong>{row.displayName}</strong>
-                    <span>{formatMassTon(row.massTon)}</span>
-                  </div>
-                  <strong>
-                    {propertyValue === null || propertyValue === undefined
-                      ? "N/A"
-                      : selectedQuality?.kind === "numerical"
-                        ? formatNumber(propertyValue)
-                        : String(propertyValue)}
-                  </strong>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="muted-text">
-            No scenario rows are available for the selected timestep.
-          </p>
-        )}
-      </aside>
-
-      <div className="panel panel--stack">
-        {loadError ? (
-          <InlineNotice tone="error" title="Simulator summary unavailable">
-            {loadError}
-          </InlineNotice>
-        ) : null}
-        {loading ? <div className="loading-banner">Loading simulator scenario...</div> : null}
-        {!loading && selectedRows.length === 0 ? (
-          <InlineNotice tone="info" title="No scenario step is available">
-            The selected timestep does not contain profiled object summaries in the local cache.
-          </InlineNotice>
-        ) : (
-          <CircuitFlow
-            graph={graph}
-            summaries={scenarioSummaries}
-            selectedObjectId={selectedObjectId}
-            onSelect={handleSelectObject}
-          />
-        )}
-        {!loading && selectedRows.length > 0 ? (
+        {hasProfilerHistory ? (
           <>
-            <div className="section-label">Distribution</div>
-            <SimulatorMassHistogram
-              rows={selectedRows}
-              quality={selectedQuality}
-              binCount={histogramBinCount}
-            />
+            <label className="field">
+              <span>Time step</span>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(0, selectedObjectRows.length - 1)}
+                value={Math.max(0, snapshotIndex)}
+                onChange={(event) => {
+                  const nextRow = selectedObjectRows[Number(event.target.value)];
+                  setLoadingCentral(true);
+                  setCentralError(null);
+                  setCentralData(null);
+                  setHoveredCell(null);
+                  setSelectedSnapshotId(nextRow?.snapshotId ?? "");
+                  setPlaying(false);
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="segmented-button segmented-button--active"
+              onClick={() => setPlaying((current) => !current)}
+            >
+              {playing ? "Pause" : "Play"}
+            </button>
+          </>
+        ) : (
+          <InlineNotice tone="info" title="Current-state object">
+            This object does not expose profiler history in the current app-ready cache, so
+            the simulator uses its current stockpile state.
+          </InlineNotice>
+        )}
+        {centralData?.dimension === 3 ? (
+          <>
+            <div className="button-row">
+              {(["surface", "shell", "full", "slice"] as StockpileViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`segmented-button ${viewMode === mode ? "segmented-button--active" : ""}`}
+                  onClick={() => setViewMode(mode)}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            {viewMode === "slice" ? (
+              <>
+                <div className="button-row">
+                  {(["x", "y", "z"] as SliceAxis[]).map((axis) => (
+                    <button
+                      key={axis}
+                      type="button"
+                      className={`segmented-button ${sliceAxis === axis ? "segmented-button--active" : ""}`}
+                      onClick={() => setSliceAxis(axis)}
+                    >
+                      {axis.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <label className="field">
+                  <span>Slice index</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={sliceMax}
+                    value={effectiveSliceIndex}
+                    onChange={(event) => setSliceIndex(Number(event.target.value))}
+                  />
+                </label>
+              </>
+            ) : null}
           </>
         ) : null}
-      </div>
+        <MetricGrid
+          metrics={[
+            { label: "Object role", value: selectedNode?.objectRole ?? "Unknown" },
+            {
+              label: "Time mode",
+              value: hasProfilerHistory ? "Profiler" : "Current",
+            },
+            {
+              label: "Outputs",
+              value: String(dischargeLanes.length),
+            },
+            {
+              label: "Downstream belts",
+              value: String(dischargeLanes.reduce((sum, lane) => sum + lane.belts.length, 0)),
+            },
+          ]}
+        />
+      </aside>
+
+      <section className="panel panel--canvas panel--stack">
+        {summaryError ? (
+          <InlineNotice tone="error" title="Simulator history unavailable">
+            {summaryError}
+          </InlineNotice>
+        ) : null}
+        {centralError ? (
+          <InlineNotice tone="error" title="Central pile unavailable">
+            {centralError}
+          </InlineNotice>
+        ) : null}
+        {loadingSummary ? <div className="loading-banner">Loading simulator history...</div> : null}
+        {loadingCentral ? <div className="loading-banner">Loading central pile...</div> : null}
+        {hasProfilerHistory ? (
+          <InlineNotice tone="info" title="Downstream lanes use current transport strips">
+            The central pile follows the selected profiler timestep, but downstream conveyor
+            strips and histograms currently use live belt snapshots from the local runtime cache.
+          </InlineNotice>
+        ) : null}
+        {selectedQuality?.kind === "numerical" &&
+        colorDomain?.mode === "adaptive-local" ? (
+          <InlineNotice tone="info" title="View-scaled contrast active">
+            The visible cells occupy only a narrow slice of the configured range, so the
+            pile view is using a local color domain to keep property contrast readable.
+          </InlineNotice>
+        ) : null}
+        {viewMode === "full" && fullRenderPlan.strategy === "adaptive" ? (
+          <InlineNotice tone="warning" title="Adaptive full mode active">
+            Rendering combines surface cells, base cells, and stride-sampled interior cells at
+            stride {fullRenderPlan.stride} to keep dense views responsive.
+          </InlineNotice>
+        ) : null}
+        {centralData ? (
+          <>
+            <div>
+              <div className="section-label">Central object</div>
+              <h3>{centralData.displayName}</h3>
+              <p className="muted-text">
+                The simulator anchors the selected pile or virtual pile at the center and
+                organizes downstream discharge content by configured output route.
+              </p>
+            </div>
+            <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
+            <PileAnchorFrame
+              inputs={centralData.inputs}
+              outputs={centralData.outputs}
+              showInFigureAnchors={centralData.dimension >= 2}
+            >
+              {centralContent}
+            </PileAnchorFrame>
+          </>
+        ) : (
+          centralContent
+        )}
+        <div className="simulator-discharge">
+          <div className="section-label">Discharge routes</div>
+          <div className="simulator-discharge__grid">
+            {dischargeLanes.length === 0 ? (
+              <InlineNotice tone="info" title="No discharge outputs">
+                The selected pile does not expose downstream output routes in the current
+                circuit graph.
+              </InlineNotice>
+            ) : (
+              dischargeLanes.map((lane) => (
+                <article
+                  key={lane.output.id}
+                  className={`simulator-discharge-lane ${lane.output.id === effectiveSelectedOutputId ? "simulator-discharge-lane--active" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className={`simulator-discharge-button ${lane.output.id === effectiveSelectedOutputId ? "simulator-discharge-button--active" : ""}`}
+                    onClick={() => handleSelectOutput(lane.output.id)}
+                  >
+                    <span>{lane.output.label}</span>
+                    <strong>{lane.belts.length} belts</strong>
+                  </button>
+                  <div className="simulator-discharge-lane__cards">
+                    {lane.belts.length === 0 ? (
+                      <InlineNotice tone="info" title="No downstream belts">
+                        This output is configured, but no downstream belt objects are currently
+                        reachable from its route.
+                      </InlineNotice>
+                    ) : (
+                      lane.belts.map((belt) => (
+                        <SimulatorDischargeLaneCard
+                          key={`${lane.output.id}:${belt.objectId}`}
+                          belt={belt}
+                          snapshot={beltSnapshots[belt.objectId]}
+                          quality={selectedQuality}
+                          loading={
+                            loadingBelts &&
+                            !beltSnapshots[belt.objectId] &&
+                            !beltErrors[belt.objectId]
+                          }
+                          error={beltErrors[belt.objectId]}
+                        />
+                      ))
+                    )}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <aside className="panel">
+        <div className="section-label">Selection</div>
+        <h3>{centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}</h3>
+        <p className="muted-text">
+          The simulator keeps pile content in the center and summarizes the currently selected
+          discharge route without exposing raw source artifacts.
+        </p>
+        <MetricGrid
+          metrics={[
+            {
+              label: "Timestamp",
+              value: centralData ? formatTimestamp(centralData.timestamp) : "Pending",
+            },
+            {
+              label: "Mass",
+              value: centralData ? formatMassTon(totalMassTon) : "Pending",
+            },
+            {
+              label: "Dimension",
+              value: centralData ? `${centralData.dimension}D` : "Pending",
+            },
+            {
+              label: "Source",
+              value:
+                centralData?.source === "profiler-snapshot"
+                  ? "Profiler snapshot"
+                  : centralData?.source === "current-stockpile"
+                    ? "Current state"
+                    : "Pending",
+            },
+          ]}
+        />
+        <MetricGrid
+          metrics={[
+            {
+              label: "Active output",
+              value: activeLane?.output.label ?? "None",
+            },
+            {
+              label: "Loaded belts",
+              value: `${activeLaneLoadedCount}/${activeLane?.belts.length ?? 0}`,
+            },
+            {
+              label: "Route mass",
+              value: activeLane ? formatMassTon(activeLaneMassTon) : "Pending",
+            },
+            {
+              label: "Rendered cells",
+              value: String(visibleCellCount),
+            },
+          ]}
+        />
+        {centralData ? (
+          <ProfiledPropertiesPanel
+            qualities={availableQualities}
+            values={centralData.qualityAverages}
+            records={centralData.cells}
+            totalMassTon={totalMassTon}
+          />
+        ) : null}
+        <div className="inspector-stack">
+          <div className="section-label">Cell Focus</div>
+          {activeHoveredCell ? (
+            <>
+              <MetricGrid
+                metrics={[
+                  {
+                    label: "Indices",
+                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
+                  },
+                  {
+                    label: "Mass",
+                    value: formatMassTon(activeHoveredCell.massTon),
+                  },
+                  {
+                    label: selectedQuality?.label ?? "Property",
+                    value:
+                      selectedQuality?.kind === "categorical"
+                        ? selectedQuality.categories?.find(
+                            (category) =>
+                              category.value === activeHoveredCell.qualityValues[selectedQuality.id],
+                          )?.label ??
+                          String(activeHoveredCell.qualityValues[selectedQuality.id] ?? "N/A")
+                        : formatNumber(
+                            activeHoveredCell.qualityValues[selectedQuality?.id ?? ""],
+                          ),
+                  },
+                ]}
+              />
+              <QualityValueList
+                qualities={availableQualities}
+                values={activeHoveredCell.qualityValues}
+                limit={Math.min(availableQualities.length, 6)}
+              />
+            </>
+          ) : (
+            <p className="muted-text">
+              Hover a cell, voxel, or cross-section cell in the central pile view to inspect
+              coordinates, mass, and property values.
+            </p>
+          )}
+        </div>
+        <WorkspaceJumpLinks
+          objectId={selectedObjectId}
+          objectType="pile"
+          isProfiled={hasProfilerHistory}
+        />
+      </aside>
     </div>
   );
 }

@@ -11,6 +11,13 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.036
+
+- Rebuilt the simulator route around piles and virtual piles instead of a circuit-wide summary-first view.
+- Added a central pile workspace that loads either profiler snapshots or current pile state, preserves dimensional rendering, and keeps pile anchors visible in the simulator itself.
+- Added one discharge lane column per configured pile output, with downstream live belt block strips and mass-weighted histograms for each reachable belt on that route.
+- Added simulator topology and workspace coverage so pile-centric discharge routing stays validated.
+
 ### 0.01.035
 
 - Added an optional application-wide dark and light theme toggle with persistent local preference.
