@@ -1,14 +1,19 @@
 "use client";
 
-import { getQualityColor } from "@/lib/color";
+import { getQualityColor, type NumericColorDomain } from "@/lib/color";
 import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
 
 interface PileColumnViewProps {
   cells: PileCellRecord[];
   quality: QualityDefinition | undefined;
+  numericDomain?: NumericColorDomain;
 }
 
-export function PileColumnView({ cells, quality }: PileColumnViewProps) {
+export function PileColumnView({
+  cells,
+  quality,
+  numericDomain,
+}: PileColumnViewProps) {
   if (cells.length === 0) {
     return (
       <div className="empty-visual">
@@ -29,6 +34,7 @@ export function PileColumnView({ cells, quality }: PileColumnViewProps) {
             backgroundColor: getQualityColor(
               quality,
               quality ? cell.qualityValues[quality.id] : null,
+              numericDomain,
             ),
           }}
         />
@@ -40,6 +46,7 @@ export function PileColumnView({ cells, quality }: PileColumnViewProps) {
 interface PileHeatmapViewProps {
   cells: PileCellRecord[];
   quality: QualityDefinition | undefined;
+  numericDomain?: NumericColorDomain;
   columns: number;
   rows: number;
   xAccessor: (cell: PileCellRecord) => number;
@@ -49,6 +56,7 @@ interface PileHeatmapViewProps {
 export function PileHeatmapView({
   cells,
   quality,
+  numericDomain,
   columns,
   rows,
   xAccessor,
@@ -84,7 +92,11 @@ export function PileHeatmapView({
         className="heatmap__cell"
         style={{
           backgroundColor: cell
-            ? getQualityColor(quality, quality ? cell.qualityValues[quality.id] : null)
+            ? getQualityColor(
+                quality,
+                quality ? cell.qualityValues[quality.id] : null,
+                numericDomain,
+              )
             : "rgba(11, 22, 37, 0.85)",
           borderColor: cell ? "rgba(124, 164, 201, 0.14)" : "rgba(124, 164, 201, 0.08)",
         }}

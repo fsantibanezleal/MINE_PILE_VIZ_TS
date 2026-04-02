@@ -2,6 +2,11 @@ import type { QualityDefinition } from "@/types/app-data";
 
 const FALLBACK_COLOR = "#7ca4c9";
 
+export interface NumericColorDomain {
+  min: number;
+  max: number;
+}
+
 function hexToRgb(hex: string) {
   const normalized = hex.replace("#", "");
   const value = Number.parseInt(normalized, 16);
@@ -49,6 +54,7 @@ export function interpolatePalette(palette: string[], ratio: number): string {
 export function getQualityColor(
   definition: QualityDefinition | undefined,
   value: number | null | undefined,
+  domain?: NumericColorDomain,
 ): string {
   if (!definition || value === null || value === undefined || Number.isNaN(value)) {
     return FALLBACK_COLOR;
@@ -61,8 +67,38 @@ export function getQualityColor(
     );
   }
 
-  const min = definition.min ?? 0;
-  const max = definition.max ?? min + 1;
+  const min = domain?.min ?? definition.min ?? 0;
+  const max = domain?.max ?? definition.max ?? min + 1;
   const ratio = max === min ? 0 : (value - min) / (max - min);
   return interpolatePalette(definition.palette, ratio);
+}
+
+export function deriveNumericColorDomain(
+  values: Array<number | null | undefined>,
+  definition: QualityDefinition | undefined,
+): NumericColorDomain | undefined {
+  if (!definition || definition.kind !== "numerical") {
+    return undefined;
+  }
+
+  const numericValues = values.filter(
+    (value): value is number => typeof value === "number" && Number.isFinite(value),
+  );
+
+  if (numericValues.length === 0) {
+    return undefined;
+  }
+
+  const min = Math.min(...numericValues);
+  const max = Math.max(...numericValues);
+
+  if (min === max) {
+    const fallbackMin = definition.min ?? min;
+    const fallbackMax = definition.max ?? max;
+    return fallbackMin === fallbackMax
+      ? { min: fallbackMin, max: fallbackMin + 1 }
+      : { min: fallbackMin, max: fallbackMax };
+  }
+
+  return { min, max };
 }

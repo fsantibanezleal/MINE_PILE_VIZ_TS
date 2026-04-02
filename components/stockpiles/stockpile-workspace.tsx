@@ -7,9 +7,11 @@ import type {
   QualityDefinition,
   StockpileViewMode,
 } from "@/types/app-data";
+import { deriveNumericColorDomain } from "@/lib/color";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -171,16 +173,55 @@ export function StockpileWorkspace({
             ? sliceCells.length
             : fullRenderPlan.renderedCellCount
       : dataset.cells.length;
+  const colorDomain = useMemo(() => {
+    if (!selectedQuality || selectedQuality.kind !== "numerical") {
+      return undefined;
+    }
+
+    const cellsForDomain =
+      dataset.dimension === 3
+        ? viewMode === "surface"
+          ? dataset.surfaceCells
+          : viewMode === "shell"
+            ? dataset.shellCells.length > 0
+              ? dataset.shellCells
+              : dataset.surfaceCells
+            : viewMode === "slice"
+              ? sliceCells
+              : fullRenderPlan.cells
+        : dataset.cells;
+
+    return deriveNumericColorDomain(
+      cellsForDomain.map((cell) => cell.qualityValues[selectedQuality.id]),
+      selectedQuality,
+    );
+  }, [
+    dataset.cells,
+    dataset.dimension,
+    dataset.shellCells,
+    dataset.surfaceCells,
+    fullRenderPlan.cells,
+    selectedQuality,
+    sliceCells,
+    viewMode,
+  ]);
 
   let content: ReactNode;
 
   if (dataset.dimension === 1) {
-    content = <PileColumnView cells={dataset.cells} quality={selectedQuality} />;
+    content = (
+      <PileColumnView
+        cells={dataset.cells}
+        quality={selectedQuality}
+        numericDomain={colorDomain}
+      />
+    );
   } else if (dataset.dimension === 2) {
     content = (
       <PileHeatmapView
         cells={dataset.cells}
         quality={selectedQuality}
+        numericDomain={colorDomain}
         columns={dataset.extents.x}
         rows={dataset.extents.y}
         xAccessor={(cell) => cell.ix}
@@ -192,6 +233,7 @@ export function StockpileWorkspace({
       <PileHeatmapView
         cells={sliceCells}
         quality={selectedQuality}
+        numericDomain={colorDomain}
         columns={sliceAxis === "y" ? dataset.extents.x : dataset.extents.y}
         rows={sliceAxis === "z" ? dataset.extents.y : dataset.extents.z}
         xAccessor={(cell) => (sliceAxis === "y" ? cell.ix : cell.iy)}
@@ -209,7 +251,13 @@ export function StockpileWorkspace({
           : fullRenderPlan.cells;
 
     content = (
-      <Pile3DCanvas cells={cells} extents={dataset.extents} quality={selectedQuality} />
+      <Pile3DCanvas
+        key={`${dataset.objectId}:${viewMode}:${effectiveQualityId}`}
+        cells={cells}
+        extents={dataset.extents}
+        quality={selectedQuality}
+        numericDomain={colorDomain}
+      />
     );
   }
 
@@ -306,6 +354,7 @@ export function StockpileWorkspace({
           </InlineNotice>
         ) : null}
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
+        <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
         {content}
       </section>
 

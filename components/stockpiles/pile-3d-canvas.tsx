@@ -1,10 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { getQualityColor } from "@/lib/color";
+import { getQualityColor, type NumericColorDomain } from "@/lib/color";
 import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
 
 interface VoxelInstancesProps {
@@ -15,10 +15,17 @@ interface VoxelInstancesProps {
     z: number;
   };
   quality: QualityDefinition | undefined;
+  numericDomain?: NumericColorDomain;
 }
 
-function VoxelInstances({ cells, extents, quality }: VoxelInstancesProps) {
+function VoxelInstances({
+  cells,
+  extents,
+  quality,
+  numericDomain,
+}: VoxelInstancesProps) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const invalidate = useThree((state) => state.invalidate);
 
   useLayoutEffect(() => {
     const mesh = ref.current;
@@ -38,7 +45,13 @@ function VoxelInstances({ cells, extents, quality }: VoxelInstancesProps) {
       );
       transform.updateMatrix();
       mesh.setMatrixAt(index, transform.matrix);
-      color.set(getQualityColor(quality, quality ? cell.qualityValues[quality.id] : null));
+      color.set(
+        getQualityColor(
+          quality,
+          quality ? cell.qualityValues[quality.id] : null,
+          numericDomain,
+        ),
+      );
       mesh.setColorAt(index, color);
     });
 
@@ -46,12 +59,26 @@ function VoxelInstances({ cells, extents, quality }: VoxelInstancesProps) {
     if (mesh.instanceColor) {
       mesh.instanceColor.needsUpdate = true;
     }
-  }, [cells, extents.x, extents.y, extents.z, quality]);
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach((material) => {
+        material.needsUpdate = true;
+      });
+    } else {
+      mesh.material.needsUpdate = true;
+    }
+    invalidate();
+  }, [cells, extents.x, extents.y, extents.z, invalidate, numericDomain, quality]);
 
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, cells.length]}>
       <boxGeometry args={[0.92, 0.92, 0.92]} />
-      <meshStandardMaterial vertexColors transparent opacity={0.96} />
+      <meshStandardMaterial
+        vertexColors
+        transparent
+        opacity={0.98}
+        roughness={0.36}
+        metalness={0.08}
+      />
     </instancedMesh>
   );
 }
@@ -64,12 +91,14 @@ interface Pile3DCanvasProps {
     z: number;
   };
   quality: QualityDefinition | undefined;
+  numericDomain?: NumericColorDomain;
 }
 
 export function Pile3DCanvas({
   cells,
   extents,
   quality,
+  numericDomain,
 }: Pile3DCanvasProps) {
   if (cells.length === 0) {
     return (
@@ -103,7 +132,12 @@ export function Pile3DCanvas({
           position={[0, -extents.z / 2 - 0.1, 0]}
         />
         <axesHelper args={[Math.max(extents.x, extents.y, extents.z) * 0.5 + 2]} />
-        <VoxelInstances cells={cells} extents={extents} quality={quality} />
+        <VoxelInstances
+          cells={cells}
+          extents={extents}
+          quality={quality}
+          numericDomain={numericDomain}
+        />
         <OrbitControls makeDefault enableDamping />
       </Canvas>
     </div>

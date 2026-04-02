@@ -10,8 +10,10 @@ import type {
   QualityDefinition,
 } from "@/types/app-data";
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
+import { deriveNumericColorDomain } from "@/lib/color";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -182,19 +184,34 @@ export function ProfilerWorkspace({
   );
 
   const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
+  const detailColorDomain = useMemo(() => {
+    if (!detailSnapshot || !selectedQuality || selectedQuality.kind !== "numerical") {
+      return undefined;
+    }
+
+    return deriveNumericColorDomain(
+      detailSnapshot.rows.map((row) => row.qualityValues[selectedQuality.id]),
+      selectedQuality,
+    );
+  }, [detailSnapshot, selectedQuality]);
 
   let detailView: ReactNode = null;
 
   if (detailSnapshot) {
     if (detailSnapshot.dimension === 1) {
       detailView = (
-        <PileColumnView cells={detailSnapshot.rows} quality={selectedQuality} />
+        <PileColumnView
+          cells={detailSnapshot.rows}
+          quality={selectedQuality}
+          numericDomain={detailColorDomain}
+        />
       );
     } else if (detailSnapshot.dimension === 2) {
       detailView = (
         <PileHeatmapView
           cells={detailSnapshot.rows}
           quality={selectedQuality}
+          numericDomain={detailColorDomain}
           columns={detailExtents.x}
           rows={detailExtents.y}
           xAccessor={(cell) => cell.ix}
@@ -204,9 +221,11 @@ export function ProfilerWorkspace({
     } else {
       detailView = (
         <Pile3DCanvas
+          key={`${detailSnapshot.objectId}:${detailSnapshot.snapshotId}:${selectedQuality?.id ?? "none"}`}
           cells={detailSnapshot.rows}
           extents={detailExtents}
           quality={selectedQuality}
+          numericDomain={detailColorDomain}
         />
       );
     }
@@ -282,6 +301,9 @@ export function ProfilerWorkspace({
           </InlineNotice>
         ) : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
+        {mode === "detail" ? (
+          <QualityLegend quality={selectedQuality} numericDomain={detailColorDomain} />
+        ) : null}
         {mode === "circuit" ? (
           <CircuitFlow
             graph={graph}

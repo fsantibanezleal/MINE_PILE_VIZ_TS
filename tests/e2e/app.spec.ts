@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 test("loads the primary pages with the synthetic contract cache", async ({ page }) => {
@@ -23,4 +24,33 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await page.getByRole("link", { name: "Profiler" }).click();
   await expect(page.getByRole("heading", { name: "History explorer" })).toBeVisible();
   await expect(page.getByText("Playback")).toBeVisible();
+});
+
+test("updates stockpile 3D colors when the selected property changes", async ({
+  page,
+}) => {
+  await page.goto("/stockpiles");
+  await expect(
+    page.getByRole("heading", { name: "Internal stockpile views" }),
+  ).toBeVisible();
+
+  const pileSelect = page.locator('label:has-text("Pile") select').first();
+  const propertySelect = page.locator('label:has-text("Property") select').first();
+  const canvas = page.locator(".pile-canvas canvas").first();
+
+  await pileSelect.selectOption("pile_stockpile");
+  await page.getByRole("button", { name: "full" }).click();
+  await canvas.waitFor({ state: "visible" });
+  await page.waitForTimeout(800);
+
+  const before = await canvas.screenshot();
+  const beforeHash = crypto.createHash("sha256").update(before).digest("hex");
+
+  await propertySelect.selectOption("q_cat_materialtype_main");
+  await page.waitForTimeout(800);
+
+  const after = await canvas.screenshot();
+  const afterHash = crypto.createHash("sha256").update(after).digest("hex");
+
+  expect(afterHash).not.toBe(beforeHash);
 });
