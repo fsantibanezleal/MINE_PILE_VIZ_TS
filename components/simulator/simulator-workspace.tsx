@@ -38,8 +38,10 @@ import {
 import { buildSimulatorLaneSnapshot } from "@/lib/simulator-lane";
 import {
   buildSimulatorDischargeLanes,
+  getSimulatorLaneBelts,
   getSimulatorPileNodes,
   type SimulatorDischargeBelt,
+  type SimulatorDischargeMergeNode,
 } from "@/lib/simulator-topology";
 import {
   buildHrefWithQuery,
@@ -101,6 +103,10 @@ interface DischargeLaneCardProps {
   quality: QualityDefinition | undefined;
   loading: boolean;
   error?: string;
+}
+
+interface MergeNodeCardProps {
+  mergeNode: SimulatorDischargeMergeNode;
 }
 
 function isSameCell(left: PileCellRecord, right: PileCellRecord) {
@@ -325,6 +331,58 @@ function SimulatorDischargeLaneCard({
   );
 }
 
+function SimulatorMergeNodeCard({ mergeNode }: MergeNodeCardProps) {
+  return (
+    <article className="simulator-merge-card">
+      <div className="simulator-merge-card__header">
+        <div>
+          <div className="section-label">Virtual merge</div>
+          <h3>{mergeNode.label}</h3>
+        </div>
+        <div className="simulator-belt-card__meta">
+          <span>Stage {mergeNode.stageIndex + 1}</span>
+          <strong>{mergeNode.downstreamBelts.length} downstream</strong>
+        </div>
+      </div>
+      <p className="muted-text">
+        This virtual stockpile groups the selected direct reclaim stream before material
+        reaches the downstream conveyor context.
+      </p>
+      <MetricGrid
+        metrics={[
+          {
+            label: "Downstream belts",
+            value: String(mergeNode.downstreamBelts.length),
+          },
+          {
+            label: "Role",
+            value: mergeNode.objectRole === "virtual" ? "Virtual pile" : "Physical pile",
+          },
+        ]}
+      />
+      {mergeNode.downstreamBelts.length > 0 ? (
+        <div className="anchor-list">
+          {mergeNode.downstreamBelts.map((belt) => (
+            <div key={belt.objectId} className="anchor-list__item">
+              <div className="anchor-list__meta">
+                <strong>{belt.label}</strong>
+                <span>
+                  {belt.objectRole === "virtual" ? "Virtual belt" : "Physical belt"}
+                </span>
+              </div>
+              <span>Stage {belt.stageIndex + 1}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <InlineNotice tone="info" title="No downstream conveyors">
+          No downstream belt objects are currently reachable from this merge node.
+        </InlineNotice>
+      )}
+    </article>
+  );
+}
+
 export function SimulatorWorkspace({
   graph,
   index,
@@ -361,8 +419,8 @@ export function SimulatorWorkspace({
   const [beltSnapshots, setBeltSnapshots] = useState<Record<string, BeltSnapshot>>({});
   const [beltErrors, setBeltErrors] = useState<Record<string, string>>({});
   const [loadingBelts, setLoadingBelts] = useState(() =>
-    buildSimulatorDischargeLanes(graph, initialSelectedObjectId).some(
-      (lane) => lane.belts.length > 0,
+    buildSimulatorDischargeLanes(graph, initialSelectedObjectId).some((lane) =>
+      getSimulatorLaneBelts(lane).length > 0,
     ),
   );
   const [playing, setPlaying] = useState(false);
@@ -411,6 +469,18 @@ export function SimulatorWorkspace({
   const activeLane =
     dischargeLanes.find((lane) => lane.output.id === effectiveSelectedOutputId) ??
     dischargeLanes[0];
+  const activeLaneBelts = useMemo(
+    () => (activeLane ? getSimulatorLaneBelts(activeLane) : []),
+    [activeLane],
+  );
+  const totalRouteBelts = useMemo(
+    () =>
+      dischargeLanes.reduce(
+        (sum, lane) => sum + getSimulatorLaneBelts(lane).length,
+        0,
+      ),
+    [dischargeLanes],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -530,7 +600,13 @@ export function SimulatorWorkspace({
   }, [playing, selectedObjectRows]);
 
   useEffect(() => {
-    const uniqueBeltIds = [...new Set(dischargeLanes.flatMap((lane) => lane.belts.map((belt) => belt.objectId)))];
+    const uniqueBeltIds = [
+      ...new Set(
+        dischargeLanes.flatMap((lane) =>
+          getSimulatorLaneBelts(lane).map((belt) => belt.objectId),
+        ),
+      ),
+    ];
 
     if (uniqueBeltIds.length === 0) {
       return;
@@ -611,7 +687,7 @@ export function SimulatorWorkspace({
     setBeltErrors({});
     setLoadingBelts(
       buildSimulatorDischargeLanes(graph, nextObjectId).some(
-        (lane) => lane.belts.length > 0,
+        (lane) => getSimulatorLaneBelts(lane).length > 0,
       ),
     );
     setSelectedObjectId(nextObjectId);
@@ -755,17 +831,18 @@ export function SimulatorWorkspace({
   }, [centralData, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
 
   const activeLaneMassTon =
-    activeLane?.belts.reduce(
+    activeLaneBelts.reduce(
       (sum, belt) => sum + (beltSnapshots[belt.objectId]?.totalMassTon ?? 0),
       0,
-    ) ?? 0;
-  const activeLaneLoadedCount =
-    activeLane?.belts.filter((belt) => beltSnapshots[belt.objectId]).length ?? 0;
+    );
+  const activeLaneLoadedCount = activeLaneBelts.filter(
+    (belt) => beltSnapshots[belt.objectId],
+  ).length;
   const activeLaneSnapshot = activeLane
     ? buildSimulatorLaneSnapshot({
         laneId: activeLane.output.id,
         displayName: activeLane.output.label,
-        snapshots: activeLane.belts
+        snapshots: activeLaneBelts
           .map((belt) => beltSnapshots[belt.objectId])
           .filter((snapshot): snapshot is BeltSnapshot => Boolean(snapshot)),
         qualities,
@@ -952,8 +1029,8 @@ export function SimulatorWorkspace({
               value: String(dischargeLanes.length),
             },
             {
-              label: "Downstream belts",
-              value: String(dischargeLanes.reduce((sum, lane) => sum + lane.belts.length, 0)),
+              label: "Route belts",
+              value: String(totalRouteBelts),
             },
           ]}
         />
@@ -1006,6 +1083,7 @@ export function SimulatorWorkspace({
               inputs={centralData.inputs}
               outputs={centralData.outputs}
               showInFigureAnchors={centralData.dimension >= 2}
+              activeOutputId={effectiveSelectedOutputId}
             >
               {centralContent}
             </PileAnchorFrame>
@@ -1019,6 +1097,14 @@ export function SimulatorWorkspace({
             <MetricGrid
               metrics={[
                 { label: "Output", value: activeLane.output.label },
+                {
+                  label: "Direct belts",
+                  value: String(activeLane.directBelts.length),
+                },
+                {
+                  label: "Merge nodes",
+                  value: String(activeLane.mergeNodes.length),
+                },
                 { label: "Combined mass", value: formatMassTon(activeLaneMassTon) },
                 {
                   label: "Combined blocks",
@@ -1026,7 +1112,7 @@ export function SimulatorWorkspace({
                 },
                 {
                   label: "Loaded belts",
-                  value: `${activeLaneLoadedCount}/${activeLane.belts.length}`,
+                  value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
                 },
               ]}
             />
@@ -1054,53 +1140,124 @@ export function SimulatorWorkspace({
         ) : null}
         <div className="simulator-discharge">
           <div className="section-label">Discharge routes</div>
-          <div className="simulator-discharge__grid">
-            {dischargeLanes.length === 0 ? (
-              <InlineNotice tone="info" title="No discharge outputs">
-                The selected pile does not expose downstream output routes in the current
-                circuit graph.
-              </InlineNotice>
-            ) : (
-              dischargeLanes.map((lane) => (
-                <article
-                  key={lane.output.id}
-                  className={`simulator-discharge-lane ${lane.output.id === effectiveSelectedOutputId ? "simulator-discharge-lane--active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className={`simulator-discharge-button ${lane.output.id === effectiveSelectedOutputId ? "simulator-discharge-button--active" : ""}`}
-                    onClick={() => handleSelectOutput(lane.output.id)}
-                  >
-                    <span>{lane.output.label}</span>
-                    <strong>{lane.belts.length} belts</strong>
-                  </button>
-                  <div className="simulator-discharge-lane__cards">
-                    {lane.belts.length === 0 ? (
-                      <InlineNotice tone="info" title="No downstream belts">
-                        This output is configured, but no downstream belt objects are currently
-                        reachable from its route.
-                      </InlineNotice>
-                    ) : (
-                      lane.belts.map((belt) => (
-                        <SimulatorDischargeLaneCard
-                          key={`${lane.output.id}:${belt.objectId}`}
-                          belt={belt}
-                          snapshot={beltSnapshots[belt.objectId]}
-                          quality={selectedQuality}
-                          loading={
-                            loadingBelts &&
-                            !beltSnapshots[belt.objectId] &&
-                            !beltErrors[belt.objectId]
-                          }
-                          error={beltErrors[belt.objectId]}
-                        />
-                      ))
-                    )}
+          {dischargeLanes.length === 0 ? (
+            <InlineNotice tone="info" title="No discharge outputs">
+              The selected pile does not expose downstream output routes in the current
+              circuit graph.
+            </InlineNotice>
+          ) : (
+            <>
+              <div className="simulator-discharge__selector">
+                {dischargeLanes.map((lane) => {
+                  const routeBelts = getSimulatorLaneBelts(lane);
+
+                  return (
+                    <button
+                      key={lane.output.id}
+                      type="button"
+                      className={`simulator-discharge-button ${
+                        lane.output.id === effectiveSelectedOutputId
+                          ? "simulator-discharge-button--active"
+                          : ""
+                      }`}
+                      onClick={() => handleSelectOutput(lane.output.id)}
+                    >
+                      <span>{lane.output.label}</span>
+                      <strong>
+                        {lane.directBelts.length} direct / {routeBelts.length} total
+                      </strong>
+                    </button>
+                  );
+                })}
+              </div>
+              {activeLane ? (
+                <article className="simulator-discharge-lane simulator-discharge-lane--active">
+                  <div className="simulator-discharge-lane__header">
+                    <div>
+                      <div className="section-label">Active route</div>
+                      <h3>{activeLane.output.label}</h3>
+                    </div>
+                    <div className="simulator-belt-card__meta">
+                      <span>{activeLane.directBelts.length} direct outputs</span>
+                      <strong>{activeLaneBelts.length} total belts</strong>
+                    </div>
+                  </div>
+                  <div className="simulator-discharge-lane__sections">
+                    <section className="simulator-discharge-stage">
+                      <div className="section-label">Direct reclaim</div>
+                      <div className="simulator-discharge-stage__cards">
+                        {activeLane.directBelts.length === 0 ? (
+                          <InlineNotice tone="info" title="No direct belt objects">
+                            This output does not resolve to a direct belt object in the
+                            current circuit graph.
+                          </InlineNotice>
+                        ) : (
+                          activeLane.directBelts.map((belt) => (
+                            <SimulatorDischargeLaneCard
+                              key={`${activeLane.output.id}:direct:${belt.objectId}`}
+                              belt={belt}
+                              snapshot={beltSnapshots[belt.objectId]}
+                              quality={selectedQuality}
+                              loading={
+                                loadingBelts &&
+                                !beltSnapshots[belt.objectId] &&
+                                !beltErrors[belt.objectId]
+                              }
+                              error={beltErrors[belt.objectId]}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </section>
+                    <section className="simulator-discharge-stage">
+                      <div className="section-label">Virtual merge</div>
+                      <div className="simulator-discharge-stage__cards">
+                        {activeLane.mergeNodes.length === 0 ? (
+                          <InlineNotice tone="info" title="No merge stage">
+                            This route goes from the direct discharge output into downstream
+                            conveyors without a virtual mixing pile in between.
+                          </InlineNotice>
+                        ) : (
+                          activeLane.mergeNodes.map((mergeNode) => (
+                            <SimulatorMergeNodeCard
+                              key={`${activeLane.output.id}:merge:${mergeNode.objectId}`}
+                              mergeNode={mergeNode}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </section>
+                    <section className="simulator-discharge-stage">
+                      <div className="section-label">Downstream conveyors</div>
+                      <div className="simulator-discharge-stage__cards">
+                        {activeLane.downstreamBelts.length === 0 ? (
+                          <InlineNotice tone="info" title="No downstream conveyors">
+                            No downstream belt objects are currently reachable from this
+                            discharge route.
+                          </InlineNotice>
+                        ) : (
+                          activeLane.downstreamBelts.map((belt) => (
+                            <SimulatorDischargeLaneCard
+                              key={`${activeLane.output.id}:downstream:${belt.objectId}`}
+                              belt={belt}
+                              snapshot={beltSnapshots[belt.objectId]}
+                              quality={selectedQuality}
+                              loading={
+                                loadingBelts &&
+                                !beltSnapshots[belt.objectId] &&
+                                !beltErrors[belt.objectId]
+                              }
+                              error={beltErrors[belt.objectId]}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </section>
                   </div>
                 </article>
-              ))
-            )}
-          </div>
+              ) : null}
+            </>
+          )}
         </div>
       </section>
 
@@ -1144,7 +1301,7 @@ export function SimulatorWorkspace({
             },
             {
               label: "Loaded belts",
-              value: `${activeLaneLoadedCount}/${activeLane?.belts.length ?? 0}`,
+              value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
             },
             {
               label: "Route mass",

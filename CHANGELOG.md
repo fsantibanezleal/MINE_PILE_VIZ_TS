@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.041`
-- Active tracked version: `0.01.042`
+- Closed release baseline: `0.01.042`
+- Active tracked version: `0.01.043`
 
 ## Release History
+
+### 0.01.043
+
+- Reworked simulator discharge routing so each selected pile output now reads as a staged route: direct reclaim belts first, virtual merge nodes second, and downstream conveyors last.
+- Removed the repeated per-output lane stacks and replaced them with one direct-output selector plus one focused active-route workspace.
+- Added active-output highlighting on the central pile anchors so the selected reclaim point stays visually tied to the route being inspected.
 
 ### 0.01.042
 

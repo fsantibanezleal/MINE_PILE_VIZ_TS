@@ -329,7 +329,7 @@ function jsonResponse(payload: unknown, status = 200) {
 }
 
 describe("SimulatorWorkspace", () => {
-  it("centers the simulator on piles and renders downstream belt content under each output", async () => {
+  it("centers the simulator on piles and renders the active discharge route as direct, merge, and downstream stages", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -371,8 +371,12 @@ describe("SimulatorWorkspace", () => {
     });
 
     expect(screen.getByRole("button", { name: /West reclaim/i })).toBeInTheDocument();
+    expect(screen.getByText("Direct reclaim")).toBeInTheDocument();
+    expect(screen.getAllByText("Virtual merge").length).toBeGreaterThan(0);
+    expect(screen.getByText("Downstream conveyors")).toBeInTheDocument();
     expect(screen.getByText("Virtual Lane")).toBeInTheDocument();
-    expect(screen.getByText("Belt B")).toBeInTheDocument();
+    expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
     expect(screen.getByText("Active lane summary")).toBeInTheDocument();
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
     expect(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSimulatorDischargeLanes,
+  getSimulatorLaneBelts,
   getSimulatorPileNodes,
 } from "@/lib/simulator-topology";
 import type { CircuitGraph } from "@/types/app-data";
@@ -155,17 +156,26 @@ describe("simulator-topology", () => {
     ]);
   });
 
-  it("collects downstream belts per discharge output without traversing into other physical piles", () => {
+  it("separates direct discharge belts from merge nodes and downstream belts", () => {
     const lanes = buildSimulatorDischargeLanes(graph, "pile_main");
 
     expect(lanes).toHaveLength(2);
     expect(lanes[0]?.output.id).toBe("out-west");
-    expect(lanes[0]?.belts.map((belt) => belt.objectId)).toEqual([
+    expect(lanes[0]?.directBelts.map((belt) => belt.objectId)).toEqual(["vbelt_a"]);
+    expect(lanes[0]?.mergeNodes.map((node) => node.objectId)).toEqual(["vpile_mix"]);
+    expect(lanes[0]?.mergeNodes[0]?.downstreamBelts.map((belt) => belt.objectId)).toEqual([
+      "belt_cv301",
+    ]);
+    expect(lanes[0]?.downstreamBelts.map((belt) => belt.objectId)).toEqual(["belt_cv301"]);
+    expect(getSimulatorLaneBelts(lanes[0]!).map((belt) => belt.objectId)).toEqual([
       "vbelt_a",
       "belt_cv301",
     ]);
     expect(lanes[1]?.output.id).toBe("out-east");
-    expect(lanes[1]?.belts.map((belt) => belt.objectId)).toEqual([
+    expect(lanes[1]?.directBelts.map((belt) => belt.objectId)).toEqual(["vbelt_b"]);
+    expect(lanes[1]?.mergeNodes).toEqual([]);
+    expect(lanes[1]?.downstreamBelts.map((belt) => belt.objectId)).toEqual(["belt_cv302"]);
+    expect(getSimulatorLaneBelts(lanes[1]!).map((belt) => belt.objectId)).toEqual([
       "vbelt_b",
       "belt_cv302",
     ]);

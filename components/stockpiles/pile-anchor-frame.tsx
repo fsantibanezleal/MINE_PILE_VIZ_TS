@@ -8,9 +8,15 @@ interface PileAnchorTrackProps {
   title: string;
   anchors: GraphAnchor[];
   kind: "input" | "output";
+  activeAnchorId?: string;
 }
 
-function PileAnchorTrack({ title, anchors, kind }: PileAnchorTrackProps) {
+function PileAnchorTrack({
+  title,
+  anchors,
+  kind,
+  activeAnchorId,
+}: PileAnchorTrackProps) {
   const placements = getStockpileAnchorPlacements(anchors);
 
   return (
@@ -19,7 +25,9 @@ function PileAnchorTrack({ title, anchors, kind }: PileAnchorTrackProps) {
       {placements.map(({ anchor, normalizedX }) => (
         <div
           key={anchor.id}
-          className={`pile-anchor pile-anchor--${kind}`}
+          className={`pile-anchor pile-anchor--${kind} ${
+            activeAnchorId === anchor.id ? "pile-anchor--active" : ""
+          }`}
           style={{ left: `${normalizedX * 100}%` }}
           aria-label={anchor.label}
           title={anchor.label}
@@ -37,17 +45,20 @@ interface PileAnchorFrameProps {
   inputs: GraphAnchor[];
   outputs: GraphAnchor[];
   showInFigureAnchors?: boolean;
+  activeOutputId?: string;
   children: ReactNode;
 }
 
 interface PileInFigureAnchorLayerProps {
   anchors: GraphAnchor[];
   kind: "input" | "output";
+  activeAnchorId?: string;
 }
 
 function PileInFigureAnchorLayer({
   anchors,
   kind,
+  activeAnchorId,
 }: PileInFigureAnchorLayerProps) {
   const placements = getStockpileAnchorPlacements(anchors);
   const token = kind === "input" ? "F" : "D";
@@ -65,7 +76,9 @@ function PileInFigureAnchorLayer({
       {placements.map(({ anchor, normalizedX }, index) => (
         <div
           key={anchor.id}
-          className={`pile-anchor-overlay__item pile-anchor-overlay__item--${kind}`}
+          className={`pile-anchor-overlay__item pile-anchor-overlay__item--${kind} ${
+            activeAnchorId === anchor.id ? "pile-anchor-overlay__item--active" : ""
+          }`}
           style={{ left: `${normalizedX * 100}%` }}
           title={anchor.label}
         >
@@ -84,6 +97,7 @@ export function PileAnchorFrame({
   inputs,
   outputs,
   showInFigureAnchors = false,
+  activeOutputId,
   children,
 }: PileAnchorFrameProps) {
   if (inputs.length === 0 && outputs.length === 0) {
@@ -97,7 +111,11 @@ export function PileAnchorFrame({
         {showInFigureAnchors ? (
           <>
             <PileInFigureAnchorLayer anchors={inputs} kind="input" />
-            <PileInFigureAnchorLayer anchors={outputs} kind="output" />
+            <PileInFigureAnchorLayer
+              anchors={outputs}
+              kind="output"
+              activeAnchorId={activeOutputId}
+            />
           </>
         ) : null}
         {children}
@@ -106,6 +124,7 @@ export function PileAnchorFrame({
         title={`Discharges (${outputs.length})`}
         anchors={outputs}
         kind="output"
+        activeAnchorId={activeOutputId}
       />
     </div>
   );
