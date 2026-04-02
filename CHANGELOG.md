@@ -11,6 +11,12 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release History
 
+### 0.01.027
+
+- Improved spatial separation in the illustrative 2D and 3D circuit layouts.
+- Separated belts, piles, and virtual objects into clearer spatial lanes with distinct depth placement.
+- Added layout coverage so mixed-stage belt and pile nodes no longer collapse into the same local area.
+
 ### 0.01.026
 
 - Added a tracked `CHANGELOG.md` and linked release history from the README.

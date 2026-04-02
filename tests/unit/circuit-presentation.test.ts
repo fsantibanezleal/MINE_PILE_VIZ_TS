@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCircuitPresentation,
   getPresentationAnchorPoint,
   getPresentationAnchorPoint3d,
   type CircuitPresentationNode,
 } from "@/lib/circuit-presentation";
+import type { CircuitGraph } from "@/types/app-data";
 
 const pileNode: CircuitPresentationNode = {
   id: "pile_stockpile",
@@ -54,11 +56,57 @@ const pileNode: CircuitPresentationNode = {
   visualKind: "physical-pile",
   x: 520,
   y: 234,
+  z: 1.8,
   width: 126,
   height: 104,
 };
 
+const mixedStageGraph: CircuitGraph = {
+  stages: [{ index: 0, label: "Transport", nodeIds: ["belt_cv200", "pile_stockpile"] }],
+  nodes: [
+    {
+      id: "belt_cv200",
+      objectId: "belt_cv200",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "CV 200",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: true,
+      shortDescription: "Conveyor",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Plant Stockpile",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Stockpile",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [],
+};
+
 describe("circuit pile anchor presentation", () => {
+  it("separates belt and pile lanes inside the same stage", () => {
+    const presentation = buildCircuitPresentation(mixedStageGraph);
+    const belt = presentation.nodes.find((node) => node.id === "belt_cv200");
+    const pile = presentation.nodes.find((node) => node.id === "pile_stockpile");
+
+    expect(belt).toBeDefined();
+    expect(pile).toBeDefined();
+    expect(belt!.y).toBeLessThan(pile!.y);
+    expect(belt!.z).toBeLessThan(pile!.z);
+    expect(Math.abs(belt!.x - pile!.x)).toBeGreaterThan(20);
+  });
+
   it("keeps multiple feed anchors distinct in the 2D illustration", () => {
     const points = pileNode.inputs.map((anchor) =>
       getPresentationAnchorPoint(pileNode, anchor, "input"),

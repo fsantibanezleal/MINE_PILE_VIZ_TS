@@ -289,7 +289,7 @@ function Belt3D({
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
-  const z = node.objectRole === "physical" ? 0 : 9;
+  const z = node.z;
   const opacity = inSequence ? 1 : 0.26;
 
   return (
@@ -333,7 +333,7 @@ function Pile3D({
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
-  const z = node.objectRole === "physical" ? 0 : 9;
+  const z = node.z;
   const opacity = inSequence ? 1 : 0.26;
 
   return (
@@ -403,10 +403,11 @@ function VirtualMarker3D({
   onSelect?: (objectId: string) => void;
 }) {
   const x = node.x / 26;
+  const z = node.z;
   const opacity = inSequence ? 0.72 : 0.2;
 
   return (
-    <group position={[x, 0.7, 9]} onClick={() => onSelect?.(node.id)}>
+    <group position={[x, 0.7, z]} onClick={() => onSelect?.(node.id)}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={[4.8, 0.48, 1.6]} />
         <meshStandardMaterial
@@ -431,7 +432,7 @@ function Illustration3D({
   onSelect,
 }: Omit<CircuitIllustrationProps, "mode">) {
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
-  const spreadX = Math.max(18, presentation.stages.length * 6.4);
+  const spreadX = Math.max(20, presentation.width / 26);
   const highlightedNodeIds = sequenceState?.nodeIds ?? new Set<string>();
   const highlightedEdgeIds = sequenceState?.edgeIds ?? new Set<string>();
   const hasSelection = Boolean(selectedObjectId);
@@ -442,17 +443,24 @@ function Illustration3D({
         <Canvas
           shadows
           dpr={[1, 1.5]}
-          camera={{ position: [spreadX * 0.35, 14, 26], fov: 40, near: 0.1, far: 300 }}
+          camera={{ position: [spreadX * 0.38, 16, 34], fov: 40, near: 0.1, far: 300 }}
         >
           <color attach="background" args={["#08101a"]} />
           <ambientLight intensity={1.15} />
           <directionalLight position={[18, 22, 14]} intensity={1.8} castShadow />
           <directionalLight position={[-14, 10, -18]} intensity={0.72} />
-          <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[spreadX / 2 - 4, -0.02, 0]}>
-            <planeGeometry args={[spreadX + 20, 30]} />
+          <mesh
+            receiveShadow
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[spreadX / 2 - 4, -0.02, 3.6]}
+          >
+            <planeGeometry args={[spreadX + 20, 40]} />
             <meshStandardMaterial color="#102033" />
           </mesh>
-          <gridHelper args={[spreadX + 18, presentation.stages.length * 8 + 8, "#1f3c5a", "#153149"]} />
+          <gridHelper
+            args={[spreadX + 18, presentation.stages.length * 8 + 10, "#1f3c5a", "#153149"]}
+            position={[spreadX / 2 - 4, 0, 3.6]}
+          />
           {presentation.edges.map((edge) => (
             <Line
               key={edge.id}

@@ -17,6 +17,7 @@ export interface CircuitPresentationNode extends CircuitNode {
   visualKind: CircuitPresentationVisualKind;
   x: number;
   y: number;
+  z: number;
   width: number;
   height: number;
 }
@@ -49,15 +50,53 @@ export interface CircuitPresentation {
   edges: CircuitPresentationEdge[];
 }
 
-const STAGE_WIDTH = 220;
-const STAGE_GAP = 240;
-const STAGE_PADDING_X = 84;
-const PHYSICAL_CENTER_Y = 234;
-const VIRTUAL_CENTER_Y = 432;
-const STACK_GAP = 118;
+const STAGE_WIDTH = 320;
+const STAGE_GAP = 300;
+const STAGE_PADDING_X = 96;
+const PRESENTATION_HEIGHT = 640;
 const PILE_ANCHOR_MIN_X = 0.18;
 const PILE_ANCHOR_MAX_X = 0.82;
 const PILE_ANCHOR_DEPTH_STEP = 0.55;
+
+const LANE_CONFIG: Record<
+  CircuitPresentationVisualKind,
+  {
+    centerY: number;
+    z: number;
+    xBias: number;
+    yGap: number;
+    xGap: number;
+  }
+> = {
+  "physical-belt": {
+    centerY: 182,
+    z: -2.8,
+    xBias: -28,
+    yGap: 86,
+    xGap: 88,
+  },
+  "physical-pile": {
+    centerY: 314,
+    z: 1.8,
+    xBias: 36,
+    yGap: 94,
+    xGap: 102,
+  },
+  "virtual-belt": {
+    centerY: 454,
+    z: 7.6,
+    xBias: -16,
+    yGap: 82,
+    xGap: 84,
+  },
+  "virtual-pile": {
+    centerY: 558,
+    z: 11.2,
+    xBias: 26,
+    yGap: 86,
+    xGap: 92,
+  },
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -88,15 +127,15 @@ function getNodeSize(node: CircuitNode) {
   }
 }
 
-function distributeLane(count: number, centerY: number) {
+function distributeAround(count: number, center: number, gap: number) {
   if (count <= 1) {
-    return [centerY];
+    return [center];
   }
 
-  const totalHeight = (count - 1) * STACK_GAP;
-  const startY = centerY - totalHeight / 2;
+  const totalSpan = (count - 1) * gap;
+  const start = center - totalSpan / 2;
 
-  return Array.from({ length: count }, (_, index) => startY + index * STACK_GAP);
+  return Array.from({ length: count }, (_, index) => start + index * gap);
 }
 
 export function getPresentationInputAnchor(node: CircuitPresentationNode) {
@@ -252,7 +291,7 @@ export function getPresentationAnchorPoint3d(
   kind: "input" | "output",
 ) {
   const centerX = node.x / 26;
-  const centerZ = node.objectRole === "physical" ? 0 : 9;
+  const centerZ = node.z;
 
   if (node.visualKind === "physical-pile") {
     const { normalizedX, depthOffset } = getPileAnchorPlacement(node, anchor, kind);
@@ -360,28 +399,32 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
 
   const nodes = graph.nodes.map((node) => {
     const stageNodes = nodesByStage.get(node.stageIndex) ?? [];
-    const physicalNodes = stageNodes.filter((entry) => entry.objectRole === "physical");
-    const virtualNodes = stageNodes.filter((entry) => entry.objectRole === "virtual");
+    const visualKind = getNodeVisualKind(node);
+    const laneNodes = stageNodes.filter(
+      (entry) => getNodeVisualKind(entry) === visualKind,
+    );
     const nodeSize = getNodeSize(node);
     const stage = stageMap.get(node.stageIndex);
-
-    let y = PHYSICAL_CENTER_Y;
-
-    if (node.objectRole === "physical") {
-      const lane = distributeLane(physicalNodes.length, PHYSICAL_CENTER_Y);
-      y = lane[Math.max(0, physicalNodes.findIndex((entry) => entry.id === node.id))] ?? y;
-    } else {
-      const lane = distributeLane(virtualNodes.length, VIRTUAL_CENTER_Y);
-      y =
-        lane[Math.max(0, virtualNodes.findIndex((entry) => entry.id === node.id))] ??
-        VIRTUAL_CENTER_Y;
-    }
+    const laneConfig = LANE_CONFIG[visualKind];
+    const laneIndex = Math.max(
+      0,
+      laneNodes.findIndex((entry) => entry.id === node.id),
+    );
+    const baseCenterX =
+      (stage?.x ?? STAGE_PADDING_X) + STAGE_WIDTH / 2 + laneConfig.xBias;
+    const xPositions = distributeAround(laneNodes.length, baseCenterX, laneConfig.xGap);
+    const yPositions = distributeAround(
+      laneNodes.length,
+      laneConfig.centerY,
+      laneConfig.yGap,
+    );
 
     return {
       ...node,
-      visualKind: getNodeVisualKind(node),
-      x: (stage?.x ?? STAGE_PADDING_X) + STAGE_WIDTH / 2,
-      y,
+      visualKind,
+      x: xPositions[laneIndex] ?? baseCenterX,
+      y: yPositions[laneIndex] ?? laneConfig.centerY,
+      z: laneConfig.z,
       width: nodeSize.width,
       height: nodeSize.height,
     } satisfies CircuitPresentationNode;
@@ -426,8 +469,9 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     .filter((edge): edge is CircuitPresentationEdge => edge !== null);
 
   return {
-    width: STAGE_PADDING_X * 2 + Math.max(1, stages.length) * STAGE_GAP,
-    height: 520,
+    width:
+      (stages[stages.length - 1]?.x ?? STAGE_PADDING_X) + STAGE_WIDTH + STAGE_PADDING_X,
+    height: PRESENTATION_HEIGHT,
     stages,
     nodes,
     edges,
