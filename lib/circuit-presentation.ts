@@ -55,6 +55,9 @@ const STAGE_PADDING_X = 84;
 const PHYSICAL_CENTER_Y = 234;
 const VIRTUAL_CENTER_Y = 432;
 const STACK_GAP = 118;
+const PILE_ANCHOR_MIN_X = 0.18;
+const PILE_ANCHOR_MAX_X = 0.82;
+const PILE_ANCHOR_DEPTH_STEP = 0.55;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -114,7 +117,101 @@ export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
 
 function getNormalizedPileAnchorX(anchor: GraphAnchor | undefined) {
   const anchorX = clamp(anchor?.x ?? 0.5, 0, 1);
-  return 0.18 + anchorX * 0.64;
+  return PILE_ANCHOR_MIN_X + anchorX * (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X);
+}
+
+function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
+  if (anchors.length === 0) {
+    return new Map<string, { normalizedX: number; depthOffset: number }>();
+  }
+
+  const orderedAnchors = anchors
+    .map((anchor, index) => ({
+      anchor,
+      index,
+      normalizedX: getNormalizedPileAnchorX(anchor),
+    }))
+    .sort(
+      (left, right) =>
+        left.normalizedX - right.normalizedX || left.index - right.index,
+    );
+  const evenlySpaced = orderedAnchors.map((_, index) => {
+    if (orderedAnchors.length === 1) {
+      return 0.5;
+    }
+
+    return (
+      PILE_ANCHOR_MIN_X +
+      ((PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) * index) / (orderedAnchors.length - 1)
+    );
+  });
+  const minimumGap = Math.min(
+    0.14,
+    (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) / Math.max(orderedAnchors.length + 1, 4),
+  );
+  const positions = orderedAnchors.map((entry, index) =>
+    clamp(entry.normalizedX * 0.72 + evenlySpaced[index]! * 0.28, PILE_ANCHOR_MIN_X, PILE_ANCHOR_MAX_X),
+  );
+
+  for (let index = 1; index < positions.length; index += 1) {
+    positions[index] = Math.max(positions[index]!, positions[index - 1]! + minimumGap);
+  }
+
+  const overflow = positions[positions.length - 1]! - PILE_ANCHOR_MAX_X;
+
+  if (overflow > 0) {
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] -= overflow;
+    }
+  }
+
+  for (let index = positions.length - 2; index >= 0; index -= 1) {
+    positions[index] = Math.min(positions[index]!, positions[index + 1]! - minimumGap);
+  }
+
+  const underflow = PILE_ANCHOR_MIN_X - positions[0]!;
+
+  if (underflow > 0) {
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] += underflow;
+    }
+  }
+
+  return new Map(
+    orderedAnchors.map((entry, index) => [
+      entry.anchor.id,
+      {
+        normalizedX: positions[index]!,
+        depthOffset: clamp(
+          (index - (orderedAnchors.length - 1) / 2) * PILE_ANCHOR_DEPTH_STEP,
+          -1.1,
+          1.1,
+        ),
+      },
+    ]),
+  );
+}
+
+function getPileAnchorPlacement(
+  node: CircuitPresentationNode,
+  anchor: GraphAnchor | undefined,
+  kind: "input" | "output",
+) {
+  const anchors = kind === "input" ? node.inputs : node.outputs;
+  const placements = getDistributedPileAnchorPlacements(anchors);
+
+  if (anchor) {
+    const placement = placements.get(anchor.id);
+
+    if (placement) {
+      return placement;
+    }
+  }
+
+  return {
+    normalizedX: getNormalizedPileAnchorX(anchor),
+    depthOffset: 0,
+  };
 }
 
 export function getPresentationAnchorPoint(
@@ -123,7 +220,7 @@ export function getPresentationAnchorPoint(
   kind: "input" | "output",
 ) {
   if (node.visualKind === "physical-pile") {
-    const normalizedX = getNormalizedPileAnchorX(anchor);
+    const { normalizedX } = getPileAnchorPlacement(node, anchor, kind);
     const x = node.x - node.width / 2 + normalizedX * node.width;
     const y =
       kind === "input"
@@ -158,13 +255,13 @@ export function getPresentationAnchorPoint3d(
   const centerZ = node.objectRole === "physical" ? 0 : 9;
 
   if (node.visualKind === "physical-pile") {
-    const normalizedX = getNormalizedPileAnchorX(anchor);
+    const { normalizedX, depthOffset } = getPileAnchorPlacement(node, anchor, kind);
     const localX = (normalizedX - 0.5) * 4.8;
 
     return {
       x: centerX + localX,
       y: kind === "input" ? 6.4 : 0.52,
-      z: centerZ,
+      z: centerZ + depthOffset,
     };
   }
 

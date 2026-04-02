@@ -23,7 +23,7 @@ export async function createSampleAppData(root: string) {
 
   const manifest = {
     schemaVersion: "1.0.0",
-    appVersion: "0.01.016",
+    appVersion: "0.01.017",
     datasetLabel: "Synthetic contract fixture",
     generatedAt: "2026-04-02T12:00:00Z",
     latestTimestamp: "2025-03-19T01:15:00Z",
@@ -200,8 +200,14 @@ export async function createSampleAppData(root: string) {
         dimension: 3,
         isProfiled: true,
         shortDescription: "Main 3D accumulation object",
-        inputs: [{ id: "stockpile-in", label: "Feed point", kind: "input", x: 0.45, y: 0.15, relatedObjectId: "belt_cv200" }],
-        outputs: [{ id: "stockpile-out", label: "Discharge", kind: "output", x: 0.55, y: 0.9, relatedObjectId: "vpile_out_cv301" }],
+        inputs: [
+          { id: "stockpile-in-west", label: "Feed point west", kind: "input", x: 0.24, y: 0.15, relatedObjectId: "belt_cv200" },
+          { id: "stockpile-in-east", label: "Feed point east", kind: "input", x: 0.78, y: 0.15, relatedObjectId: "belt_cv200" },
+        ],
+        outputs: [
+          { id: "stockpile-out-west", label: "Reclaim west", kind: "output", x: 0.26, y: 0.9, relatedObjectId: "vpile_out_cv301" },
+          { id: "stockpile-out-east", label: "Reclaim east", kind: "output", x: 0.74, y: 0.9, relatedObjectId: "vpile_out_cv301" },
+        ],
       },
       {
         id: "vpile_out_cv301",
@@ -308,8 +314,14 @@ export async function createSampleAppData(root: string) {
     suggestedFullStride: 1,
     fullModeThreshold: 12,
     qualityAverages: { q_num_fe: 1.15, q_num_cut: 0.89, q_cat_materialtype_main: 10003 },
-    inputs: [{ id: "stockpile-in", label: "Feed point", kind: "input", x: 0.45, y: 0.15, relatedObjectId: "belt_cv200" }],
-    outputs: [{ id: "stockpile-out", label: "Discharge", kind: "output", x: 0.55, y: 0.9, relatedObjectId: "vpile_out_cv301" }],
+    inputs: [
+      { id: "stockpile-in-west", label: "Feed point west", kind: "input", x: 0.24, y: 0.15, relatedObjectId: "belt_cv200" },
+      { id: "stockpile-in-east", label: "Feed point east", kind: "input", x: 0.78, y: 0.15, relatedObjectId: "belt_cv200" },
+    ],
+    outputs: [
+      { id: "stockpile-out-west", label: "Reclaim west", kind: "output", x: 0.26, y: 0.9, relatedObjectId: "vpile_out_cv301" },
+      { id: "stockpile-out-east", label: "Reclaim east", kind: "output", x: 0.74, y: 0.9, relatedObjectId: "vpile_out_cv301" },
+    ],
     files: {
       cells: "stockpiles/pile_stockpile/cells.arrow",
       surface: "stockpiles/pile_stockpile/surface.arrow",

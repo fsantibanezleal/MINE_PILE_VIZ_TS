@@ -125,3 +125,14 @@ test("opens related workspaces from inspection panels with preserved context", a
     page.locator('label:has-text("Property") select').first(),
   ).toHaveValue("q_num_cut");
 });
+
+test("shows every configured pile anchor in the 2D circuit illustration", async ({
+  page,
+}) => {
+  await page.goto("/circuit?object=pile_stockpile");
+
+  const selectedPile = page.locator(".circuit-illustration__object--selected");
+
+  await expect(selectedPile.locator(".circuit-illustration__feed-marker")).toHaveCount(2);
+  await expect(selectedPile.locator(".circuit-illustration__discharge-marker")).toHaveCount(2);
+});
