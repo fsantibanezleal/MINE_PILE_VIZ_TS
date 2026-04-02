@@ -25,6 +25,7 @@ import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import { findQualityCategory, getQualityValueKey } from "@/lib/quality-values";
 import {
@@ -1169,7 +1170,7 @@ export function SimulatorWorkspace({
                     value: formatMassTon(activeHoveredCell.massTon),
                   },
                   {
-                    label: selectedQuality?.label ?? "Property",
+                    label: getQualityDisplayLabel(selectedQuality),
                     value:
                       selectedQuality?.kind === "categorical"
                         ? findQualityCategory(

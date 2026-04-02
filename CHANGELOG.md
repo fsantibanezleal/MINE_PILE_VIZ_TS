@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.039`
-- Active tracked version: `0.01.040`
+- Closed release baseline: `0.01.040`
+- Active tracked version: `0.01.041`
 
 ## Release History
+
+### 0.01.041
+
+- Centralized operator-facing quality display labels so selectors, legends, inspectors, and profiled-property panels stop leaking technical ids when a definition arrives with a weak or broken label.
+- Added shared fallback logic that humanizes technical quality ids instead of exposing raw `q_num_*` or `q_cat_*` keys in the UI.
+- Added regression coverage for configured-label preservation and fallback display formatting.
 
 ### 0.01.040
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatMassTon, formatNumber, formatPercent } from "@/lib/format";
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import {
   buildCategoricalDistributionGroups,
   buildCategoricalProportionBreakdown,
@@ -125,7 +126,7 @@ export function ProfiledPropertiesPanel({
                           quality.palette[quality.palette.length - 1] ?? "#7ca4c9",
                       }}
                     />
-                    {quality.label}
+                    {getQualityDisplayLabel(quality)}
                   </span>
                   <strong>{formatNumber(typeof value === "number" ? value : null)}</strong>
                 </div>
@@ -150,7 +151,7 @@ export function ProfiledPropertiesPanel({
                       className="quality-dot"
                       style={{ backgroundColor: entry.color }}
                     />
-                    {entry.quality.label}
+                    {getQualityDisplayLabel(entry.quality)}
                   </span>
                   <span className="quality-list__subtext">
                     {entry.source === "proportion-records"
@@ -186,7 +187,7 @@ export function ProfiledPropertiesPanel({
               >
                 {categoricalQualities.map((quality) => (
                   <option key={quality.id} value={quality.id}>
-                    {quality.label}
+                    {getQualityDisplayLabel(quality)}
                   </option>
                 ))}
               </select>

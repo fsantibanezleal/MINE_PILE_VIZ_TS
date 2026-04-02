@@ -1,4 +1,5 @@
 import type { NumericColorDomain } from "@/lib/color";
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import type { QualityDefinition } from "@/types/app-data";
 
 interface QualityLegendProps {
@@ -14,15 +15,15 @@ export function QualityLegend({ quality, numericDomain }: QualityLegendProps) {
   const numericDomainLabel =
     quality.kind === "numerical"
       ? numericDomain?.mode === "adaptive-local"
-        ? "Numerical · view-scaled"
-        : "Numerical · configured range"
+        ? "Numerical - view-scaled"
+        : "Numerical - configured range"
       : "Categorical";
 
   return (
     <div className="quality-legend">
       <div className="section-label">Color legend</div>
       <div className="quality-legend__title-row">
-        <strong>{quality.label}</strong>
+        <strong>{getQualityDisplayLabel(quality)}</strong>
         <span>{numericDomainLabel}</span>
       </div>
       {quality.kind === "categorical" ? (
