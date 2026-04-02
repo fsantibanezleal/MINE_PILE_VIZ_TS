@@ -7,6 +7,33 @@ import * as THREE from "three";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
 import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
 
+const THREE_CLOCK_DEPRECATION_PATTERN =
+  /^THREE(?:\.THREE)?\.Clock: This module has been deprecated\. Please use THREE\.Timer instead\.$/;
+
+let threeClockWarningSuppressed = false;
+
+function suppressKnownThreeClockWarning() {
+  if (typeof window === "undefined" || threeClockWarningSuppressed) {
+    return;
+  }
+
+  const originalWarn = console.warn.bind(console);
+
+  console.warn = (...args: unknown[]) => {
+    const first = typeof args[0] === "string" ? args[0] : "";
+
+    if (THREE_CLOCK_DEPRECATION_PATTERN.test(first)) {
+      return;
+    }
+
+    originalWarn(...args);
+  };
+
+  threeClockWarningSuppressed = true;
+}
+
+suppressKnownThreeClockWarning();
+
 interface VoxelInstancesProps {
   cells: PileCellRecord[];
   extents: {

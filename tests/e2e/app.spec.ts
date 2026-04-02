@@ -47,6 +47,16 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
 test("updates stockpile 3D colors when the selected property changes", async ({
   page,
 }) => {
+  const deprecatedThreeClockWarnings: string[] = [];
+
+  page.on("console", (message) => {
+    const text = message.text();
+
+    if (text.includes("THREE.Clock: This module has been deprecated")) {
+      deprecatedThreeClockWarnings.push(text);
+    }
+  });
+
   await page.goto("/stockpiles");
   await expect(
     page.getByRole("heading", { name: "Internal stockpile views" }),
@@ -70,4 +80,5 @@ test("updates stockpile 3D colors when the selected property changes", async ({
   const afterHash = crypto.createHash("sha256").update(after).digest("hex");
 
   expect(afterHash).not.toBe(beforeHash);
+  expect(deprecatedThreeClockWarnings).toEqual([]);
 });
