@@ -1,4 +1,4 @@
-import type { CircuitGraph, CircuitNode } from "@/types/app-data";
+import type { CircuitGraph, CircuitNode, GraphAnchor } from "@/types/app-data";
 
 export type CircuitPresentationVisualKind =
   | "physical-belt"
@@ -26,6 +26,16 @@ export interface CircuitPresentationEdge {
   source: string;
   target: string;
   label: string;
+  sourceAnchorId: string | null;
+  targetAnchorId: string | null;
+  sourcePoint: {
+    x: number;
+    y: number;
+  };
+  targetPoint: {
+    x: number;
+    y: number;
+  };
   path: string;
   points3d: Array<[number, number, number]>;
   isVirtualLink: boolean;
@@ -45,6 +55,10 @@ const STAGE_PADDING_X = 84;
 const PHYSICAL_CENTER_Y = 234;
 const VIRTUAL_CENTER_Y = 432;
 const STACK_GAP = 118;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
 function getNodeVisualKind(node: CircuitNode): CircuitPresentationVisualKind {
   if (node.objectRole === "physical" && node.objectType === "belt") {
@@ -98,10 +112,77 @@ export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
   return { x: node.x + node.width / 2, y: node.y };
 }
 
-function buildEdgePath(source: CircuitPresentationNode, target: CircuitPresentationNode) {
-  const from = getPresentationOutputAnchor(source);
-  const to = getPresentationInputAnchor(target);
+function getNormalizedPileAnchorX(anchor: GraphAnchor | undefined) {
+  const anchorX = clamp(anchor?.x ?? 0.5, 0, 1);
+  return 0.18 + anchorX * 0.64;
+}
 
+export function getPresentationAnchorPoint(
+  node: CircuitPresentationNode,
+  anchor: GraphAnchor | undefined,
+  kind: "input" | "output",
+) {
+  if (node.visualKind === "physical-pile") {
+    const normalizedX = getNormalizedPileAnchorX(anchor);
+    const x = node.x - node.width / 2 + normalizedX * node.width;
+    const y =
+      kind === "input"
+        ? node.y - node.height / 2 - 30
+        : node.y + node.height / 2 + 34;
+
+    return { x, y };
+  }
+
+  const normalizedY = clamp(anchor?.y ?? 0.5, 0, 1);
+  const y = node.y - node.height / 2 + normalizedY * node.height;
+
+  if (kind === "input") {
+    return {
+      x: node.x - node.width / 2,
+      y,
+    };
+  }
+
+  return {
+    x: node.x + node.width / 2,
+    y,
+  };
+}
+
+export function getPresentationAnchorPoint3d(
+  node: CircuitPresentationNode,
+  anchor: GraphAnchor | undefined,
+  kind: "input" | "output",
+) {
+  const centerX = node.x / 26;
+  const centerZ = node.objectRole === "physical" ? 0 : 9;
+
+  if (node.visualKind === "physical-pile") {
+    const normalizedX = getNormalizedPileAnchorX(anchor);
+    const localX = (normalizedX - 0.5) * 4.8;
+
+    return {
+      x: centerX + localX,
+      y: kind === "input" ? 6.4 : 0.52,
+      z: centerZ,
+    };
+  }
+
+  const normalizedY = clamp(anchor?.y ?? 0.5, 0, 1);
+
+  return {
+    x: centerX + (kind === "input" ? -3.3 : 3.3),
+    y: 0.42 + normalizedY * 0.6,
+    z: centerZ,
+  };
+}
+
+function buildEdgePath(
+  source: CircuitPresentationNode,
+  target: CircuitPresentationNode,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
   if (target.visualKind === "physical-pile") {
     const controlY = Math.min(from.y, to.y) - 48;
     return `M ${from.x} ${from.y} C ${from.x + 48} ${from.y}, ${to.x} ${controlY}, ${to.x} ${to.y}`;
@@ -116,40 +197,51 @@ function buildEdgePath(source: CircuitPresentationNode, target: CircuitPresentat
   return `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
 }
 
-function buildEdgePoints3d(source: CircuitPresentationNode, target: CircuitPresentationNode) {
-  const from = getPresentationOutputAnchor(source);
-  const to = getPresentationInputAnchor(target);
-  const sourceY = source.visualKind === "physical-pile" ? 1.4 : 0.72;
-  const targetY = target.visualKind === "physical-pile" ? 4.9 : 0.72;
-  const sourceZ = source.objectRole === "physical" ? 0 : 9;
-  const targetZ = target.objectRole === "physical" ? 0 : 9;
-  const sourceX = from.x / 26;
-  const targetX = to.x / 26;
-  const midX = (sourceX + targetX) / 2;
+function buildEdgePoints3d(
+  source: CircuitPresentationNode,
+  target: CircuitPresentationNode,
+  from: { x: number; y: number; z: number },
+  to: { x: number; y: number; z: number },
+) {
+  const midX = (from.x + to.x) / 2;
 
   if (target.visualKind === "physical-pile") {
     return [
-      [sourceX, sourceY, sourceZ],
-      [midX, sourceY + 0.8, (sourceZ + targetZ) / 2],
-      [targetX, targetY + 0.8, targetZ],
-      [targetX, targetY, targetZ],
+      [from.x, from.y, from.z],
+      [midX, from.y + 0.8, (from.z + to.z) / 2],
+      [to.x, to.y + 0.8, to.z],
+      [to.x, to.y, to.z],
     ] as Array<[number, number, number]>;
   }
 
   if (source.visualKind === "physical-pile") {
     return [
-      [sourceX, sourceY, sourceZ],
-      [sourceX, sourceY - 1.2, sourceZ],
-      [midX, Math.max(sourceY, targetY) - 0.4, (sourceZ + targetZ) / 2],
-      [targetX, targetY, targetZ],
+      [from.x, from.y, from.z],
+      [from.x, from.y - 1.2, from.z],
+      [midX, Math.max(from.y, to.y) - 0.4, (from.z + to.z) / 2],
+      [to.x, to.y, to.z],
     ] as Array<[number, number, number]>;
   }
 
   return [
-    [sourceX, sourceY, sourceZ],
-    [midX, sourceY + 0.35, (sourceZ + targetZ) / 2],
-    [targetX, targetY, targetZ],
+    [from.x, from.y, from.z],
+    [midX, from.y + 0.35, (from.z + to.z) / 2],
+    [to.x, to.y, to.z],
   ] as Array<[number, number, number]>;
+}
+
+function pickRelatedAnchor(
+  anchors: GraphAnchor[],
+  relatedObjectId: string,
+  occurrenceIndex: number,
+) {
+  const candidates = anchors.filter((anchor) => anchor.relatedObjectId === relatedObjectId);
+
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  return candidates[Math.min(occurrenceIndex, candidates.length - 1)];
 }
 
 export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentation {
@@ -199,6 +291,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
   });
 
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const pairOccurrences = new Map<string, number>();
   const edges = graph.edges
     .map((edge) => {
       const source = nodeMap.get(edge.source);
@@ -208,13 +301,28 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
         return null;
       }
 
+      const pairKey = `${source.id}->${target.id}`;
+      const occurrenceIndex = pairOccurrences.get(pairKey) ?? 0;
+      pairOccurrences.set(pairKey, occurrenceIndex + 1);
+
+      const sourceAnchor = pickRelatedAnchor(source.outputs, target.objectId, occurrenceIndex);
+      const targetAnchor = pickRelatedAnchor(target.inputs, source.objectId, occurrenceIndex);
+      const sourcePoint = getPresentationAnchorPoint(source, sourceAnchor, "output");
+      const targetPoint = getPresentationAnchorPoint(target, targetAnchor, "input");
+      const sourcePoint3d = getPresentationAnchorPoint3d(source, sourceAnchor, "output");
+      const targetPoint3d = getPresentationAnchorPoint3d(target, targetAnchor, "input");
+
       return {
         id: edge.id,
         source: edge.source,
         target: edge.target,
         label: edge.label,
-        path: buildEdgePath(source, target),
-        points3d: buildEdgePoints3d(source, target),
+        sourceAnchorId: sourceAnchor?.id ?? null,
+        targetAnchorId: targetAnchor?.id ?? null,
+        sourcePoint,
+        targetPoint,
+        path: buildEdgePath(source, target, sourcePoint, targetPoint),
+        points3d: buildEdgePoints3d(source, target, sourcePoint3d, targetPoint3d),
         isVirtualLink: source.objectRole === "virtual" || target.objectRole === "virtual",
       } satisfies CircuitPresentationEdge;
     })

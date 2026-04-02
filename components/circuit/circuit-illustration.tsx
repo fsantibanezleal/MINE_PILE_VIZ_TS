@@ -7,6 +7,8 @@ import type { CircuitGraph } from "@/types/app-data";
 import {
   buildCircuitPresentation,
   type CircuitPresentationNode,
+  getPresentationAnchorPoint,
+  getPresentationAnchorPoint3d,
 } from "@/lib/circuit-presentation";
 
 type CircuitViewMode = "illustration-2d" | "illustration-3d";
@@ -82,29 +84,50 @@ function renderNodeShape(node: CircuitPresentationNode) {
           points={`${leftX},${bottomY} ${node.x},${topY} ${rightX},${bottomY}`}
           className="circuit-illustration__pile"
         />
-        <line
-          x1={node.x}
-          y1={topY - 30}
-          x2={node.x}
-          y2={topY - 4}
-          className="circuit-illustration__feed"
-        />
-        <line
-          x1={node.x}
-          y1={bottomY + 4}
-          x2={node.x}
-          y2={bottomY + 34}
-          className="circuit-illustration__discharge"
-        />
-        <circle cx={node.x} cy={topY - 30} r={7} className="circuit-illustration__feed-marker" />
-        <rect
-          x={node.x - 12}
-          y={bottomY + 34}
-          width={24}
-          height={12}
-          rx={4}
-          className="circuit-illustration__discharge-marker"
-        />
+        {node.inputs.map((anchor) => {
+          const point = getPresentationAnchorPoint(node, anchor, "input");
+
+          return (
+            <g key={anchor.id}>
+              <line
+                x1={point.x}
+                y1={point.y}
+                x2={point.x}
+                y2={topY - 4}
+                className="circuit-illustration__feed"
+              />
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={7}
+                className="circuit-illustration__feed-marker"
+              />
+            </g>
+          );
+        })}
+        {node.outputs.map((anchor) => {
+          const point = getPresentationAnchorPoint(node, anchor, "output");
+
+          return (
+            <g key={anchor.id}>
+              <line
+                x1={point.x}
+                y1={bottomY + 4}
+                x2={point.x}
+                y2={point.y}
+                className="circuit-illustration__discharge"
+              />
+              <rect
+                x={point.x - 12}
+                y={point.y - 6}
+                width={24}
+                height={12}
+                rx={4}
+                className="circuit-illustration__discharge-marker"
+              />
+            </g>
+          );
+        })}
       </>
     );
   }
@@ -281,6 +304,34 @@ function Pile3D({
         <boxGeometry args={[0.9, 0.72, 1.2]} />
         <meshStandardMaterial color="#94abc4" />
       </mesh>
+      {node.inputs.map((anchor) => {
+        const point = getPresentationAnchorPoint3d(node, anchor, "input");
+
+        return (
+          <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
+            <mesh castShadow receiveShadow>
+              <cylinderGeometry args={[0.18, 0.18, 1.2, 10]} />
+              <meshStandardMaterial color="#59ddff" />
+            </mesh>
+            <mesh position={[0, 0.7, 0]} castShadow receiveShadow>
+              <sphereGeometry args={[0.24, 12, 12]} />
+              <meshStandardMaterial color="#c6f7ff" />
+            </mesh>
+          </group>
+        );
+      })}
+      {node.outputs.map((anchor) => {
+        const point = getPresentationAnchorPoint3d(node, anchor, "output");
+
+        return (
+          <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[0.72, 0.36, 0.96]} />
+              <meshStandardMaterial color="#94abc4" />
+            </mesh>
+          </group>
+        );
+      })}
       <Html center position={[0, 7.4, 0]} className="circuit-3d__label">
         <strong>{node.label}</strong>
       </Html>
