@@ -198,13 +198,48 @@ code {
 .hero-panel {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  padding: 28px;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 20px 22px;
+}
+
+.hero-panel__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.hero-panel__body p {
+  max-width: 72ch;
+}
+
+.hero-panel__actions {
+  align-self: flex-start;
+  flex: 0 1 420px;
+}
+
+.hero-panel__actions .metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 10px;
+}
+
+.hero-panel__actions .metric-card {
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.hero-panel__actions .metric-card span {
+  font-size: 0.76rem;
+}
+
+.hero-panel__actions .metric-card strong {
+  font-size: 0.94rem;
+  line-height: 1.2;
 }
 
 .workspace-grid {
   display: grid;
   gap: 18px;
+  align-items: start;
 }
 
 .workspace-grid--triple {
@@ -311,6 +346,7 @@ code {
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
   min-height: 620px;
+  align-items: start;
 }
 
 .react-flow {
@@ -601,5 +637,10 @@ code {
 
   .hero-panel {
     flex-direction: column;
+  }
+
+  .hero-panel__actions {
+    width: 100%;
+    flex-basis: auto;
   }
 }

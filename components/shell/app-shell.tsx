@@ -41,7 +41,7 @@ export function AppShell({
 
       <main className="page-shell">
         <section className="hero-panel">
-          <div>
+          <div className="hero-panel__body">
             <div className="section-label">{eyebrow}</div>
             <h2>{title}</h2>
             <p>{description}</p>
