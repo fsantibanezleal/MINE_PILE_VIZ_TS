@@ -65,6 +65,11 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
     () => deriveCircuitSequence(graph, selectedObjectId),
     [graph, selectedObjectId],
   );
+  const relatedObjectLabels = useMemo(
+    () =>
+      Object.fromEntries(graph.nodes.map((node) => [node.objectId, node.label])),
+    [graph.nodes],
+  );
   const physicalCount = graph.nodes.filter((node) => node.objectRole === "physical").length;
   const virtualCount = graph.nodes.length - physicalCount;
 
@@ -138,7 +143,11 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
         />
       )}
 
-      <CircuitInspector node={selectedNode} summary={selectedSummary} />
+      <CircuitInspector
+        node={selectedNode}
+        summary={selectedSummary}
+        relatedObjectLabels={relatedObjectLabels}
+      />
     </div>
   );
 }

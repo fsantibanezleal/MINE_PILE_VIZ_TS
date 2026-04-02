@@ -148,3 +148,19 @@ test("keeps the selected circuit object highlighted across illustration and diag
   await page.getByRole("button", { name: "Diagram" }).click();
   await expect(page.locator(".circuit-node--selected")).toContainText("Plant Stockpile");
 });
+
+test("shows configured anchor inventory details for the selected pile in the circuit inspector", async ({
+  page,
+}) => {
+  await page.goto("/circuit?object=pile_stockpile");
+  const inspector = page.locator(".panel--inspector");
+
+  await expect(inspector.getByText("Feed anchors (2)")).toBeVisible();
+  await expect(inspector.getByText("Feed point west")).toBeVisible();
+  await expect(inspector.getByText("Feed point east")).toBeVisible();
+  await expect(inspector.getByText("CV 200").first()).toBeVisible();
+  await expect(inspector.getByText("Discharge anchors (2)")).toBeVisible();
+  await expect(inspector.getByText("Reclaim west")).toBeVisible();
+  await expect(inspector.getByText("Reclaim east")).toBeVisible();
+  await expect(inspector.getByText("Virtual Outflow Mixer").first()).toBeVisible();
+});

@@ -1,15 +1,51 @@
 "use client";
 
-import type { CircuitNode, ObjectSummary } from "@/types/app-data";
+import type { GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 
 interface CircuitInspectorProps {
   node?: CircuitNode;
   summary?: ObjectSummary;
+  relatedObjectLabels?: Record<string, string>;
 }
 
-export function CircuitInspector({ node, summary }: CircuitInspectorProps) {
+function AnchorInventory({
+  title,
+  anchors,
+  relatedObjectLabels,
+}: {
+  title: string;
+  anchors: GraphAnchor[];
+  relatedObjectLabels?: Record<string, string>;
+}) {
+  return (
+    <div className="anchor-list">
+      <div className="anchor-list__title">{title}</div>
+      {anchors.length > 0 ? (
+        anchors.map((anchor) => (
+          <div key={anchor.id} className="anchor-list__item">
+            <div className="anchor-list__meta">
+              <strong>{anchor.label}</strong>
+              <span>{anchor.id}</span>
+            </div>
+            <span>
+              {relatedObjectLabels?.[anchor.relatedObjectId] ?? anchor.relatedObjectId}
+            </span>
+          </div>
+        ))
+      ) : (
+        <p className="muted-text anchor-list__empty">None configured.</p>
+      )}
+    </div>
+  );
+}
+
+export function CircuitInspector({
+  node,
+  summary,
+  relatedObjectLabels,
+}: CircuitInspectorProps) {
   if (!node) {
     return (
       <aside className="panel panel--inspector">
@@ -81,16 +117,16 @@ export function CircuitInspector({ node, summary }: CircuitInspectorProps) {
           No current runtime summary is available for this object in the loaded cache.
         </p>
       )}
-      <div className="quality-list">
-        <div className="quality-list__item">
-          <span>Inputs</span>
-          <strong>{node.inputs.length}</strong>
-        </div>
-        <div className="quality-list__item">
-          <span>Outputs</span>
-          <strong>{node.outputs.length}</strong>
-        </div>
-      </div>
+      <AnchorInventory
+        title={`Feed anchors (${node.inputs.length})`}
+        anchors={node.inputs}
+        relatedObjectLabels={relatedObjectLabels}
+      />
+      <AnchorInventory
+        title={`Discharge anchors (${node.outputs.length})`}
+        anchors={node.outputs}
+        relatedObjectLabels={relatedObjectLabels}
+      />
       <WorkspaceJumpLinks
         objectId={node.objectId}
         objectType={node.objectType}
