@@ -30,6 +30,7 @@ import {
   deriveShellCells,
   deriveSurfaceCells,
 } from "@/lib/stockpile-rendering";
+import { buildSimulatorLaneSnapshot } from "@/lib/simulator-lane";
 import {
   buildSimulatorDischargeLanes,
   getSimulatorPileNodes,
@@ -730,6 +731,16 @@ export function SimulatorWorkspace({
     ) ?? 0;
   const activeLaneLoadedCount =
     activeLane?.belts.filter((belt) => beltSnapshots[belt.objectId]).length ?? 0;
+  const activeLaneSnapshot = activeLane
+    ? buildSimulatorLaneSnapshot({
+        laneId: activeLane.output.id,
+        displayName: activeLane.output.label,
+        snapshots: activeLane.belts
+          .map((belt) => beltSnapshots[belt.objectId])
+          .filter((snapshot): snapshot is BeltSnapshot => Boolean(snapshot)),
+        qualities,
+      })
+    : null;
 
   let centralContent: ReactNode = (
     <InlineNotice tone={centralError ? "error" : "info"} title="Pile content loads on demand">
@@ -972,6 +983,45 @@ export function SimulatorWorkspace({
         ) : (
           centralContent
         )}
+        {activeLane ? (
+          <div className="simulator-route-summary">
+            <div className="section-label">Active lane summary</div>
+            <MetricGrid
+              metrics={[
+                { label: "Output", value: activeLane.output.label },
+                { label: "Combined mass", value: formatMassTon(activeLaneMassTon) },
+                {
+                  label: "Combined blocks",
+                  value: String(activeLaneSnapshot?.snapshot.blockCount ?? 0),
+                },
+                {
+                  label: "Loaded belts",
+                  value: `${activeLaneLoadedCount}/${activeLane.belts.length}`,
+                },
+              ]}
+            />
+            {!activeLaneSnapshot ? (
+              <InlineNotice tone="info" title="Awaiting downstream belt content">
+                The selected discharge route is configured, but its downstream live belt
+                snapshots are still loading or unavailable.
+              </InlineNotice>
+            ) : (
+              <>
+                {!activeLaneSnapshot.timestampsAligned ? (
+                  <InlineNotice tone="warning" title="Mixed live timestamps detected">
+                    The active lane combines multiple current belt snapshots that do not share
+                    exactly the same timestamp. The aggregate histogram still reflects the
+                    current route content, but timestamp alignment is not exact.
+                  </InlineNotice>
+                ) : null}
+                <BeltMassHistogram
+                  snapshot={activeLaneSnapshot.snapshot}
+                  quality={selectedQuality}
+                />
+              </>
+            )}
+          </div>
+        ) : null}
         <div className="simulator-discharge">
           <div className="section-label">Discharge routes</div>
           <div className="simulator-discharge__grid">

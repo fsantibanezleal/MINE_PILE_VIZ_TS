@@ -9,7 +9,18 @@ All notable tracked releases for this repository are recorded here.
 - The middle block is reserved for broader product milestones when a larger grouped phase is intentionally declared.
 - The leftmost block is reserved for major baseline shifts.
 
+## Release Status
+
+- Closed release baseline: `0.01.036`
+- Active tracked version: `0.01.037`
+
 ## Release History
+
+### 0.01.037
+
+- Added an aggregated active-lane summary block to the simulator so the selected discharge route can be read as one reclaim path instead of only as separate downstream belt cards.
+- Added one combined mass-weighted histogram per selected discharge lane, built from the downstream live belt content already loaded by the simulator.
+- Added explicit release-status tracking so the last closed version and the currently active version are visible in tracked documentation.
 
 ### 0.01.036
 

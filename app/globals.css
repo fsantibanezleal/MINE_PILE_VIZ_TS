@@ -1172,6 +1172,12 @@ code {
   gap: 14px;
 }
 
+.simulator-route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .simulator-discharge__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
