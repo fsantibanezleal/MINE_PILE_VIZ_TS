@@ -288,7 +288,7 @@ code {
 }
 
 .panel--canvas {
-  min-height: 680px;
+  min-height: 760px;
 }
 
 .panel--stack {
@@ -388,7 +388,7 @@ code {
 
 .circuit-illustration {
   width: 100%;
-  min-height: 620px;
+  min-height: 740px;
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid rgba(124, 164, 201, 0.12);
