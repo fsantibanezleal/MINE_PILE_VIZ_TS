@@ -10,6 +10,7 @@ import type {
   QualityDefinition,
 } from "@/types/app-data";
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
+import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
@@ -54,6 +55,7 @@ export function ProfilerWorkspace({
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const selectedObjectRows = useMemo(
     () =>
@@ -71,7 +73,12 @@ export function ProfilerWorkspace({
     : latestSnapshotId;
 
   function handleSelectObject(nextObjectId: string) {
+    if (!index.objects.some((entry) => entry.objectId === nextObjectId)) {
+      return;
+    }
+
     setLoadingDetail(true);
+    setDetailError(null);
     setSelectedObjectId(nextObjectId);
     setSelectedSnapshotId("");
   }
@@ -105,7 +112,16 @@ export function ProfilerWorkspace({
     fetch(`/api/profiler/objects/${selectedObjectId}/snapshots/${effectiveSnapshotId}`)
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Failed to load profiler snapshot.");
+          const payload = (await response.json().catch(() => null)) as
+            | {
+                error?: {
+                  message?: string;
+                };
+              }
+            | null;
+          throw new Error(
+            payload?.error?.message ?? "Failed to load profiler snapshot.",
+          );
         }
 
         return (await response.json()) as ProfilerSnapshot;
@@ -118,6 +134,15 @@ export function ProfilerWorkspace({
         startTransition(() => {
           setDetailSnapshot(payload);
         });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDetailError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load profiler snapshot.",
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -237,6 +262,7 @@ export function ProfilerWorkspace({
               const nextRow = selectedObjectRows[Number(event.target.value)];
               setSelectedSnapshotId(nextRow?.snapshotId ?? "");
               setLoadingDetail(true);
+              setDetailError(null);
             }}
           />
         </label>
@@ -250,15 +276,24 @@ export function ProfilerWorkspace({
       </aside>
 
       <section className="panel panel--canvas">
+        {detailError ? (
+          <InlineNotice tone="error" title="Profiler snapshot unavailable">
+            {detailError}
+          </InlineNotice>
+        ) : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
         {mode === "circuit" ? (
           <CircuitFlow
             graph={graph}
             summaries={circuitSummaries}
             selectedObjectId={selectedObjectId}
-            onSelect={setSelectedObjectId}
+            onSelect={handleSelectObject}
           />
-        ) : detailView}
+        ) : detailView ?? (
+          <InlineNotice tone="info" title="No profiler detail snapshot available">
+            Select a profiled object and snapshot to inspect its aggregated detail view.
+          </InlineNotice>
+        )}
       </section>
 
       <aside className="panel">

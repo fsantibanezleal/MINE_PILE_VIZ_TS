@@ -9,6 +9,14 @@ interface PileColumnViewProps {
 }
 
 export function PileColumnView({ cells, quality }: PileColumnViewProps) {
+  if (cells.length === 0) {
+    return (
+      <div className="empty-visual">
+        <p>No occupied cells are available for this object at the current snapshot.</p>
+      </div>
+    );
+  }
+
   const ordered = [...cells].sort((left, right) => left.iz - right.iz);
 
   return (
@@ -46,6 +54,14 @@ export function PileHeatmapView({
   xAccessor,
   yAccessor,
 }: PileHeatmapViewProps) {
+  if (cells.length === 0 || columns <= 0 || rows <= 0) {
+    return (
+      <div className="empty-visual">
+        <p>No occupied cells are available for this view.</p>
+      </div>
+    );
+  }
+
   const cellMap = new Map<string, PileCellRecord>();
 
   cells.forEach((cell) => {

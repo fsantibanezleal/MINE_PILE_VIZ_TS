@@ -1,13 +1,14 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
 import type {
   ObjectRegistryEntry,
   PileDataset,
   QualityDefinition,
   StockpileViewMode,
 } from "@/types/app-data";
+import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
+import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
@@ -42,6 +43,7 @@ export function StockpileWorkspace({
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const availableQualities = qualities.filter((quality) =>
     dataset.availableQualityIds.includes(quality.id),
@@ -58,6 +60,7 @@ export function StockpileWorkspace({
   function handleSelectPile(nextPileId: string) {
     if (nextPileId !== dataset.objectId) {
       setLoading(true);
+      setLoadError(null);
     }
 
     setSelectedPileId(nextPileId);
@@ -73,7 +76,16 @@ export function StockpileWorkspace({
     fetch(`/api/stockpiles/${selectedPileId}`)
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Failed to load stockpile dataset.");
+          const payload = (await response.json().catch(() => null)) as
+            | {
+                error?: {
+                  message?: string;
+                };
+              }
+            | null;
+          throw new Error(
+            payload?.error?.message ?? "Failed to load stockpile dataset.",
+          );
         }
 
         return (await response.json()) as PileDataset;
@@ -90,6 +102,15 @@ export function StockpileWorkspace({
           setSliceIndex(0);
         });
       })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load stockpile dataset.",
+          );
+        }
+      })
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
@@ -101,15 +122,21 @@ export function StockpileWorkspace({
     };
   }, [dataset.objectId, selectedPileId]);
 
-  const renderedFullCells = useMemo(() => {
-    if (dataset.cells.length <= dataset.fullModeThreshold) {
-      return dataset.cells;
-    }
-
-    return dataset.cells.filter(
-      (_, index) => index % Math.max(1, dataset.suggestedFullStride) === 0,
-    );
-  }, [dataset.cells, dataset.fullModeThreshold, dataset.suggestedFullStride]);
+  const fullRenderPlan = useMemo(
+    () =>
+      buildAdaptiveFullRenderPlan({
+        cells: dataset.cells,
+        surfaceCells: dataset.surfaceCells,
+        threshold: dataset.fullModeThreshold,
+        suggestedStride: dataset.suggestedFullStride,
+      }),
+    [
+      dataset.cells,
+      dataset.fullModeThreshold,
+      dataset.suggestedFullStride,
+      dataset.surfaceCells,
+    ],
+  );
 
   const sliceMax = Math.max(
     0,
@@ -134,6 +161,16 @@ export function StockpileWorkspace({
       return cell.iz === effectiveSliceIndex;
     });
   }, [dataset.cells, effectiveSliceIndex, sliceAxis]);
+  const visibleCellCount =
+    dataset.dimension === 3
+      ? viewMode === "surface"
+        ? dataset.surfaceCells.length
+        : viewMode === "shell"
+          ? (dataset.shellCells.length > 0 ? dataset.shellCells : dataset.surfaceCells).length
+          : viewMode === "slice"
+            ? sliceCells.length
+            : fullRenderPlan.renderedCellCount
+      : dataset.cells.length;
 
   let content: ReactNode;
 
@@ -169,7 +206,7 @@ export function StockpileWorkspace({
           ? dataset.shellCells.length > 0
             ? dataset.shellCells
             : dataset.surfaceCells
-          : renderedFullCells;
+          : fullRenderPlan.cells;
 
     content = (
       <Pile3DCanvas cells={cells} extents={dataset.extents} quality={selectedQuality} />
@@ -251,14 +288,22 @@ export function StockpileWorkspace({
       </aside>
 
       <section className="panel panel--canvas">
-        {viewMode === "full" && dataset.cells.length > dataset.fullModeThreshold ? (
-          <div className="notice-card">
-            <AlertTriangle size={16} />
-            <span>
-              Full mode is using an adaptive stride of {dataset.suggestedFullStride} for this
-              dataset to keep local rendering responsive.
-            </span>
-          </div>
+        {loadError ? (
+          <InlineNotice tone="error" title="Stockpile dataset unavailable">
+            {loadError}
+          </InlineNotice>
+        ) : null}
+        {viewMode === "full" && fullRenderPlan.strategy === "adaptive" ? (
+          <InlineNotice tone="warning" title="Adaptive full mode active">
+            Rendering uses surface cells, base footprint cells, and stride-sampled interior
+            cells at stride {fullRenderPlan.stride} to keep dense local views responsive.
+          </InlineNotice>
+        ) : null}
+        {viewMode === "shell" && dataset.shellCells.length === 0 && dataset.surfaceCells.length > 0 ? (
+          <InlineNotice tone="info" title="Shell artifact unavailable">
+            This dataset does not expose a dedicated shell layer, so shell mode is using the
+            surface layer instead.
+          </InlineNotice>
         ) : null}
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
         {content}
@@ -276,8 +321,24 @@ export function StockpileWorkspace({
             { label: "Mass", value: formatMassTon(totalMass) },
             { label: "Surface cells", value: String(dataset.surfaceCellCount) },
             { label: "View", value: dataset.dimension === 3 ? viewMode : `${dataset.dimension}D` },
+            { label: "Rendered cells", value: String(visibleCellCount) },
           ]}
         />
+        {viewMode === "full" && dataset.dimension === 3 ? (
+          <MetricGrid
+            metrics={[
+              { label: "Strategy", value: fullRenderPlan.strategy },
+              {
+                label: "Coverage",
+                value: `${(fullRenderPlan.coverageRatio * 100).toFixed(1)}%`,
+              },
+              {
+                label: "Sample stride",
+                value: String(fullRenderPlan.stride),
+              },
+            ]}
+          />
+        ) : null}
         <QualityValueList
           qualities={availableQualities}
           values={dataset.qualityAverages}

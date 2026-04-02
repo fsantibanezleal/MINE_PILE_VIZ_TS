@@ -10,6 +10,7 @@ import type {
 } from "@/types/app-data";
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { BeltBlockStrip } from "@/components/live/belt-block-strip";
+import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { QualityValueList } from "@/components/ui/quality-value-list";
@@ -31,37 +32,56 @@ export function LiveWorkspace({
   initialBelt,
 }: LiveWorkspaceProps) {
   const [selectedObjectId, setSelectedObjectId] = useState(initialBelt.objectId);
+  const [selectedBeltId, setSelectedBeltId] = useState(initialBelt.objectId);
   const [selectedQualityId, setSelectedQualityId] = useState(qualities[0]?.id ?? "");
   const [currentBelt, setCurrentBelt] = useState(initialBelt);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const selectedQuality = qualities.find((quality) => quality.id === selectedQualityId);
   const beltEntries = registry.filter((entry) => entry.objectType === "belt" && entry.liveRef);
   const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
+  const selectedObjectIsBelt = beltEntries.some(
+    (entry) => entry.objectId === selectedObjectId,
+  );
 
   function handleSelectObject(nextObjectId: string) {
-    if (
-      beltEntries.some((entry) => entry.objectId === nextObjectId) &&
-      nextObjectId !== currentBelt.objectId
-    ) {
-      setLoading(true);
-    }
+    const beltEntry = beltEntries.find((entry) => entry.objectId === nextObjectId);
 
     setSelectedObjectId(nextObjectId);
+
+    if (!beltEntry) {
+      return;
+    }
+
+    setSelectedBeltId(nextObjectId);
+
+    if (nextObjectId !== currentBelt.objectId) {
+      setLoading(true);
+      setLoadError(null);
+    }
   }
 
   useEffect(() => {
-    const isBelt = beltEntries.some((entry) => entry.objectId === selectedObjectId);
-    if (!isBelt || selectedObjectId === currentBelt.objectId) {
+    if (selectedBeltId === currentBelt.objectId) {
       return;
     }
 
     let cancelled = false;
 
-    fetch(`/api/live/belts/${selectedObjectId}`)
+    fetch(`/api/live/belts/${selectedBeltId}`)
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error("Failed to load live belt snapshot.");
+          const payload = (await response.json().catch(() => null)) as
+            | {
+                error?: {
+                  message?: string;
+                };
+              }
+            | null;
+          throw new Error(
+            payload?.error?.message ?? "Failed to load live belt snapshot.",
+          );
         }
 
         return (await response.json()) as BeltSnapshot;
@@ -75,6 +95,15 @@ export function LiveWorkspace({
           setCurrentBelt(payload);
         });
       })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load live belt snapshot.",
+          );
+        }
+      })
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
@@ -84,16 +113,16 @@ export function LiveWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [beltEntries, currentBelt.objectId, selectedObjectId]);
+  }, [currentBelt.objectId, selectedBeltId]);
 
   return (
     <div className="workspace-grid workspace-grid--triple">
       <aside className="panel">
         <div className="section-label">Selection</div>
         <label className="field">
-          <span>Focused belt</span>
+          <span>Inspection belt</span>
           <select
-            value={selectedObjectId}
+            value={selectedBeltId}
             onChange={(event) => handleSelectObject(event.target.value)}
           >
             {beltEntries.map((entry) => (
@@ -119,6 +148,11 @@ export function LiveWorkspace({
       </aside>
 
       <section className="panel panel--canvas panel--stack">
+        {loadError ? (
+          <InlineNotice tone="error" title="Live belt snapshot unavailable">
+            {loadError}
+          </InlineNotice>
+        ) : null}
         {loading ? <div className="loading-banner">Loading belt snapshot...</div> : null}
         <CircuitFlow
           graph={graph}
@@ -128,7 +162,14 @@ export function LiveWorkspace({
         />
         <div className="belt-strip-panel">
           <div className="section-label">Block strip</div>
-          <BeltBlockStrip snapshot={currentBelt} quality={selectedQuality} />
+          {selectedObjectIsBelt ? (
+            <BeltBlockStrip snapshot={currentBelt} quality={selectedQuality} />
+          ) : (
+            <InlineNotice tone="info" title="No belt block strip for this object">
+              The current graph focus is not a belt. Select a transport object to inspect
+              ordered belt blocks.
+            </InlineNotice>
+          )}
         </div>
       </section>
 
@@ -136,7 +177,9 @@ export function LiveWorkspace({
         <div className="section-label">Current Object</div>
         <h3>{selectedSummary?.displayName ?? currentBelt.displayName}</h3>
         <p className="muted-text">
-          The selected belt snapshot exposes ordered material blocks for the current runtime state.
+          {selectedObjectIsBelt
+            ? "The selected belt snapshot exposes ordered material blocks for the current runtime state."
+            : "The current focus is an accumulation object or non-belt runtime object. Summary metrics remain available even when no belt strip applies."}
         </p>
         <MetricGrid
           metrics={[
@@ -146,7 +189,10 @@ export function LiveWorkspace({
             },
             {
               label: "Current mass",
-              value: formatMassTon(selectedSummary?.massTon ?? currentBelt.totalMassTon),
+              value: formatMassTon(
+                selectedSummary?.massTon ??
+                  (selectedObjectIsBelt ? currentBelt.totalMassTon : 0),
+              ),
             },
             {
               label: "Latest UTC",
@@ -154,7 +200,10 @@ export function LiveWorkspace({
             },
           ]}
         />
-        <QualityValueList qualities={qualities} values={currentBelt.qualityAverages} />
+        <QualityValueList
+          qualities={qualities}
+          values={selectedSummary?.qualityValues ?? currentBelt.qualityAverages}
+        />
       </aside>
     </div>
   );

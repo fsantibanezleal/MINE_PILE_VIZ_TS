@@ -84,6 +84,9 @@ export function Pile3DCanvas({
   return (
     <div className="pile-canvas">
       <Canvas
+        frameloop="demand"
+        dpr={[1, 1.5]}
+        gl={{ antialias: false, powerPreference: "high-performance" }}
         camera={{
           position: [cameraDistance, cameraDistance * 0.8, cameraDistance],
           fov: 45,
@@ -99,6 +102,7 @@ export function Pile3DCanvas({
           args={[Math.max(extents.x, extents.y) + 8, Math.max(extents.x, extents.y) + 8]}
           position={[0, -extents.z / 2 - 0.1, 0]}
         />
+        <axesHelper args={[Math.max(extents.x, extents.y, extents.z) * 0.5 + 2]} />
         <VoxelInstances cells={cells} extents={extents} quality={quality} />
         <OrbitControls makeDefault enableDamping />
       </Canvas>
