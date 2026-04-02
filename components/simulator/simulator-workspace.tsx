@@ -17,6 +17,7 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { InlineNotice } from "@/components/ui/inline-notice";
+import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
@@ -25,6 +26,7 @@ import { QualityValueList } from "@/components/ui/quality-value-list";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
+import { buildMassDistribution } from "@/lib/mass-distribution";
 import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
 import { findQualityCategory, getQualityValueKey } from "@/lib/quality-values";
@@ -705,6 +707,13 @@ export function SimulatorWorkspace({
     activeHoveredCell && selectedQuality
       ? activeHoveredCell.qualityValues[selectedQuality.id]
       : null;
+  const centralDistribution = useMemo(
+    () =>
+      centralData && selectedQuality
+        ? buildMassDistribution(centralData.cells, selectedQuality)
+        : null,
+    [centralData, selectedQuality],
+  );
   const visibleCellCount =
     centralData?.dimension === 3
       ? viewMode === "surface"
@@ -1147,6 +1156,17 @@ export function SimulatorWorkspace({
             },
           ]}
         />
+        {centralDistribution && selectedQuality ? (
+          <div className="inspector-stack">
+            <div className="section-label">Mass distribution</div>
+            <MassDistributionChart
+              distribution={centralDistribution}
+              quality={selectedQuality}
+              subjectLabel={centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}
+              recordLabel="cells"
+            />
+          </div>
+        ) : null}
         {centralData ? (
           <ProfiledPropertiesPanel
             qualities={availableQualities}

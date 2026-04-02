@@ -308,7 +308,7 @@ describe("ProfilerWorkspace", () => {
 
     expect(screen.getByText("Cell Focus")).toBeInTheDocument();
     expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
-    expect(screen.getByText("20 t")).toBeInTheDocument();
+    expect(screen.getAllByText("20 t").length).toBeGreaterThan(0);
   });
 
   it("adds in-figure anchors for 2D profiler pile detail snapshots", async () => {

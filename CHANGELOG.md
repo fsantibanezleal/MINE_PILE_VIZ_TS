@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.040`
-- Active tracked version: `0.01.041`
+- Closed release baseline: `0.01.041`
+- Active tracked version: `0.01.042`
 
 ## Release History
+
+### 0.01.042
+
+- Added a reusable mass-distribution builder and shared chart surface so live, stockpile, profiler, and simulator routes stop carrying divergent histogram logic.
+- Corrected numerical bin assignment at interval boundaries so mass-weighted histograms keep stable operator meaning instead of drifting on floating-point edge cases.
+- Extended categorical distribution views with proportional category charts and inspector-side distribution panels backed by the same mass-weighted aggregation path.
 
 ### 0.01.041
 

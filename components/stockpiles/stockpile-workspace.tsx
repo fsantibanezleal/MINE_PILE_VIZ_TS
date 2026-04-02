@@ -10,7 +10,9 @@ import type {
   StockpileViewMode,
 } from "@/types/app-data";
 import { deriveNumericColorDomain } from "@/lib/color";
+import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
+import { buildMassDistribution } from "@/lib/mass-distribution";
 import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { findQualityCategory } from "@/lib/quality-values";
 import { InlineNotice } from "@/components/ui/inline-notice";
@@ -293,6 +295,13 @@ export function StockpileWorkspace({
     visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
       ? hoveredCell
       : null;
+  const massDistribution = useMemo(
+    () =>
+      dataset && selectedQuality
+        ? buildMassDistribution(dataset.cells, selectedQuality)
+        : null,
+    [dataset, selectedQuality],
+  );
   const hoveredCellPropertyValue =
     activeHoveredCell && selectedQuality
       ? activeHoveredCell.qualityValues[selectedQuality.id]
@@ -528,6 +537,17 @@ export function StockpileWorkspace({
               },
             ]}
           />
+        ) : null}
+        {massDistribution && selectedQuality ? (
+          <div className="inspector-stack">
+            <div className="section-label">Mass distribution</div>
+            <MassDistributionChart
+              distribution={massDistribution}
+              quality={selectedQuality}
+              subjectLabel={dataset?.displayName ?? "Selected pile"}
+              recordLabel="cells"
+            />
+          </div>
         ) : null}
         {dataset ? (
           <ProfiledPropertiesPanel

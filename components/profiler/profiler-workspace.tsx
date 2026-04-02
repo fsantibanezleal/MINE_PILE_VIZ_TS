@@ -21,6 +21,8 @@ import type {
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
+import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
+import { buildMassDistribution } from "@/lib/mass-distribution";
 import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
@@ -313,6 +315,13 @@ export function ProfilerWorkspace({
     activeHoveredCell && selectedQuality
       ? activeHoveredCell.qualityValues[selectedQuality.id]
       : null;
+  const detailDistribution = useMemo(
+    () =>
+      detailSnapshot && selectedQuality
+        ? buildMassDistribution(detailSnapshot.rows, selectedQuality)
+        : null,
+    [detailSnapshot, selectedQuality],
+  );
   const hoveredCellPropertyDisplay =
     hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
       ? "N/A"
@@ -513,6 +522,19 @@ export function ProfilerWorkspace({
             { label: "Mode", value: mode },
           ]}
         />
+        {detailDistribution && selectedQuality ? (
+          <div className="inspector-stack">
+            <div className="section-label">Mass distribution</div>
+            <MassDistributionChart
+              distribution={detailDistribution}
+              quality={selectedQuality}
+              subjectLabel={
+                selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"
+              }
+              recordLabel="rows"
+            />
+          </div>
+        ) : null}
         {selectedSummaryRow ? (
           <ProfiledPropertiesPanel
             qualities={availableQualities}

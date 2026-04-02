@@ -105,9 +105,9 @@ describe("buildBeltMassHistogram", () => {
 
     expect(histogram.representedMassTon).toBe(120);
     expect(histogram.bins.map((bin) => [bin.label, bin.massTon])).toEqual([
+      ["Sulfide", 60],
       ["Oxide", 30],
       ["Mixed", 30],
-      ["Sulfide", 60],
     ]);
   });
 
@@ -135,9 +135,9 @@ describe("buildBeltMassHistogram", () => {
     }
 
     expect(histogram.bins.map((bin) => [bin.label, bin.massTon])).toEqual([
+      ["Pyrite", 60],
       ["Chalcopyrite", 30],
       ["Bornite", 30],
-      ["Pyrite", 60],
     ]);
   });
 });
