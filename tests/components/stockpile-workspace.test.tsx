@@ -389,7 +389,7 @@ describe("StockpileWorkspace", () => {
     expect(inputOverlay).toBeInTheDocument();
     expect(outputOverlay).toBeInTheDocument();
     expect(screen.getByText("View-scaled contrast active")).toBeInTheDocument();
-    expect(screen.getByText("Numerical · view-scaled")).toBeInTheDocument();
+    expect(screen.getByText("Numerical - view-scaled")).toBeInTheDocument();
     expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
     expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
     expect(screen.getByText("Pile A Feed West")).toBeInTheDocument();

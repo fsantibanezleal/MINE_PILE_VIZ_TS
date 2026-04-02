@@ -11,6 +11,7 @@ import type {
 } from "@/types/app-data";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { findQualityCategory } from "@/lib/quality-values";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
@@ -551,7 +552,7 @@ export function StockpileWorkspace({
                     value: formatMassTon(activeHoveredCell.massTon),
                   },
                   {
-                    label: selectedQuality?.label ?? "Property",
+                    label: getQualityDisplayLabel(selectedQuality),
                     value: hoveredCellPropertyDisplay,
                   },
                 ]}

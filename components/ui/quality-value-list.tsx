@@ -1,6 +1,8 @@
 import { getQualityColor } from "@/lib/color";
-import { formatNumber } from "@/lib/format";
-import { findQualityCategory } from "@/lib/quality-values";
+import {
+  formatQualityValueDisplay,
+  getQualityDisplayLabel,
+} from "@/lib/quality-display";
 import type { QualityDefinition, QualityValueMap } from "@/types/app-data";
 
 interface QualityValueListProps {
@@ -18,8 +20,6 @@ export function QualityValueList({
     <div className="quality-list">
       {qualities.slice(0, limit).map((quality) => {
         const value = values[quality.id];
-        const categoricalLabel =
-          quality.kind === "categorical" ? findQualityCategory(quality, value)?.label : undefined;
 
         return (
           <div key={quality.id} className="quality-list__item">
@@ -28,14 +28,9 @@ export function QualityValueList({
                 className="quality-dot"
                 style={{ backgroundColor: getQualityColor(quality, value) }}
               />
-              {quality.label}
+              {getQualityDisplayLabel(quality)}
             </span>
-            <strong>
-              {categoricalLabel ??
-                (quality.kind === "categorical"
-                  ? String(value ?? "N/A")
-                  : formatNumber(typeof value === "number" ? value : null))}
-            </strong>
+            <strong>{formatQualityValueDisplay(quality, value)}</strong>
           </div>
         );
       })}

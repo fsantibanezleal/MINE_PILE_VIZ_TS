@@ -1,5 +1,6 @@
 "use client";
 
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import type { QualityDefinition } from "@/types/app-data";
 
 interface QualitySelectorProps {
@@ -21,7 +22,7 @@ export function QualitySelector({
       <select value={value} onChange={(event) => onChange(event.target.value)}>
         {qualities.map((quality) => (
           <option key={quality.id} value={quality.id}>
-            {quality.label}
+            {getQualityDisplayLabel(quality)}
           </option>
         ))}
       </select>

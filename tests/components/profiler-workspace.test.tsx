@@ -338,7 +338,7 @@ describe("ProfilerWorkspace", () => {
     const outputOverlay = screen.getByTestId("pile-anchor-overlay-output");
 
     expect(screen.getByText("View-scaled contrast active")).toBeInTheDocument();
-    expect(screen.getByText("Numerical · view-scaled")).toBeInTheDocument();
+    expect(screen.getByText("Numerical - view-scaled")).toBeInTheDocument();
     expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
     expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();

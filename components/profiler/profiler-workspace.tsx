@@ -21,6 +21,7 @@ import type {
 import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
+import { getQualityDisplayLabel } from "@/lib/quality-display";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
@@ -540,7 +541,7 @@ export function ProfilerWorkspace({
                     value: formatMassTon(activeHoveredCell.massTon),
                   },
                   {
-                    label: selectedQuality?.label ?? "Property",
+                    label: getQualityDisplayLabel(selectedQuality),
                     value: hoveredCellPropertyDisplay,
                   },
                 ]}
