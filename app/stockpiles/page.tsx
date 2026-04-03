@@ -117,9 +117,6 @@ export default async function StockpilesPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
-            { label: "Source", value: "Current pile datasets" },
-            { label: "Resolution", value: "Dense cells / voxels" },
-            { label: "Time basis", value: "Latest pile state" },
           ]}
         />
       }

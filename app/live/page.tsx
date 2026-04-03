@@ -131,9 +131,6 @@ export default async function LivePage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
-            { label: "Source", value: "Current live snapshots" },
-            { label: "Resolution", value: "Dense belt blocks" },
-            { label: "Time basis", value: "Latest runtime state" },
           ]}
         />
       }
