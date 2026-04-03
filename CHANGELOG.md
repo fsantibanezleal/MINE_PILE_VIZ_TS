@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.067`
-- Active tracked version: `0.01.068`
+- Closed release baseline: `0.01.068`
+- Active tracked version: `0.01.069`
 
 ## Release History
+
+### 0.01.069
+
+- Replaced the fragile instanced-color `3D` stockpile path with a merged visible-voxel mesh, so the currently rendered pile cells now appear as real colored voxels instead of disappearing or collapsing into a black silhouette.
+- Preserved hover inspection for the `3D` pile by mapping raycast triangle hits back to the originating rendered cell, keeping the `Cell Focus` panel usable after the render-path change.
+- Added updated issue evidence for both numerical and categorical `3D` pile coloring so the open rendering issue can track the visible voxel result against the real local cache.
 
 ### 0.01.068
 

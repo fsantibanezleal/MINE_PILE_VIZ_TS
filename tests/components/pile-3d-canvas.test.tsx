@@ -30,7 +30,7 @@ const quality: QualityDefinition = {
 };
 
 describe("Pile3DCanvas", () => {
-  it("uses an explicit shader color path so voxel colors stay faithful to the selected property", () => {
+  it("uses a lit native material path so visible voxels keep per-property colors and depth cues", () => {
     const { container } = render(
       <Pile3DCanvas
         cells={[
@@ -49,11 +49,12 @@ describe("Pile3DCanvas", () => {
       />,
     );
 
-    expect(container.querySelector("shadermaterial")).not.toBeNull();
+    expect(container.querySelector("meshlambertmaterial")).not.toBeNull();
+    expect(container.querySelector("ambientlight")).not.toBeNull();
     expect(container.querySelector("meshstandardmaterial")).toBeNull();
   });
 
-  it("keeps dense voxel scenes on the explicit instanced color path", () => {
+  it("renders dense voxel scenes as a merged mesh instead of an instanced black silhouette", () => {
     const { container } = render(
       <Pile3DCanvas
         cells={[
@@ -72,8 +73,8 @@ describe("Pile3DCanvas", () => {
       />,
     );
 
-    expect(container.querySelector("instancedmesh")).not.toBeNull();
-    expect(container.querySelector("shadermaterial")).not.toBeNull();
+    expect(container.querySelector("mesh")).not.toBeNull();
+    expect(container.querySelector("instancedmesh")).toBeNull();
     expect(container.querySelector("axeshelper")).toBeNull();
   });
 });
