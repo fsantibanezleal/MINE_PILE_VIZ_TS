@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.045`
-- Active tracked version: `0.01.046`
+- Closed release baseline: `0.01.046`
+- Active tracked version: `0.01.047`
 
 ## Release History
+
+### 0.01.047
+
+- Removed repeated introductory inspector paragraphs from the `live`, `stockpiles`, `profiler`, and `simulator` workspaces where the same route semantics were already explained again by the adjacent `RouteBasisPanel`.
+- Tightened the sidebar reading order so object identity leads directly into metrics and one explicit interpretation block instead of two overlapping explanations.
+- Continued the intra-page duplication cleanup with a second narrow child slice under the broader page-content review.
 
 ### 0.01.046
 

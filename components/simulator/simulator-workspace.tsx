@@ -1260,11 +1260,6 @@ export function SimulatorWorkspace({
       <aside className="panel">
         <div className="section-label">Selected route state</div>
         <h3>{centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}</h3>
-        <p className="muted-text">
-          The simulator combines one central pile state with the currently selected discharge
-          route. Today that means one pile snapshot in the center and current downstream belt
-          strips on the route itself.
-        </p>
         <MetricGrid
           metrics={[
             {
