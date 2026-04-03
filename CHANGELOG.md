@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.066`
-- Active tracked version: `0.01.067`
+- Closed release baseline: `0.01.067`
+- Active tracked version: `0.01.068`
 
 ## Release History
+
+### 0.01.068
+
+- Replaced the collapsed pseudo-histogram rendering with a literal SVG numerical histogram that exposes explicit x-axis value bins and y-axis represented mass per bin.
+- Kept the underlying mass-weighted binning model intact, so each numerical bar still aggregates the property values of the represented blocks or cells weighted by their mass instead of their raw record count.
+- Added reproducible visual evidence under `docs/issue-evidence/2026-04-03/` so the open `3D` voxel-color issue can show the before-black and after-visible rendering states from the real local cache.
 
 ### 0.01.067
 
