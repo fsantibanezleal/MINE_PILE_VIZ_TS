@@ -70,8 +70,8 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt and pile state"
-        description="Inspect the current runtime snapshot for belts, virtual belts, and accumulation objects from the app-ready cache."
+        title="Current belt state and route context"
+        description="Inspect dense current belt snapshots and use the circuit only as route context around the inspected transport object."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -84,8 +84,8 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt and pile state"
-        description="Inspect the current runtime snapshot for belts, virtual belts, and accumulation objects from the app-ready cache."
+        title="Current belt state and route context"
+        description="Inspect dense current belt snapshots and use the circuit only as route context around the inspected transport object."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -101,7 +101,7 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt and pile state"
+        title="Current belt state and route context"
         description="No live belt snapshots are registered in the app-ready cache."
       >
         <DataUnavailable
@@ -116,8 +116,8 @@ export default async function LivePage() {
   return (
     <AppShell
       eyebrow="Live State"
-      title="Current belt and pile state"
-      description="The live state page reads current runtime belt snapshots and current object summaries. It is the dense transport-state view for what is on belts now, not a historical replay surface."
+      title="Current belt state and route context"
+      description="The live state page is belt-first. It reads current runtime belt snapshots as dense evidence and uses graph selection only as contextual reading around the inspected route."
       actions={
         <MetricGrid
           metrics={[
@@ -141,9 +141,9 @@ export default async function LivePage() {
       }
     >
       <RouteIntentPanel
-        primaryQuestion="What is moving through the tracked transport objects right now?"
-        uniqueEvidence="Current dense belt snapshots, ordered block strips, and mass-weighted current-property distributions for instantaneous transport state."
-        useWhen="You want the current content on belts or a current summary of tracked objects without stepping through history."
+        primaryQuestion="What is moving on the currently inspected transport belt right now?"
+        uniqueEvidence="Current dense belt snapshots, ordered block strips, and mass-weighted current-property distributions tied to one inspected live belt at a time."
+        useWhen="You want block-level evidence for the current content on a real transport path and only need the surrounding circuit as context."
         switchWhen="Use Stockpiles for internal pile geometry, Profiler for historical summary playback, Circuit for topology, or Simulator for pile-centric discharge organization."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>

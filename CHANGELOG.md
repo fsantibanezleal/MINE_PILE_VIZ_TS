@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.062`
-- Active tracked version: `0.01.063`
+- Closed release baseline: `0.01.063`
+- Active tracked version: `0.01.064`
 
 ## Release History
+
+### 0.01.064
+
+- Reframed the live route around one inspected belt at a time so dense strip, histogram, material-time summary, and profiled-property evidence stay tied to the selected live belt instead of drifting with any non-belt graph focus.
+- Kept graph selection available only as contextual reading inside the live workspace, with an explicit context panel when the focused object differs from the inspected belt.
+- Added component coverage to lock the belt-first semantics and pushed `#94` further by separating live transport evidence from stockpile-style object inspection.
 
 ### 0.01.063
 
