@@ -1282,6 +1282,84 @@ code {
   justify-content: space-between;
 }
 
+.profiler-history {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profiler-history__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profiler-history__metric,
+.profiler-history__focus-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.profiler-history__metric span,
+.profiler-history__focus-card span,
+.profiler-history__focus-card small {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.profiler-history__metric strong,
+.profiler-history__focus-card strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.profiler-history__timeline {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  min-height: 120px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-panel-accent);
+}
+
+.profiler-history__bar {
+  flex: 1 1 0;
+  min-width: 18px;
+  border: 1px solid rgba(89, 221, 255, 0.18);
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(180deg, rgba(89, 221, 255, 0.86), rgba(32, 84, 132, 0.74));
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    opacity 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.profiler-history__bar:hover {
+  transform: translateY(-2px);
+  border-color: rgba(89, 221, 255, 0.36);
+}
+
+.profiler-history__bar--selected {
+  border-color: rgba(244, 188, 99, 0.72);
+  background: linear-gradient(180deg, rgba(244, 188, 99, 0.94), rgba(161, 94, 25, 0.78));
+  box-shadow: 0 8px 22px rgba(244, 188, 99, 0.18);
+}
+
+.profiler-history__focus {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .simulator-discharge {
   display: flex;
   flex-direction: column;
@@ -1750,6 +1828,11 @@ code {
   }
 
   .belt-histogram__pie-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profiler-history__metrics,
+  .profiler-history__focus {
     grid-template-columns: 1fr;
   }
 

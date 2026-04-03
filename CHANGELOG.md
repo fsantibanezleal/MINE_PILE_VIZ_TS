@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.064`
-- Active tracked version: `0.01.065`
+- Closed release baseline: `0.01.065`
+- Active tracked version: `0.01.066`
 
 ## Release History
+
+### 0.01.066
+
+- Added an explicit historical timeline panel to the profiler route so snapshot position, coverage span, peak mass, and snapshot-to-snapshot mass change become visible without leaving the page.
+- Made the profiler timeline directly selectable, which keeps the route centered on historical navigation instead of relying only on the range slider and making detail mode feel too close to the stockpile workspace.
+- Reduced content overlap in the profiler sidebar by keeping `History coverage` only in circuit mode while using the new timeline panel as the shared historical context block across both profiler modes.
 
 ### 0.01.065
 

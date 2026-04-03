@@ -277,6 +277,7 @@ describe("ProfilerWorkspace", () => {
     await screen.findByRole("heading", { name: "Belt B" });
     expect(screen.getByText("Historical circuit reading")).toBeInTheDocument();
     expect(screen.getByText("History coverage")).toBeInTheDocument();
+    expect(screen.getByText("Timeline context")).toBeInTheDocument();
     expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
   });
 
@@ -339,11 +340,49 @@ describe("ProfilerWorkspace", () => {
     await screen.findByText("Historical summary only");
     expect(screen.getByText("Reduced pile summary bands")).toBeInTheDocument();
     expect(screen.getByText("Band basis")).toBeInTheDocument();
+    expect(screen.getByText("Timeline context")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("allows selecting a historical snapshot directly from the profiler timeline", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319010000")) {
+        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319010000"));
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByRole("heading", { name: "Pile A" });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Select snapshot 1 at 2025-03-19T01:00:00Z",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/pile_a/snapshots/20250319010000",
+      );
+    });
   });
 
   it("adds in-figure anchors for 2D profiler pile detail snapshots", async () => {
