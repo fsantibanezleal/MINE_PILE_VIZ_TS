@@ -33,6 +33,7 @@ import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
+import { ProfilerHistoryPanel } from "@/components/ui/profiler-history-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RelationshipPanel } from "@/components/ui/relationship-panel";
@@ -351,6 +352,17 @@ export function ProfilerWorkspace({
       ? `${snapshotIndex + 1}/${selectedObjectRows.length}`
       : "N/A";
 
+  function handleSelectSnapshot(nextSnapshotId: string) {
+    if (!selectedObjectRows.some((row) => row.snapshotId === nextSnapshotId)) {
+      return;
+    }
+
+    setSelectedSnapshotId(nextSnapshotId);
+    setHoveredCell(null);
+    setLoadingDetail(true);
+    setDetailError(null);
+  }
+
   const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
   const inspectionValueAccessor = useMemo(
     () =>
@@ -511,9 +523,7 @@ export function ProfilerWorkspace({
             value={Math.max(0, snapshotIndex)}
             onChange={(event) => {
               const nextRow = selectedObjectRows[Number(event.target.value)];
-              setSelectedSnapshotId(nextRow?.snapshotId ?? "");
-              setLoadingDetail(true);
-              setDetailError(null);
+              handleSelectSnapshot(nextRow?.snapshotId ?? "");
             }}
           />
         </label>
@@ -603,6 +613,12 @@ export function ProfilerWorkspace({
           timeBasis={effectiveSnapshotId ? "Selected historical timestep" : "Pending"}
           note={semanticFrame.note}
         />
+        <ProfilerHistoryPanel
+          rows={selectedObjectRows}
+          selectedSnapshotId={effectiveSnapshotId}
+          mode={mode}
+          onSelectSnapshot={handleSelectSnapshot}
+        />
         <MetricGrid
           metrics={[
             {
@@ -615,38 +631,32 @@ export function ProfilerWorkspace({
             { label: "Density", value: semanticFrame.densityLabel },
           ]}
         />
-        <RelationshipPanel
-          title="History coverage"
-          summary={
-            mode === "circuit"
-              ? "Circuit mode is for comparing one selected historical timestep across the profiled circuit, not for dense object inspection."
-              : "Detail mode keeps the selected object and timestep fixed so summarized rows, bands, or cells can be inspected in context."
-          }
-          metrics={[
-            {
-              label: "First snapshot",
-              value: firstObjectRow ? formatTimestamp(firstObjectRow.timestamp) : "N/A",
-            },
-            {
-              label: "Last snapshot",
-              value: lastObjectRow ? formatTimestamp(lastObjectRow.timestamp) : "N/A",
-            },
-            {
-              label: "Objects at step",
-              value: String(circuitSummaries.length),
-            },
-          ]}
-          groups={
-            mode === "circuit"
-              ? [
-                  {
-                    label: "Objects at selected timestep",
-                    items: circuitSummaries.map((row) => row.displayName),
-                  },
-                ]
-              : []
-          }
-        />
+        {mode === "circuit" ? (
+          <RelationshipPanel
+            title="History coverage"
+            summary="Circuit mode is for comparing one selected historical timestep across the profiled circuit, not for dense object inspection."
+            metrics={[
+              {
+                label: "First snapshot",
+                value: firstObjectRow ? formatTimestamp(firstObjectRow.timestamp) : "N/A",
+              },
+              {
+                label: "Last snapshot",
+                value: lastObjectRow ? formatTimestamp(lastObjectRow.timestamp) : "N/A",
+              },
+              {
+                label: "Objects at step",
+                value: String(circuitSummaries.length),
+              },
+            ]}
+            groups={[
+              {
+                label: "Objects at selected timestep",
+                items: circuitSummaries.map((row) => row.displayName),
+              },
+            ]}
+          />
+        ) : null}
         {mode === "detail" ? (
           <MaterialTimePanel
             summary={materialTimeSummary}

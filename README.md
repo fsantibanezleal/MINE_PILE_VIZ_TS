@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.065` |
+| Release-synced version | `0.01.066` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.064` |
-| Active tracked version | `0.01.065` |
+| Closed baseline | `0.01.065` |
+| Active tracked version | `0.01.066` |
 
 ## Current Frontend Views
 
@@ -120,7 +120,7 @@ The stockpile workspace exposes internal structure for accumulation objects. It 
 
 ### Profiler Workspace
 
-The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. The route now states explicitly that profiler data is reduced-resolution historical summary rather than dense current state, and it distinguishes circuit-level `summary rows` from detail-mode `summary rows`, `summary bands`, or `summary cells` depending on the represented object. Summary history loads on demand from the route API so the page can mount before fetching the full timeline table. In `circuit` mode the sidebar now emphasizes history coverage, selected-step position, and which objects participate in the selected timestep, so the route reads as historical comparison rather than as another dense object inspector. In `detail` mode the route keeps pile anchors, near-pile anchor markers for `2D` and `3D` detail views, view-scaled numerical contrast when the visible value spread is too narrow, hovered cell inspection inside the historical snapshot view, and the same tabbed split between quantitative values, dominant categorical names, and qualitative distribution histograms. The detail view can also switch into represented-material time modes, so the operator can color and histogram historical content by age or represented span relative to the selected historical snapshot. Dominant qualitative labels now stay mass-weighted and dictionary-mapped when profiler rows carry string category tokens.
+The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. The route now states explicitly that profiler data is reduced-resolution historical summary rather than dense current state, and it distinguishes circuit-level `summary rows` from detail-mode `summary rows`, `summary bands`, or `summary cells` depending on the represented object. Summary history loads on demand from the route API so the page can mount before fetching the full timeline table. The route now also exposes a dedicated historical timeline panel, so selected-step position, coverage span, peak mass, and snapshot-to-snapshot change stay visible as first-class profiler evidence instead of being implied only by the slider. In `circuit` mode the sidebar uses that timeline together with history coverage and participating-object context so the route reads as historical comparison rather than as another dense object inspector. In `detail` mode the route keeps pile anchors, near-pile anchor markers for `2D` and `3D` detail views, view-scaled numerical contrast when the visible value spread is too narrow, hovered cell inspection inside the historical snapshot view, and the same tabbed split between quantitative values, dominant categorical names, and qualitative distribution histograms. The detail view can also switch into represented-material time modes, so the operator can color and histogram historical content by age or represented span relative to the selected historical snapshot. Dominant qualitative labels now stay mass-weighted and dictionary-mapped when profiler rows carry string category tokens.
 
 ## Scope And Current Status
 
@@ -261,7 +261,7 @@ types/
 
 ## Current Version
 
-`0.01.065`
+`0.01.066`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.
