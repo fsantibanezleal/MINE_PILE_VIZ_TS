@@ -83,6 +83,19 @@ interface StageDraft {
   slotCenters: number[];
 }
 
+interface StageClusterEntry {
+  key: string;
+  memberNodeIds: string[];
+  multiMember: boolean;
+}
+
+interface StageClusterPlan {
+  clusters: StageClusterEntry[];
+  interClusterGapUnits: number;
+  totalLogicalPositions: number;
+  enablesGroupDepthZoning: boolean;
+}
+
 const BASE_STAGE_WIDTH = 360;
 const BASE_STAGE_GAP = 240;
 const STAGE_PADDING_X = 96;
@@ -98,6 +111,8 @@ const STAGE_LABEL_Y = 72;
 const FOOTNOTE_Y = PRESENTATION_HEIGHT - 28;
 const PRESENTATION_3D_X_SCALE = 26;
 const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
+const STAGE_DEPTH_PREDECESSOR_WEIGHT = 0.72;
+const STAGE_DEPTH_KIND_OFFSET_SCALE = 0.92;
 const LANE_TOP = 178;
 const LANE_BOTTOM = 654;
 const LANE_ORDER: CircuitPresentationVisualKind[] = [
@@ -116,6 +131,7 @@ const LANE_CONFIG: Record<
     z: number;
     crossDepthSpan: number;
     orderingDepthSpan: number;
+    groupDepthSpan: number;
     crossYOffset: number;
   }
 > = {
@@ -123,24 +139,28 @@ const LANE_CONFIG: Record<
     z: -2.8,
     crossDepthSpan: 0.9,
     orderingDepthSpan: 1.2,
+    groupDepthSpan: 0.65,
     crossYOffset: 18,
   },
   "physical-pile": {
     z: 1.8,
     crossDepthSpan: 0.7,
     orderingDepthSpan: 0.84,
+    groupDepthSpan: 0.25,
     crossYOffset: 14,
   },
   "virtual-belt": {
     z: 7.6,
     crossDepthSpan: 2.3,
     orderingDepthSpan: 1.12,
+    groupDepthSpan: 1.5,
     crossYOffset: 54,
   },
   "virtual-pile": {
     z: 11.2,
     crossDepthSpan: 1.7,
     orderingDepthSpan: 0.96,
+    groupDepthSpan: 1.1,
     crossYOffset: 32,
   },
 };
@@ -613,11 +633,188 @@ function getConnectionBandHint(
   return crossAxisAssignments.get(context.target.id) ?? 0;
 }
 
+function getNodeBranchGroupKey(
+  node: CircuitNode,
+  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+) {
+  const outgoing = (outgoingByNodeId.get(node.id) ?? []).filter(
+    (context) => context.target.stageIndex > node.stageIndex,
+  );
+
+  if (outgoing.length > 0) {
+    const nextStageIndex = Math.min(
+      ...outgoing.map((context) => context.target.stageIndex),
+    );
+    const relatedTargetIds = [...new Set(
+      outgoing
+        .filter((context) => context.target.stageIndex === nextStageIndex)
+        .map((context) => context.target.id),
+    )].sort((left, right) => left.localeCompare(right));
+
+    return `out:${nextStageIndex}:${relatedTargetIds.join("|")}`;
+  }
+
+  const incoming = (incomingByNodeId.get(node.id) ?? []).filter(
+    (context) => context.source.stageIndex < node.stageIndex,
+  );
+
+  if (incoming.length > 0) {
+    const previousStageIndex = Math.max(
+      ...incoming.map((context) => context.source.stageIndex),
+    );
+    const relatedSourceIds = [...new Set(
+      incoming
+        .filter((context) => context.source.stageIndex === previousStageIndex)
+        .map((context) => context.source.id),
+    )].sort((left, right) => left.localeCompare(right));
+
+    return `in:${previousStageIndex}:${relatedSourceIds.join("|")}`;
+  }
+
+  return `self:${node.id}`;
+}
+
+function buildStageClusterPlan<
+  T extends {
+    node: CircuitNode;
+    xHint: number;
+    crossAxisHint: number;
+    clusterKey: string;
+  },
+>(entries: T[]) {
+  const groupedEntries = new Map<string, T[]>();
+
+  entries.forEach((entry) => {
+    const current = groupedEntries.get(entry.clusterKey) ?? [];
+    current.push(entry);
+    groupedEntries.set(entry.clusterKey, current);
+  });
+
+  const clusters = [...groupedEntries.entries()]
+    .map(([key, clusterEntries]) => ({
+      key,
+      memberNodeIds: clusterEntries.map((entry) => entry.node.id),
+      multiMember: clusterEntries.length > 1,
+      xHint:
+        clusterEntries.reduce((sum, entry) => sum + entry.xHint, 0) /
+        Math.max(clusterEntries.length, 1),
+      crossAxisHint:
+        clusterEntries.reduce((sum, entry) => sum + entry.crossAxisHint, 0) /
+        Math.max(clusterEntries.length, 1),
+      visualKinds: new Set(
+        clusterEntries.map((entry) => getNodeVisualKind(entry.node)),
+      ),
+    }))
+    .sort((left, right) => {
+      const hintDifference = left.xHint - right.xHint;
+
+      if (Math.abs(hintDifference) > 1e-6) {
+        return hintDifference;
+      }
+
+      const bandDifference = left.crossAxisHint - right.crossAxisHint;
+
+      if (Math.abs(bandDifference) > 1e-6) {
+        return bandDifference;
+      }
+
+        return left.key.localeCompare(right.key);
+    });
+  const interClusterGapUnits =
+    clusters.length <= 1 ? 0 : clusters.some((cluster) => cluster.multiMember) ? 2 : 1;
+  const totalLogicalPositions =
+    entries.length + Math.max(0, clusters.length - 1) * interClusterGapUnits;
+  const stageVisualKinds = new Set(entries.map((entry) => getNodeVisualKind(entry.node)));
+
+  return {
+    clusters: clusters.map((cluster) => ({
+      key: cluster.key,
+      memberNodeIds: cluster.memberNodeIds,
+      multiMember: cluster.multiMember,
+    })),
+    interClusterGapUnits,
+    totalLogicalPositions,
+    enablesGroupDepthZoning:
+      clusters.length > 1 &&
+      stageVisualKinds.size === 1 &&
+      entries.length > 1,
+  } satisfies StageClusterPlan;
+}
+
+function getStageDefaultDepthBase(nodes: CircuitNode[]) {
+  if (nodes.length === 0) {
+    return 0;
+  }
+
+  return (
+    nodes.reduce(
+      (sum, node) => sum + LANE_CONFIG[getNodeVisualKind(node)].z,
+      0,
+    ) / nodes.length
+  );
+}
+
+function buildStageDepthBaseMap(
+  stages: CircuitGraph["stages"],
+  nodesByStage: Map<number, CircuitNode[]>,
+  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+) {
+  const stageDepthBaseMap = new Map<number, number>();
+
+  [...stages]
+    .sort((left, right) => left.index - right.index)
+    .forEach((stage) => {
+      const stageNodes = nodesByStage.get(stage.index) ?? [];
+      const defaultDepthBase = getStageDefaultDepthBase(stageNodes);
+      const predecessorStageBases = [
+        ...new Set(
+          stageNodes.flatMap((node) =>
+            (incomingByNodeId.get(node.id) ?? [])
+              .filter((context) => context.source.stageIndex < stage.index)
+              .map((context) => context.source.stageIndex),
+          ),
+        ),
+      ]
+        .map((stageIndex) => stageDepthBaseMap.get(stageIndex))
+        .filter((value): value is number => typeof value === "number");
+
+      if (predecessorStageBases.length === 0) {
+        stageDepthBaseMap.set(stage.index, defaultDepthBase);
+        return;
+      }
+
+      const predecessorAverage =
+        predecessorStageBases.reduce((sum, value) => sum + value, 0) /
+        predecessorStageBases.length;
+
+      stageDepthBaseMap.set(
+        stage.index,
+        predecessorAverage * STAGE_DEPTH_PREDECESSOR_WEIGHT +
+          defaultDepthBase * (1 - STAGE_DEPTH_PREDECESSOR_WEIGHT),
+      );
+    });
+
+  return stageDepthBaseMap;
+}
+
 function getStageSlotCount(
   nodes: CircuitNode[],
   incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
   outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
 ) {
+  const clusterPlan = buildStageClusterPlan(
+    nodes.map((node) => ({
+      node,
+      xHint: DEFAULT_FLOW_HINT[getNodeVisualKind(node)],
+      crossAxisHint: 0,
+      clusterKey: getNodeBranchGroupKey(
+        node,
+        incomingByNodeId,
+        outgoingByNodeId,
+      ),
+    })),
+  );
   const fanoutDemand = nodes.reduce((maxDemand, node) => {
     return Math.max(
       maxDemand,
@@ -628,7 +825,12 @@ function getStageSlotCount(
     );
   }, 0);
 
-  return Math.max(STAGE_MIN_SLOT_COUNT, nodes.length, fanoutDemand);
+  return Math.max(
+    STAGE_MIN_SLOT_COUNT,
+    nodes.length,
+    fanoutDemand,
+    clusterPlan.totalLogicalPositions,
+  );
 }
 
 function getNodeFlowHint(
@@ -746,7 +948,19 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
   const stageMap = new Map(stageDrafts.map((stage) => [stage.index, stage]));
   const normalizedAssignments = new Map<string, number>();
   const crossAxisAssignments = new Map<string, number>();
+  const groupDepthAssignments = new Map<string, number>();
   const slotAssignments = new Map<string, number>();
+  const stageDefaultDepthBaseMap = new Map(
+    graph.stages.map((stage) => [
+      stage.index,
+      getStageDefaultDepthBase(nodesByStage.get(stage.index) ?? []),
+    ]),
+  );
+  const stageDepthBaseMap = buildStageDepthBaseMap(
+    graph.stages,
+    nodesByStage,
+    incomingByNodeId,
+  );
 
   graph.stages.forEach((stage) => {
     const stageNodes = nodesByStage.get(stage.index) ?? [];
@@ -771,6 +985,11 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
           outgoingByNodeId,
           crossAxisAssignments,
         ),
+        clusterKey: getNodeBranchGroupKey(
+          node,
+          incomingByNodeId,
+          outgoingByNodeId,
+        ),
       }))
       .sort((left, right) => {
         const hintDifference = left.xHint - right.xHint;
@@ -791,20 +1010,39 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
           left.node.label.localeCompare(right.node.label)
         );
       });
+    const clusterPlan = buildStageClusterPlan(orderedNodes);
     const slotIndices = getDistributedSlotIndices(
       stageDraft.slotCount,
-      orderedNodes.length,
+      clusterPlan.totalLogicalPositions,
     );
+    let logicalPositionIndex = 0;
 
-    orderedNodes.forEach(({ node, xHint, crossAxisHint }, index) => {
-      const slotIndex =
-        slotIndices[index] ?? Math.floor((stageDraft.slotCount - 1) / 2);
+    clusterPlan.clusters.forEach((cluster, clusterIndex) => {
+      const clusterNodes = orderedNodes.filter(
+        (entry) => entry.clusterKey === cluster.key,
+      );
+      const normalizedGroupDepthHint =
+        clusterPlan.enablesGroupDepthZoning && clusterPlan.clusters.length > 1
+          ? (clusterIndex / (clusterPlan.clusters.length - 1)) * 2 - 1
+          : 0;
+
+      clusterNodes.forEach(({ node, xHint, crossAxisHint }) => {
+        const slotIndex =
+          slotIndices[logicalPositionIndex] ??
+          Math.floor((stageDraft.slotCount - 1) / 2);
+        logicalPositionIndex += 1;
       const assignedHint =
         stageDraft.slotHints[slotIndex]! * 0.62 + clamp(xHint, 0, 1) * 0.38;
 
-      slotAssignments.set(node.id, slotIndex);
-      normalizedAssignments.set(node.id, clamp(assignedHint, 0, 1));
-      crossAxisAssignments.set(node.id, clamp(crossAxisHint, -1, 1));
+        slotAssignments.set(node.id, slotIndex);
+        normalizedAssignments.set(node.id, clamp(assignedHint, 0, 1));
+        crossAxisAssignments.set(node.id, clamp(crossAxisHint, -1, 1));
+        groupDepthAssignments.set(node.id, normalizedGroupDepthHint);
+      });
+
+      if (clusterIndex < clusterPlan.clusters.length - 1) {
+        logicalPositionIndex += clusterPlan.interClusterGapUnits;
+      }
     });
   });
 
@@ -818,6 +1056,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     const assignedHint =
       normalizedAssignments.get(node.id) ?? DEFAULT_FLOW_HINT[visualKind];
     const crossAxisHint = crossAxisAssignments.get(node.id) ?? 0;
+    const groupDepthHint = groupDepthAssignments.get(node.id) ?? 0;
     const slotCenterX =
       stage?.slotCenters[slotIndex] ??
       (stage?.x ?? STAGE_PADDING_X) + (stage?.width ?? BASE_STAGE_WIDTH) / 2;
@@ -830,6 +1069,11 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
       STAGE_FRAME_BOTTOM_PADDING -
       nodeSize.height / 2 -
       42;
+    const stageDefaultDepthBase =
+      stageDefaultDepthBaseMap.get(node.stageIndex) ?? laneConfig.z;
+    const stageDepthBase = stageDepthBaseMap.get(node.stageIndex) ?? stageDefaultDepthBase;
+    const visualKindDepthOffset =
+      (laneConfig.z - stageDefaultDepthBase) * STAGE_DEPTH_KIND_OFFSET_SCALE;
 
     return {
       ...node,
@@ -837,7 +1081,9 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
       x: slotCenterX,
       y: clamp(laneCenterY + yOffset, yTopBound, yBottomBound),
       z:
-        laneConfig.z +
+        stageDepthBase +
+        visualKindDepthOffset +
+        groupDepthHint * laneConfig.groupDepthSpan +
         crossAxisHint * laneConfig.crossDepthSpan +
         (assignedHint - 0.5) * laneConfig.orderingDepthSpan,
       width: nodeSize.width,

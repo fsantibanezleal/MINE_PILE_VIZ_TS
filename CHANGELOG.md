@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.051`
-- Active tracked version: `0.01.052`
+- Closed release baseline: `0.01.052`
+- Active tracked version: `0.01.053`
 
 ## Release History
+
+### 0.01.053
+
+- Reworked grouped branch spacing so high-fanout discharge stages now reserve explicit inter-route gaps instead of reading like one uniform output strip.
+- Added a flow-aware `3D` depth baseline that follows predecessor route zones, keeping downstream physical conveyors closer to the discharge path instead of snapping back to one fixed belt plane.
+- Extended circuit layout coverage with grouped-pair spacing and downstream route-zone continuity assertions.
 
 ### 0.01.052
 
