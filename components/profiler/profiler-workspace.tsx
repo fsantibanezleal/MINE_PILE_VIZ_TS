@@ -29,6 +29,7 @@ import {
 } from "@/lib/profiler-semantics";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
+import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
@@ -42,6 +43,7 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -333,6 +335,16 @@ export function ProfilerWorkspace({
         : null,
     [detailSnapshot, selectedQuality],
   );
+  const materialTimeSummary = useMemo(
+    () =>
+      detailSnapshot
+        ? buildMaterialTimeSummary(
+            detailSnapshot.rows,
+            selectedSummaryRow?.timestamp ?? detailSnapshot.timestamp,
+          )
+        : null,
+    [detailSnapshot, selectedSummaryRow?.timestamp],
+  );
 
   let detailView: ReactNode = null;
 
@@ -527,6 +539,10 @@ export function ProfilerWorkspace({
             { label: semanticFrame.basisLabel, value: semanticFrame.aggregationLabel },
             { label: "Density", value: semanticFrame.densityLabel },
           ]}
+        />
+        <MaterialTimePanel
+          summary={materialTimeSummary}
+          emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
         />
         {detailDistribution && selectedQuality ? (
           <div className="inspector-stack">

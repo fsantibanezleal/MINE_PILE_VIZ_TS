@@ -17,6 +17,7 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { InlineNotice } from "@/components/ui/inline-notice";
+import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
@@ -29,6 +30,7 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { buildMassDistribution } from "@/lib/mass-distribution";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { buildMaterialTimeSummary } from "@/lib/material-time";
 import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import {
   buildAdaptiveFullRenderPlan,
@@ -421,6 +423,13 @@ export function SimulatorWorkspace({
       ),
     [dischargeLanes],
   );
+  const centralMaterialTimeSummary = useMemo(
+    () =>
+      centralData
+        ? buildMaterialTimeSummary(centralData.cells, centralData.timestamp)
+        : null,
+    [centralData],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -784,6 +793,16 @@ export function SimulatorWorkspace({
         qualities,
       })
     : null;
+  const activeLaneMaterialTimeSummary = useMemo(
+    () =>
+      activeLaneSnapshot
+        ? buildMaterialTimeSummary(
+            activeLaneSnapshot.snapshot.blocks,
+            activeLaneSnapshot.snapshot.timestamp,
+          )
+        : null,
+    [activeLaneSnapshot],
+  );
 
   let centralContent: ReactNode = (
     <InlineNotice tone={centralError ? "error" : "info"} title="Pile content loads on demand">
@@ -1070,6 +1089,11 @@ export function SimulatorWorkspace({
                   snapshot={activeLaneSnapshot.snapshot}
                   quality={selectedQuality}
                 />
+                <MaterialTimePanel
+                  summary={activeLaneMaterialTimeSummary}
+                  title="Active route material time"
+                  emptyMessage="No valid represented-material timestamps are available for the active route."
+                />
               </>
             )}
           </div>
@@ -1244,6 +1268,11 @@ export function SimulatorWorkspace({
                 : "Pending"
           }
           note="The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
+        />
+        <MaterialTimePanel
+          summary={centralMaterialTimeSummary}
+          title="Central object material time"
+          emptyMessage="No valid represented-material timestamps are available for the central object."
         />
         <MetricGrid
           metrics={[

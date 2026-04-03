@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   BeltSnapshot,
@@ -13,12 +13,14 @@ import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { BeltBlockStrip } from "@/components/live/belt-block-strip";
 import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
 import { InlineNotice } from "@/components/ui/inline-notice";
+import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -70,6 +72,10 @@ export function LiveWorkspace({
   const selectedRegistryEntry = registry.find((entry) => entry.objectId === selectedObjectId);
   const selectedObjectIsBelt = beltEntries.some(
     (entry) => entry.objectId === selectedObjectId,
+  );
+  const beltTimeSummary = useMemo(
+    () => buildMaterialTimeSummary(currentBelt.blocks, currentBelt.timestamp),
+    [currentBelt.blocks, currentBelt.timestamp],
   );
 
   function handleSelectObject(nextObjectId: string) {
@@ -256,6 +262,7 @@ export function LiveWorkspace({
               : "Use the stockpile or profiler routes when the selected object needs internal content or historical context."
           }
         />
+        {selectedObjectIsBelt ? <MaterialTimePanel summary={beltTimeSummary} /> : null}
         <ProfiledPropertiesPanel
           qualities={qualities}
           values={selectedSummary?.qualityValues ?? currentBelt.qualityAverages}

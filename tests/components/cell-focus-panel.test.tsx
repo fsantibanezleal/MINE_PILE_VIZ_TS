@@ -31,8 +31,8 @@ const hoveredCell: PileCellRecord = {
   iy: 1,
   iz: 0,
   massTon: 12.5,
-  timestampOldestMs: 0,
-  timestampNewestMs: 0,
+  timestampOldestMs: Date.UTC(2025, 2, 19, 0, 0, 0),
+  timestampNewestMs: Date.UTC(2025, 2, 19, 1, 0, 0),
   qualityValues: {
     q_num_fe: 0.42,
     q_cat_mineral_main: "calcopirita",
@@ -54,6 +54,8 @@ describe("CellFocusPanel", () => {
     expect(screen.getByText("2, 1, 0")).toBeInTheDocument();
     expect(screen.getByText("12.5 t")).toBeInTheDocument();
     expect(screen.getAllByText("Chalcopyrite").length).toBeGreaterThan(0);
+    expect(screen.getByText("Mar 19, 2025, 12:00 AM UTC")).toBeInTheDocument();
+    expect(screen.getByText("Mar 19, 2025, 1:00 AM UTC")).toBeInTheDocument();
   });
 
   it("renders an inactive message when the workspace disables hover inspection", () => {

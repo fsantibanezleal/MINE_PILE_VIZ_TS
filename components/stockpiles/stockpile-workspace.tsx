@@ -15,6 +15,7 @@ import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
 import { buildMassDistribution } from "@/lib/mass-distribution";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
+import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
@@ -28,6 +29,7 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -301,6 +303,11 @@ export function StockpileWorkspace({
         : null,
     [dataset, selectedQuality],
   );
+  const materialTimeSummary = useMemo(
+    () =>
+      dataset ? buildMaterialTimeSummary(dataset.cells, dataset.timestamp) : null,
+    [dataset],
+  );
 
   let content: ReactNode;
 
@@ -510,6 +517,7 @@ export function StockpileWorkspace({
           timeBasis={dataset ? "Current pile snapshot" : "Pending"}
           note="Use the profiler route when you need historical summaries instead of the current dense inventory."
         />
+        <MaterialTimePanel summary={materialTimeSummary} />
         {viewMode === "full" && dataset?.dimension === 3 ? (
           <MetricGrid
             metrics={[

@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.052`
-- Active tracked version: `0.01.053`
+- Closed release baseline: `0.01.053`
+- Active tracked version: `0.01.054`
 
 ## Release History
+
+### 0.01.054
+
+- Added a shared represented-material time layer so dense belts, stockpiles, profiler detail snapshots, and simulator routes can surface oldest/newest material timestamps from the current cache contract.
+- Added reusable operator panels for material span and age, plus cell-level timestamp-span inspection in pile-centric views.
+- Integrated central-object and active-route material-time summaries into the simulator without introducing duplicated timestamp logic across workspaces.
 
 ### 0.01.053
 

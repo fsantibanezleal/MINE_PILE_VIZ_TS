@@ -1,6 +1,7 @@
 "use client";
 
-import { formatMassTon } from "@/lib/format";
+import { formatDuration, formatMassTon, formatTimestamp } from "@/lib/format";
+import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   formatQualityValueDisplay,
   getQualityDisplayLabel,
@@ -35,6 +36,9 @@ export function CellFocusPanel({
 }: CellFocusPanelProps) {
   const visibleQualityCount =
     valueListLimit === undefined ? Math.min(qualities.length, 6) : valueListLimit;
+  const timeSummary = hoveredCell
+    ? buildMaterialTimeSummary([hoveredCell], null)
+    : null;
 
   return (
     <div className="inspector-stack">
@@ -62,6 +66,22 @@ export function CellFocusPanel({
                     : undefined,
                 ),
               },
+              ...(timeSummary
+                ? [
+                    {
+                      label: "Oldest material",
+                      value: formatTimestamp(timeSummary.oldestTimestampMs),
+                    },
+                    {
+                      label: "Newest material",
+                      value: formatTimestamp(timeSummary.newestTimestampMs),
+                    },
+                    {
+                      label: "Material span",
+                      value: formatDuration(timeSummary.representedSpanMs),
+                    },
+                  ]
+                : []),
             ]}
           />
           <QualityValueList
