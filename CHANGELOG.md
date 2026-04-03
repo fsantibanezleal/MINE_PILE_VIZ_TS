@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.063`
-- Active tracked version: `0.01.064`
+- Closed release baseline: `0.01.064`
+- Active tracked version: `0.01.065`
 
 ## Release History
+
+### 0.01.065
+
+- Reworked the shared circuit presentation around fixed-height stage columns so the diagram, `2D`, and `3D` views now read as one left-to-right stage board instead of mixing separate lane heuristics and post-hoc graph offsets.
+- Changed within-stage placement to a simple dependency rule set: disconnected objects share the same stage column and distribute vertically, while same-stage receivers move one column to the right and keep sibling branches vertically separated.
+- Rebuilt the diagram from that shared geometry and changed the `3D` circuit camera to a centered top-down start view so the first `3D` reading matches the `2D` board layout more closely.
 
 ### 0.01.064
 

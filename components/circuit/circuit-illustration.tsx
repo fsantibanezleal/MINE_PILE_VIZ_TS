@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useMemo } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { useTheme } from "@/components/shell/theme-provider";
 import type { CircuitSequenceState } from "@/lib/circuit-sequence";
@@ -479,6 +479,38 @@ function StageBase3D({
   );
 }
 
+function TopDownCameraRig({
+  centerX,
+  centerZ,
+  spanX,
+  spanZ,
+}: {
+  centerX: number;
+  centerZ: number;
+  spanX: number;
+  spanZ: number;
+}) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const radius = Math.max(spanX, spanZ);
+    const cameraHeight = Math.max(34, radius * 1.16);
+
+    camera.position.set(centerX, cameraHeight, centerZ + 0.01);
+    camera.lookAt(centerX, 0, centerZ);
+    camera.updateProjectionMatrix();
+  }, [camera, centerX, centerZ, spanX, spanZ]);
+
+  return (
+    <OrbitControls
+      makeDefault
+      enableDamping
+      target={[centerX, 0, centerZ]}
+      maxPolarAngle={Math.PI / 2.05}
+    />
+  );
+}
+
 function Illustration3D({
   graph,
   selectedObjectId,
@@ -503,6 +535,7 @@ function Illustration3D({
       : 18;
   const groundCenterZ = (groundMinZ + groundMaxZ) / 2;
   const groundDepth = Math.max(34, groundMaxZ - groundMinZ + 10);
+  const groundCenterX = spreadX / 2 - 4;
   const highlightedNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
   const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
@@ -528,7 +561,7 @@ function Illustration3D({
           shadows
           dpr={[1, 1.5]}
           camera={{
-            position: [spreadX * 0.36, 16, groundCenterZ + Math.max(26, groundDepth * 0.72)],
+            position: [groundCenterX, Math.max(34, groundDepth * 1.18), groundCenterZ + 0.01],
             fov: 40,
             near: 0.1,
             far: 320,
@@ -636,7 +669,12 @@ function Illustration3D({
               />
             );
           })}
-          <OrbitControls makeDefault enableDamping maxPolarAngle={Math.PI / 2.2} />
+          <TopDownCameraRig
+            centerX={groundCenterX}
+            centerZ={groundCenterZ}
+            spanX={spreadX + 20}
+            spanZ={groundDepth}
+          />
         </Canvas>
       </div>
     </section>
