@@ -9,7 +9,8 @@ import {
   deriveShellCells,
   deriveSurfaceCells,
 } from "@/lib/stockpile-rendering";
-import { getQualityValueKey, normalizeQualityValue } from "@/lib/quality-values";
+import { normalizeQualityValue } from "@/lib/quality-values";
+import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import type {
   AppManifest,
   BeltBlockRecord,
@@ -360,73 +361,8 @@ export async function getLiveBeltSnapshot(beltId: string): Promise<BeltSnapshot>
     qualityValues: mapQualityValues(row, qualityIds),
   }));
 
-  const totals = blocks.reduce(
-    (accumulator, block) => {
-      accumulator.massTon += block.massTon;
-
-      qualities.forEach((quality) => {
-        const qualityId = quality.id;
-        const value = block.qualityValues[qualityId];
-
-        if (quality.kind === "numerical") {
-          if (typeof value === "number") {
-            accumulator.qualitySums[qualityId] =
-              (accumulator.qualitySums[qualityId] ?? 0) + value * block.massTon;
-          }
-          return;
-        }
-
-        const key = getQualityValueKey(value);
-
-        if (!key) {
-          return;
-        }
-
-        const current = accumulator.categoricalMass.get(qualityId) ?? new Map<string, {
-          value: typeof value;
-          massTon: number;
-        }>();
-        const currentEntry = current.get(key);
-
-        if (currentEntry) {
-          currentEntry.massTon += block.massTon;
-        } else {
-          current.set(key, {
-            value,
-            massTon: block.massTon,
-          });
-        }
-
-        accumulator.categoricalMass.set(qualityId, current);
-      });
-
-      return accumulator;
-    },
-    {
-      massTon: 0,
-      qualitySums: {} as Record<string, number>,
-      categoricalMass: new Map<string, Map<string, { value: unknown; massTon: number }>>(),
-    },
-  );
-
-  const qualityAverages = Object.fromEntries(
-    qualities.map((quality) => {
-      if (quality.kind === "numerical") {
-        return [
-          quality.id,
-          totals.massTon > 0 && totals.qualitySums[quality.id] !== undefined
-            ? totals.qualitySums[quality.id]! / totals.massTon
-            : null,
-        ];
-      }
-
-      const dominant = [...(totals.categoricalMass.get(quality.id)?.values() ?? [])].sort(
-        (left, right) => right.massTon - left.massTon,
-      )[0];
-
-      return [quality.id, (dominant?.value as QualityValueMap[string]) ?? null];
-    }),
-  );
+  const totalMassTon = blocks.reduce((sum, block) => sum + block.massTon, 0);
+  const qualityAverages = buildMassWeightedQualitySummary(blocks, qualities);
 
   return {
     objectId: beltEntry.objectId,
@@ -435,7 +371,7 @@ export async function getLiveBeltSnapshot(beltId: string): Promise<BeltSnapshot>
       blocks.length > 0
         ? new Date(blocks[blocks.length - 1]!.timestampNewestMs).toISOString()
         : new Date(0).toISOString(),
-    totalMassTon: totals.massTon,
+    totalMassTon,
     blockCount: blocks.length,
     qualityAverages,
     blocks,

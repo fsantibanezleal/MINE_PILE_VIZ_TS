@@ -29,7 +29,7 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { buildMassDistribution } from "@/lib/mass-distribution";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
-import { getQualityValueKey } from "@/lib/quality-values";
+import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import {
   buildAdaptiveFullRenderPlan,
   deriveShellCells,
@@ -117,68 +117,6 @@ function getRowsExtents(rows: PileCellRecord[]) {
   return deriveCellExtents(rows);
 }
 
-function buildSummaryValuesFromCells(
-  cells: PileCellRecord[],
-  qualities: QualityDefinition[],
-) {
-  const qualityValues: QualityValueMap = {};
-
-  qualities.forEach((quality) => {
-    if (quality.kind === "numerical") {
-      const numericCells = cells.filter((cell) => {
-        const value = cell.qualityValues[quality.id];
-        return typeof value === "number" && Number.isFinite(value) && cell.massTon > 0;
-      });
-
-      if (numericCells.length === 0) {
-        qualityValues[quality.id] = null;
-        return;
-      }
-
-      const representedMass = numericCells.reduce((sum, cell) => sum + cell.massTon, 0);
-      qualityValues[quality.id] =
-        numericCells.reduce((sum, cell) => {
-          const value = cell.qualityValues[quality.id];
-          return sum + (typeof value === "number" ? value : 0) * cell.massTon;
-        }, 0) / Math.max(representedMass, 1);
-      return;
-    }
-
-    const groupedMass = new Map<string, { value: QualityValueMap[string]; massTon: number }>();
-
-    cells.forEach((cell) => {
-      const value = cell.qualityValues[quality.id];
-
-      if ((value === null || value === undefined) || cell.massTon <= 0) {
-        return;
-      }
-
-      const key = getQualityValueKey(value);
-
-      if (!key) {
-        return;
-      }
-
-      const current = groupedMass.get(key);
-
-      if (current) {
-        current.massTon += cell.massTon;
-        return;
-      }
-
-      groupedMass.set(key, {
-        value,
-        massTon: cell.massTon,
-      });
-    });
-
-    const dominant = [...groupedMass.values()].sort((left, right) => right.massTon - left.massTon)[0];
-    qualityValues[quality.id] = dominant?.value ?? null;
-  });
-
-  return qualityValues;
-}
-
 function normalizeDatasetData(dataset: PileDataset): SimulatorCentralObjectData {
   return {
     objectId: dataset.objectId,
@@ -216,7 +154,9 @@ function normalizeSnapshotData(
     snapshot.dimension === 3 ? deriveSurfaceCells(snapshot.rows) : snapshot.rows;
   const shellCells =
     snapshot.dimension === 3 ? deriveShellCells(snapshot.rows) : [];
-  const qualityAverages = summaryRow?.qualityValues ?? buildSummaryValuesFromCells(snapshot.rows, qualities);
+  const qualityAverages =
+    summaryRow?.qualityValues ??
+    buildMassWeightedQualitySummary(snapshot.rows, qualities);
   const defaultQualityId =
     qualities.find((quality) => quality.id in qualityAverages)?.id ?? qualities[0]?.id ?? "";
   const availableQualityIds = qualities

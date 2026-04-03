@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.049`
-- Active tracked version: `0.01.050`
+- Closed release baseline: `0.01.050`
+- Active tracked version: `0.01.051`
 
 ## Release History
+
+### 0.01.051
+
+- Extracted a shared mass-weighted quality-summary module so numerical averages and dominant categorical values stop being recomputed with duplicated logic in server loaders, simulator lane aggregation, and profiler-backed simulator pile summaries.
+- Rewired simulator lane snapshots and profiler-backed simulator summaries to reuse that shared quality-summary path, reducing the risk that one workspace drifts from another when categorical or weighted-mean semantics change.
+- Added unit coverage for shared numerical and categorical mass-weighted summaries, including string-valued qualitative categories.
 
 ### 0.01.050
 
