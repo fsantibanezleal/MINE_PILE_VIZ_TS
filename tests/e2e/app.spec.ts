@@ -28,7 +28,7 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await expect(
     page.getByRole("heading", { name: "Current belt and pile state" }),
   ).toBeVisible();
-  await expect(page.getByText("Block strip")).toBeVisible();
+  await expect(page.getByText("Block strip", { exact: true })).toBeVisible();
   await expect(page.getByText("Mass-weighted histogram")).toBeVisible();
 
   await page.getByRole("link", { name: "Stockpiles", exact: true }).click();

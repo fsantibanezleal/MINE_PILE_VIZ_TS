@@ -30,6 +30,7 @@ import {
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
+import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
@@ -44,6 +45,11 @@ import {
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
+import {
+  getMaterialTimeDefinition,
+  getMaterialTimeValue,
+  type MaterialTimeMode,
+} from "@/lib/material-time-view";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -68,6 +74,12 @@ export function ProfilerWorkspace({
   index,
   qualities,
 }: ProfilerWorkspaceProps) {
+  const materialTimeModes: MaterialTimeMode[] = [
+    "property",
+    "oldest-age",
+    "newest-age",
+    "material-span",
+  ];
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,10 +93,16 @@ export function ProfilerWorkspace({
     qualities.map((quality) => quality.id),
     qualities[0]?.id ?? "",
   );
+  const initialTimeMode = resolveQuerySelection(
+    searchParams.get("timemode"),
+    materialTimeModes,
+    "property",
+  ) as MaterialTimeMode;
   const initialObjectIdRef = useRef(initialObjectId);
   const [mode, setMode] = useState<ProfilerMode>("circuit");
   const [selectedObjectId, setSelectedObjectId] = useState(initialObjectId);
   const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
+  const [selectedTimeMode, setSelectedTimeMode] = useState(initialTimeMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
@@ -194,6 +212,19 @@ export function ProfilerWorkspace({
     );
   }
 
+  function handleSelectTimeMode(nextMode: MaterialTimeMode) {
+    setHoveredCell(null);
+    setSelectedTimeMode(nextMode);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        timemode: nextMode,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
   useEffect(() => {
     if (!playing || selectedObjectRows.length <= 1) {
       return;
@@ -288,6 +319,10 @@ export function ProfilerWorkspace({
   const selectedQuality =
     availableQualities.find((quality) => quality.id === selectedQualityId) ??
     availableQualities[0];
+  const inspectionQuality =
+    selectedTimeMode === "property"
+      ? selectedQuality
+      : getMaterialTimeDefinition(selectedTimeMode);
   const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
   const selectedGraphNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
   const semanticFrame = getProfilerSemanticFrame(
@@ -310,19 +345,33 @@ export function ProfilerWorkspace({
   );
 
   const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
+  const inspectionValueAccessor = useMemo(
+    () =>
+      selectedTimeMode === "property"
+        ? undefined
+        : (row: PileCellRecord) =>
+            getMaterialTimeValue(
+              row,
+              selectedTimeMode,
+              selectedSummaryRow?.timestamp ?? detailSnapshot?.timestamp,
+            ),
+    [detailSnapshot?.timestamp, selectedSummaryRow?.timestamp, selectedTimeMode],
+  );
   const detailColorDomain = useMemo(() => {
-    if (!detailSnapshot || !selectedQuality || selectedQuality.kind !== "numerical") {
+    if (!detailSnapshot || !inspectionQuality || inspectionQuality.kind !== "numerical") {
       return undefined;
     }
 
     return deriveNumericColorDomain(
       detailSnapshot.rows.map((row) => {
-        const value = row.qualityValues[selectedQuality.id];
+        const value = inspectionValueAccessor
+          ? inspectionValueAccessor(row)
+          : row.qualityValues[inspectionQuality.id];
         return typeof value === "number" ? value : null;
       }),
-      selectedQuality,
+      inspectionQuality,
     );
-  }, [detailSnapshot, selectedQuality]);
+  }, [detailSnapshot, inspectionQuality, inspectionValueAccessor]);
   const activeHoveredCell =
     hoveredCell &&
     detailSnapshot?.rows.some((row) => isSameCell(row, hoveredCell))
@@ -330,10 +379,12 @@ export function ProfilerWorkspace({
       : null;
   const detailDistribution = useMemo(
     () =>
-      detailSnapshot && selectedQuality
-        ? buildMassDistribution(detailSnapshot.rows, selectedQuality)
+      detailSnapshot && inspectionQuality
+        ? buildMassDistribution(detailSnapshot.rows, inspectionQuality, {
+            valueAccessor: inspectionValueAccessor,
+          })
         : null,
-    [detailSnapshot, selectedQuality],
+    [detailSnapshot, inspectionQuality, inspectionValueAccessor],
   );
   const materialTimeSummary = useMemo(
     () =>
@@ -353,33 +404,36 @@ export function ProfilerWorkspace({
       detailView = (
         <PileColumnView
           cells={detailSnapshot.rows}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={detailColorDomain}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={inspectionValueAccessor}
         />
       );
     } else if (detailSnapshot.dimension === 2) {
       detailView = (
         <PileHeatmapView
           cells={detailSnapshot.rows}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={detailColorDomain}
           columns={detailExtents.x}
           rows={detailExtents.y}
           xAccessor={(cell) => cell.ix}
           yAccessor={(cell) => cell.iy}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={inspectionValueAccessor}
         />
       );
     } else {
       detailView = (
         <Pile3DCanvas
-          key={`${detailSnapshot.objectId}:${detailSnapshot.snapshotId}:${selectedQuality?.id ?? "none"}`}
+          key={`${detailSnapshot.objectId}:${detailSnapshot.snapshotId}:${selectedQuality?.id ?? "none"}:${selectedTimeMode}`}
           cells={detailSnapshot.rows}
           extents={detailExtents}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={detailColorDomain}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={inspectionValueAccessor}
         />
       );
     }
@@ -436,6 +490,11 @@ export function ProfilerWorkspace({
           value={selectedQuality?.id ?? ""}
           onChange={handleSelectQuality}
         />
+        <MaterialTimeModeSelector
+          value={selectedTimeMode}
+          onChange={handleSelectTimeMode}
+          label="Inspection mode"
+        />
         <label className="field">
           <span>Snapshot</span>
           <input
@@ -474,15 +533,21 @@ export function ProfilerWorkspace({
         {loadingSummary ? <div className="loading-banner">Loading profiler history...</div> : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
         {mode === "detail" &&
-        selectedQuality?.kind === "numerical" &&
+        inspectionQuality?.kind === "numerical" &&
         detailColorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
             The active profiler detail snapshot is using a local color domain so the visible
-            pile or belt cells keep enough contrast for property inspection.
+            pile or belt cells keep enough contrast for inspection.
+          </InlineNotice>
+        ) : null}
+        {mode === "detail" && selectedTimeMode !== "property" ? (
+          <InlineNotice tone="info" title="Material time mode active">
+            The profiler detail colors and histogram are using represented material timestamps
+            relative to the selected historical snapshot instead of a tracked property.
           </InlineNotice>
         ) : null}
         {mode === "detail" ? (
-          <QualityLegend quality={selectedQuality} numericDomain={detailColorDomain} />
+          <QualityLegend quality={inspectionQuality} numericDomain={detailColorDomain} />
         ) : null}
         {mode === "circuit" ? (
           <CircuitFlow
@@ -544,12 +609,12 @@ export function ProfilerWorkspace({
           summary={materialTimeSummary}
           emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
         />
-        {detailDistribution && selectedQuality ? (
+        {detailDistribution && inspectionQuality ? (
           <div className="inspector-stack">
             <div className="section-label">Mass distribution</div>
             <MassDistributionChart
               distribution={detailDistribution}
-              quality={selectedQuality}
+              quality={inspectionQuality}
               subjectLabel={
                 selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"
               }

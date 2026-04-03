@@ -89,14 +89,19 @@ function resolveNumericalBinIndex(
   return clamp(bins.length - 1, 0, bins.length - 1);
 }
 
-export function buildMassDistribution(
-  records: MassDistributionRecord[],
+export function buildMassDistribution<TRecord extends MassDistributionRecord>(
+  records: TRecord[],
   quality: QualityDefinition | undefined,
   options?: {
     binCount?: number;
+    valueAccessor?: (record: TRecord) => QualityValue;
   },
 ): MassDistribution {
   const totalMassTon = records.reduce((sum, record) => sum + record.massTon, 0);
+  const resolveValue =
+    options?.valueAccessor ??
+    ((record: TRecord) =>
+      quality ? record.qualityValues[quality.id] : null);
 
   if (!quality) {
     return {
@@ -121,7 +126,7 @@ export function buildMassDistribution(
     let representedMassTon = 0;
 
     for (const record of records) {
-      const rawValue = record.qualityValues[quality.id];
+      const rawValue = resolveValue(record);
 
       if (rawValue === null || rawValue === undefined || record.massTon <= 0) {
         continue;
@@ -178,7 +183,7 @@ export function buildMassDistribution(
 
   const numericRecords = records
     .map((record) => ({
-      value: record.qualityValues[quality.id],
+      value: resolveValue(record),
       massTon: record.massTon,
     }))
     .filter(

@@ -1,18 +1,32 @@
 "use client";
 
 import { getQualityColor } from "@/lib/color";
-import type { BeltSnapshot, QualityDefinition } from "@/types/app-data";
+import type {
+  BeltBlockRecord,
+  BeltSnapshot,
+  QualityDefinition,
+  QualityValue,
+} from "@/types/app-data";
 
 interface BeltBlockStripProps {
   snapshot: BeltSnapshot;
   quality: QualityDefinition | undefined;
+  valueAccessor?: (block: BeltBlockRecord) => QualityValue;
 }
 
-export function BeltBlockStrip({ snapshot, quality }: BeltBlockStripProps) {
+export function BeltBlockStrip({
+  snapshot,
+  quality,
+  valueAccessor,
+}: BeltBlockStripProps) {
   return (
     <div className="belt-strip" role="img" aria-label={`${snapshot.displayName} block strip`}>
       {snapshot.blocks.map((block) => {
-        const value = quality ? block.qualityValues[quality.id] : null;
+        const value = valueAccessor
+          ? valueAccessor(block)
+          : quality
+            ? block.qualityValues[quality.id]
+            : null;
 
         return (
           <div

@@ -7,7 +7,11 @@ import * as THREE from "three";
 import { useTheme } from "@/components/shell/theme-provider";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
 import { getThemeCanvasPalette } from "@/lib/theme";
-import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
+import type {
+  PileCellRecord,
+  QualityDefinition,
+  QualityValue,
+} from "@/types/app-data";
 
 const THREE_CLOCK_DEPRECATION_PATTERN =
   /^THREE(?:\.THREE)?\.Clock: This module has been deprecated\. Please use THREE\.Timer instead\.$/;
@@ -46,6 +50,7 @@ interface VoxelInstancesProps {
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
+  valueAccessor?: (cell: PileCellRecord) => QualityValue;
 }
 
 function getCameraPlacement(extents: { x: number; y: number; z: number }) {
@@ -72,6 +77,7 @@ function VoxelInstances({
   quality,
   numericDomain,
   onHoverCellChange,
+  valueAccessor,
 }: VoxelInstancesProps) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const invalidate = useThree((state) => state.invalidate);
@@ -98,13 +104,17 @@ function VoxelInstances({
       );
       transform.updateMatrix();
       mesh.setMatrixAt(index, transform.matrix);
-      color.set(
-        getQualityColor(
-          quality,
-          quality ? cell.qualityValues[quality.id] : null,
-          numericDomain,
-        ),
-      );
+        color.set(
+          getQualityColor(
+            quality,
+            valueAccessor
+              ? valueAccessor(cell)
+              : quality
+                ? cell.qualityValues[quality.id]
+                : null,
+            numericDomain,
+          ),
+        );
       mesh.setColorAt(index, color);
     });
 
@@ -126,7 +136,16 @@ function VoxelInstances({
       mesh.material.needsUpdate = true;
     }
     invalidate();
-  }, [cells, extents.x, extents.y, extents.z, invalidate, numericDomain, quality]);
+  }, [
+    cells,
+    extents.x,
+    extents.y,
+    extents.z,
+    invalidate,
+    numericDomain,
+    quality,
+    valueAccessor,
+  ]);
 
   return (
     <instancedMesh
@@ -163,6 +182,7 @@ interface Pile3DCanvasProps {
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
+  valueAccessor?: (cell: PileCellRecord) => QualityValue;
 }
 
 export function Pile3DCanvas({
@@ -171,6 +191,7 @@ export function Pile3DCanvas({
   quality,
   numericDomain,
   onHoverCellChange,
+  valueAccessor,
 }: Pile3DCanvasProps) {
   const { theme } = useTheme();
 
@@ -215,6 +236,7 @@ export function Pile3DCanvas({
           quality={quality}
           numericDomain={numericDomain}
           onHoverCellChange={onHoverCellChange}
+          valueAccessor={valueAccessor}
         />
         <OrbitControls
           makeDefault

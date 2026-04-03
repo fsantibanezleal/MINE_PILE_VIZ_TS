@@ -1,5 +1,10 @@
 import { buildMassDistribution } from "@/lib/mass-distribution";
-import type { BeltSnapshot, QualityDefinition } from "@/types/app-data";
+import type {
+  BeltSnapshot,
+  BeltBlockRecord,
+  QualityDefinition,
+  QualityValue,
+} from "@/types/app-data";
 
 export {
   type CategoricalMassDistributionBin as CategoricalMassHistogramBin,
@@ -12,6 +17,7 @@ export function buildBeltMassHistogram(
   quality: QualityDefinition | undefined,
   options?: {
     binCount?: number;
+    valueAccessor?: (block: BeltBlockRecord) => QualityValue;
   },
 ) {
   return buildMassDistribution(snapshot.blocks, quality, options);

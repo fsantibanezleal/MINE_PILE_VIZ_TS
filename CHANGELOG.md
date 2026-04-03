@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.058`
-- Active tracked version: `0.01.059`
+- Closed release baseline: `0.01.059`
+- Active tracked version: `0.01.060`
 
 ## Release History
+
+### 0.01.060
+
+- Added a shared material-time inspection layer so live belts, dense stockpiles, profiler detail snapshots, and simulator routes can switch from tracked-property reading to oldest-age, newest-age, or represented-span reading without duplicating renderer logic.
+- Reworked the shared pile and belt renderers to accept reusable inspection-value accessors, which keeps voxel colors, strip colors, and mass-weighted histograms aligned under one inspection mode instead of splitting timestamp logic per page.
+- Closed the remaining core gap in `#72` by turning represented material time into a first-class inspection mode across the routes that expose dense block or cell detail.
 
 ### 0.01.059
 

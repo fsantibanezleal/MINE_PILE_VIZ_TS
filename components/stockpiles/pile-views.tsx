@@ -1,13 +1,18 @@
 "use client";
 
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
-import type { PileCellRecord, QualityDefinition } from "@/types/app-data";
+import type {
+  PileCellRecord,
+  QualityDefinition,
+  QualityValue,
+} from "@/types/app-data";
 
 interface PileColumnViewProps {
   cells: PileCellRecord[];
   quality: QualityDefinition | undefined;
   numericDomain?: NumericColorDomain;
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
+  valueAccessor?: (cell: PileCellRecord) => QualityValue;
 }
 
 export function PileColumnView({
@@ -15,6 +20,7 @@ export function PileColumnView({
   quality,
   numericDomain,
   onHoverCellChange,
+  valueAccessor,
 }: PileColumnViewProps) {
   if (cells.length === 0) {
     return (
@@ -38,7 +44,11 @@ export function PileColumnView({
           style={{
             backgroundColor: getQualityColor(
               quality,
-              quality ? cell.qualityValues[quality.id] : null,
+              valueAccessor
+                ? valueAccessor(cell)
+                : quality
+                  ? cell.qualityValues[quality.id]
+                  : null,
               numericDomain,
             ),
           }}
@@ -57,6 +67,7 @@ interface PileHeatmapViewProps {
   xAccessor: (cell: PileCellRecord) => number;
   yAccessor: (cell: PileCellRecord) => number;
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
+  valueAccessor?: (cell: PileCellRecord) => QualityValue;
 }
 
 export function PileHeatmapView({
@@ -68,6 +79,7 @@ export function PileHeatmapView({
   xAccessor,
   yAccessor,
   onHoverCellChange,
+  valueAccessor,
 }: PileHeatmapViewProps) {
   if (cells.length === 0 || columns <= 0 || rows <= 0) {
     return (
@@ -101,12 +113,16 @@ export function PileHeatmapView({
         onMouseEnter={() => onHoverCellChange?.(cell ?? null)}
         onMouseLeave={() => onHoverCellChange?.(null)}
         style={{
-          backgroundColor: cell
-            ? getQualityColor(
-                quality,
-                quality ? cell.qualityValues[quality.id] : null,
-                numericDomain,
-              )
+              backgroundColor: cell
+                ? getQualityColor(
+                    quality,
+                    valueAccessor
+                      ? valueAccessor(cell)
+                      : quality
+                        ? cell.qualityValues[quality.id]
+                        : null,
+                    numericDomain,
+                  )
             : "rgba(11, 22, 37, 0.85)",
           borderColor: cell ? "rgba(124, 164, 201, 0.14)" : "rgba(124, 164, 201, 0.08)",
         }}

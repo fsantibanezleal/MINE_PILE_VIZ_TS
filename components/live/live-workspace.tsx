@@ -14,6 +14,7 @@ import { BeltBlockStrip } from "@/components/live/belt-block-strip";
 import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
+import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualitySelector } from "@/components/ui/quality-selector";
@@ -22,6 +23,11 @@ import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-pan
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
+import {
+  getMaterialTimeDefinition,
+  getMaterialTimeValue,
+  type MaterialTimeMode,
+} from "@/lib/material-time-view";
 import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
 import {
   buildHrefWithQuery,
@@ -43,6 +49,12 @@ export function LiveWorkspace({
   qualities,
   initialBelt,
 }: LiveWorkspaceProps) {
+  const materialTimeModes: MaterialTimeMode[] = [
+    "property",
+    "oldest-age",
+    "newest-age",
+    "material-span",
+  ];
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,17 +71,27 @@ export function LiveWorkspace({
     qualities.map((quality) => quality.id),
     qualities[0]?.id ?? "",
   );
+  const initialSelectedTimeMode = resolveQuerySelection(
+    searchParams.get("timemode"),
+    materialTimeModes,
+    "property",
+  ) as MaterialTimeMode;
   const initialSelectedBeltId = beltIds.includes(initialSelectedObjectId)
     ? initialSelectedObjectId
     : initialBelt.objectId;
   const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
   const [selectedBeltId, setSelectedBeltId] = useState(initialSelectedBeltId);
   const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
+  const [selectedTimeMode, setSelectedTimeMode] = useState(initialSelectedTimeMode);
   const [currentBelt, setCurrentBelt] = useState(initialBelt);
   const [loading, setLoading] = useState(initialSelectedBeltId !== initialBelt.objectId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const selectedQuality = qualities.find((quality) => quality.id === selectedQualityId);
+  const inspectionQuality =
+    selectedTimeMode === "property"
+      ? selectedQuality
+      : getMaterialTimeDefinition(selectedTimeMode);
   const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
   const selectedRegistryEntry = registry.find((entry) => entry.objectId === selectedObjectId);
   const selectedNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
@@ -84,6 +106,14 @@ export function LiveWorkspace({
   const beltTimeSummary = useMemo(
     () => buildMaterialTimeSummary(currentBelt.blocks, currentBelt.timestamp),
     [currentBelt.blocks, currentBelt.timestamp],
+  );
+  const inspectionValueAccessor = useMemo(
+    () =>
+      selectedTimeMode === "property"
+        ? undefined
+        : (block: BeltSnapshot["blocks"][number]) =>
+            getMaterialTimeValue(block, selectedTimeMode, currentBelt.timestamp),
+    [currentBelt.timestamp, selectedTimeMode],
   );
 
   function handleSelectObject(nextObjectId: string) {
@@ -176,6 +206,18 @@ export function LiveWorkspace({
     );
   }
 
+  function handleSelectTimeMode(nextMode: MaterialTimeMode) {
+    setSelectedTimeMode(nextMode);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        timemode: nextMode,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
   return (
     <div className="workspace-grid workspace-grid--triple">
       <aside className="panel">
@@ -199,6 +241,11 @@ export function LiveWorkspace({
           value={selectedQualityId}
           onChange={handleSelectQuality}
         />
+        <MaterialTimeModeSelector
+          value={selectedTimeMode}
+          onChange={handleSelectTimeMode}
+          label="Inspection mode"
+        />
         <MetricGrid
           metrics={[
             { label: "Live belts", value: String(beltEntries.length) },
@@ -209,7 +256,7 @@ export function LiveWorkspace({
             },
             {
               label: "Quality kind",
-              value: selectedQuality?.kind ?? "Pending",
+              value: inspectionQuality?.kind ?? "Pending",
             },
           ]}
         />
@@ -232,9 +279,23 @@ export function LiveWorkspace({
           <div className="section-label">Block strip</div>
           {selectedObjectIsBelt ? (
             <>
-              <BeltBlockStrip snapshot={currentBelt} quality={selectedQuality} />
+              {selectedTimeMode !== "property" ? (
+                <InlineNotice tone="info" title="Material time mode active">
+                  The block strip and histogram are using represented material timestamps
+                  relative to the current belt snapshot instead of a tracked property.
+                </InlineNotice>
+              ) : null}
+              <BeltBlockStrip
+                snapshot={currentBelt}
+                quality={inspectionQuality}
+                valueAccessor={inspectionValueAccessor}
+              />
               <div className="section-label">Mass-weighted histogram</div>
-              <BeltMassHistogram snapshot={currentBelt} quality={selectedQuality} />
+              <BeltMassHistogram
+                snapshot={currentBelt}
+                quality={inspectionQuality}
+                valueAccessor={inspectionValueAccessor}
+              />
             </>
           ) : (
             <InlineNotice tone="info" title="No belt block strip for this object">

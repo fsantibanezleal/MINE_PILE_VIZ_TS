@@ -18,6 +18,7 @@ import {
 } from "@/components/stockpiles/pile-views";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
+import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
@@ -34,6 +35,11 @@ import { deriveCellExtents } from "@/lib/data-stats";
 import { buildMassDistribution } from "@/lib/mass-distribution";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
+import {
+  getMaterialTimeDefinition,
+  getMaterialTimeValue,
+  type MaterialTimeMode,
+} from "@/lib/material-time-view";
 import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import {
   buildAdaptiveFullRenderPlan,
@@ -110,6 +116,7 @@ interface DischargeLaneCardProps {
   belt: SimulatorDischargeBelt;
   snapshot?: BeltSnapshot;
   quality: QualityDefinition | undefined;
+  materialTimeMode: MaterialTimeMode;
   loading: boolean;
   error?: string;
 }
@@ -243,9 +250,16 @@ function SimulatorDischargeLaneCard({
   belt,
   snapshot,
   quality,
+  materialTimeMode,
   loading,
   error,
 }: DischargeLaneCardProps) {
+  const inspectionValueAccessor =
+    materialTimeMode === "property" || !snapshot
+      ? undefined
+      : (block: BeltSnapshot["blocks"][number]) =>
+          getMaterialTimeValue(block, materialTimeMode, snapshot.timestamp);
+
   return (
     <article className="simulator-belt-card">
       <div className="simulator-belt-card__header">
@@ -273,8 +287,16 @@ function SimulatorDischargeLaneCard({
               { label: "Current UTC", value: formatTimestamp(snapshot.timestamp) },
             ]}
           />
-          <BeltBlockStrip snapshot={snapshot} quality={quality} />
-          <BeltMassHistogram snapshot={snapshot} quality={quality} />
+          <BeltBlockStrip
+            snapshot={snapshot}
+            quality={quality}
+            valueAccessor={inspectionValueAccessor}
+          />
+          <BeltMassHistogram
+            snapshot={snapshot}
+            quality={quality}
+            valueAccessor={inspectionValueAccessor}
+          />
         </div>
       ) : null}
     </article>
@@ -358,6 +380,12 @@ export function SimulatorWorkspace({
   index,
   qualities,
 }: SimulatorWorkspaceProps) {
+  const materialTimeModes: MaterialTimeMode[] = [
+    "property",
+    "oldest-age",
+    "newest-age",
+    "material-span",
+  ];
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -375,9 +403,15 @@ export function SimulatorWorkspace({
     qualities.map((quality) => quality.id),
     qualities[0]?.id ?? "",
   );
+  const initialSelectedTimeMode = resolveQuerySelection(
+    searchParams.get("timemode"),
+    materialTimeModes,
+    "property",
+  ) as MaterialTimeMode;
 
   const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
   const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
+  const [selectedTimeMode, setSelectedTimeMode] = useState(initialSelectedTimeMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
   const [selectedOutputId, setSelectedOutputId] = useState("");
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
@@ -436,6 +470,10 @@ export function SimulatorWorkspace({
   const selectedQuality = availableQualities.find(
     (quality) => quality.id === effectiveQualityId,
   );
+  const inspectionQuality =
+    selectedTimeMode === "property"
+      ? selectedQuality
+      : getMaterialTimeDefinition(selectedTimeMode);
   const effectiveSelectedOutputId =
     dischargeLanes.some((lane) => lane.output.id === selectedOutputId)
       ? selectedOutputId
@@ -700,6 +738,16 @@ export function SimulatorWorkspace({
     );
   }
 
+  function handleSelectTimeMode(nextMode: MaterialTimeMode) {
+    setSelectedTimeMode(nextMode);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        timemode: nextMode,
+      }),
+      { scroll: false },
+    );
+  }
+
   function handleSelectOutput(nextOutputId: string) {
     setSelectedOutputId(nextOutputId);
   }
@@ -768,12 +816,22 @@ export function SimulatorWorkspace({
     hoveredCell && visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
       ? hoveredCell
       : null;
+  const centralInspectionValueAccessor = useMemo(
+    () =>
+      selectedTimeMode === "property"
+        ? undefined
+        : (cell: PileCellRecord) =>
+            getMaterialTimeValue(cell, selectedTimeMode, centralData?.timestamp),
+    [centralData?.timestamp, selectedTimeMode],
+  );
   const centralDistribution = useMemo(
     () =>
-      centralData && selectedQuality
-        ? buildMassDistribution(centralData.cells, selectedQuality)
+      centralData && inspectionQuality
+        ? buildMassDistribution(centralData.cells, inspectionQuality, {
+            valueAccessor: centralInspectionValueAccessor,
+          })
         : null,
-    [centralData, selectedQuality],
+    [centralData, centralInspectionValueAccessor, inspectionQuality],
   );
   const visibleCellCount =
     centralData?.dimension === 3
@@ -789,7 +847,7 @@ export function SimulatorWorkspace({
       : centralData?.cells.length ?? 0;
 
   const colorDomain = useMemo(() => {
-    if (!centralData || !selectedQuality || selectedQuality.kind !== "numerical") {
+    if (!centralData || !inspectionQuality || inspectionQuality.kind !== "numerical") {
       return undefined;
     }
 
@@ -808,12 +866,21 @@ export function SimulatorWorkspace({
 
     return deriveNumericColorDomain(
       cellsForDomain.map((cell) => {
-        const value = cell.qualityValues[selectedQuality.id];
+        const value = centralInspectionValueAccessor
+          ? centralInspectionValueAccessor(cell)
+          : cell.qualityValues[inspectionQuality.id];
         return typeof value === "number" ? value : null;
       }),
-      selectedQuality,
+      inspectionQuality,
     );
-  }, [centralData, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
+  }, [
+    centralData,
+    centralInspectionValueAccessor,
+    fullRenderPlan.cells,
+    inspectionQuality,
+    sliceCells,
+    viewMode,
+  ]);
 
   const activeLaneMassTon =
     activeLaneBelts.reduce(
@@ -843,6 +910,18 @@ export function SimulatorWorkspace({
         : null,
     [activeLaneSnapshot],
   );
+  const activeLaneInspectionValueAccessor = useMemo(
+    () =>
+      selectedTimeMode === "property" || !activeLaneSnapshot
+        ? undefined
+        : (block: BeltSnapshot["blocks"][number]) =>
+            getMaterialTimeValue(
+              block,
+              selectedTimeMode,
+              activeLaneSnapshot.snapshot.timestamp,
+            ),
+    [activeLaneSnapshot, selectedTimeMode],
+  );
 
   let centralContent: ReactNode = (
     <InlineNotice tone={centralError ? "error" : "info"} title="Pile content loads on demand">
@@ -857,29 +936,31 @@ export function SimulatorWorkspace({
       centralContent = (
         <PileColumnView
           cells={centralData.cells}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={colorDomain}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={centralInspectionValueAccessor}
         />
       );
     } else if (centralData.dimension === 2) {
       centralContent = (
         <PileHeatmapView
           cells={centralData.cells}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={colorDomain}
           columns={centralData.extents.x}
           rows={centralData.extents.y}
           xAccessor={(cell) => cell.ix}
           yAccessor={(cell) => cell.iy}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={centralInspectionValueAccessor}
         />
       );
     } else if (viewMode === "slice") {
       centralContent = (
         <PileHeatmapView
           cells={sliceCells}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={colorDomain}
           columns={
             sliceAxis === "y" ? centralData.extents.x : centralData.extents.y
@@ -888,6 +969,7 @@ export function SimulatorWorkspace({
           xAccessor={(cell) => (sliceAxis === "y" ? cell.ix : cell.iy)}
           yAccessor={(cell) => (sliceAxis === "z" ? cell.iy : cell.iz)}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={centralInspectionValueAccessor}
         />
       );
     } else {
@@ -902,12 +984,13 @@ export function SimulatorWorkspace({
 
       centralContent = (
         <Pile3DCanvas
-          key={`${centralData.objectId}:${centralData.source}:${viewMode}:${effectiveQualityId}`}
+          key={`${centralData.objectId}:${centralData.source}:${viewMode}:${effectiveQualityId}:${selectedTimeMode}`}
           cells={cells}
           extents={centralData.extents}
-          quality={selectedQuality}
+          quality={inspectionQuality}
           numericDomain={colorDomain}
           onHoverCellChange={setHoveredCell}
+          valueAccessor={centralInspectionValueAccessor}
         />
       );
     }
@@ -935,6 +1018,11 @@ export function SimulatorWorkspace({
           qualities={availableQualities}
           value={effectiveQualityId}
           onChange={handleSelectQuality}
+        />
+        <MaterialTimeModeSelector
+          value={selectedTimeMode}
+          onChange={handleSelectTimeMode}
+          label="Inspection mode"
         />
         {hasProfilerHistory ? (
           <>
@@ -1050,11 +1138,17 @@ export function SimulatorWorkspace({
             strips and histograms currently use live belt snapshots from the local runtime cache.
           </InlineNotice>
         ) : null}
-        {selectedQuality?.kind === "numerical" &&
+        {inspectionQuality?.kind === "numerical" &&
         colorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
-            The visible cells occupy only a narrow slice of the configured range, so the
-            pile view is using a local color domain to keep property contrast readable.
+            The visible cells occupy only a narrow slice of the selected inspection range, so
+            the pile view is using a local color domain to keep contrast readable.
+          </InlineNotice>
+        ) : null}
+        {selectedTimeMode !== "property" ? (
+          <InlineNotice tone="info" title="Material time mode active">
+            The central pile colors and downstream histograms are using represented material
+            timestamps relative to each active snapshot instead of a tracked property.
           </InlineNotice>
         ) : null}
         {viewMode === "full" && fullRenderPlan.strategy === "adaptive" ? (
@@ -1073,7 +1167,7 @@ export function SimulatorWorkspace({
                 organizes downstream discharge content by configured output route.
               </p>
             </div>
-            <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
+            <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
             <PileAnchorFrame
               inputs={centralData.inputs}
               outputs={centralData.outputs}
@@ -1130,7 +1224,8 @@ export function SimulatorWorkspace({
                 ) : null}
                 <BeltMassHistogram
                   snapshot={activeLaneSnapshot.snapshot}
-                  quality={selectedQuality}
+                  quality={inspectionQuality}
+                  valueAccessor={activeLaneInspectionValueAccessor}
                 />
                 <MaterialTimePanel
                   summary={activeLaneMaterialTimeSummary}
@@ -1206,7 +1301,8 @@ export function SimulatorWorkspace({
                               key={`${activeLane.output.id}:direct:${belt.objectId}`}
                               belt={belt}
                               snapshot={beltSnapshots[belt.objectId]}
-                              quality={selectedQuality}
+                              quality={inspectionQuality}
+                              materialTimeMode={selectedTimeMode}
                               loading={
                                 loadingBelts &&
                                 !beltSnapshots[belt.objectId] &&
@@ -1254,7 +1350,8 @@ export function SimulatorWorkspace({
                               key={`${activeLane.output.id}:downstream:${belt.objectId}`}
                               belt={belt}
                               snapshot={beltSnapshots[belt.objectId]}
-                              quality={selectedQuality}
+                              quality={inspectionQuality}
+                              materialTimeMode={selectedTimeMode}
                               loading={
                                 loadingBelts &&
                                 !beltSnapshots[belt.objectId] &&

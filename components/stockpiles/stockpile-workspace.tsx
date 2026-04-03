@@ -16,6 +16,7 @@ import { buildMassDistribution } from "@/lib/mass-distribution";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
+import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
@@ -30,6 +31,11 @@ import {
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
+import {
+  getMaterialTimeDefinition,
+  getMaterialTimeValue,
+  type MaterialTimeMode,
+} from "@/lib/material-time-view";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -70,6 +76,12 @@ export function StockpileWorkspace({
   qualities,
   initialPileId,
 }: StockpileWorkspaceProps) {
+  const materialTimeModes: MaterialTimeMode[] = [
+    "property",
+    "oldest-age",
+    "newest-age",
+    "material-span",
+  ];
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,9 +95,15 @@ export function StockpileWorkspace({
     qualities.map((quality) => quality.id),
     qualities[0]?.id ?? "",
   );
+  const initialSelectedTimeMode = resolveQuerySelection(
+    searchParams.get("timemode"),
+    materialTimeModes,
+    "property",
+  ) as MaterialTimeMode;
   const [selectedPileId, setSelectedPileId] = useState(initialSelectedPileId);
   const [dataset, setDataset] = useState<PileDataset | null>(null);
   const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
+  const [selectedTimeMode, setSelectedTimeMode] = useState(initialSelectedTimeMode);
   const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
@@ -106,6 +124,18 @@ export function StockpileWorkspace({
     "";
   const selectedQuality = availableQualities.find(
     (quality) => quality.id === effectiveQualityId,
+  );
+  const inspectionQuality =
+    selectedTimeMode === "property"
+      ? selectedQuality
+      : getMaterialTimeDefinition(selectedTimeMode);
+  const inspectionValueAccessor = useMemo(
+    () =>
+      selectedTimeMode === "property"
+        ? undefined
+        : (cell: PileCellRecord) =>
+            getMaterialTimeValue(cell, selectedTimeMode, dataset?.timestamp),
+    [dataset?.timestamp, selectedTimeMode],
   );
 
   function handleSelectPile(nextPileId: string) {
@@ -132,6 +162,18 @@ export function StockpileWorkspace({
     router.replace(
       buildHrefWithQuery(pathname, searchParams, {
         quality: nextQualityId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
+  function handleSelectTimeMode(nextMode: MaterialTimeMode) {
+    setSelectedTimeMode(nextMode);
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        timemode: nextMode,
       }),
       {
         scroll: false,
@@ -251,7 +293,7 @@ export function StockpileWorkspace({
             : fullRenderPlan.renderedCellCount
       : dataset?.cells.length ?? 0;
   const colorDomain = useMemo(() => {
-    if (!dataset || !selectedQuality || selectedQuality.kind !== "numerical") {
+    if (!dataset || !inspectionQuality || inspectionQuality.kind !== "numerical") {
       return undefined;
     }
 
@@ -270,12 +312,21 @@ export function StockpileWorkspace({
 
     return deriveNumericColorDomain(
       cellsForDomain.map((cell) => {
-        const value = cell.qualityValues[selectedQuality.id];
+        const value = inspectionValueAccessor
+          ? inspectionValueAccessor(cell)
+          : cell.qualityValues[inspectionQuality.id];
         return typeof value === "number" ? value : null;
       }),
-      selectedQuality,
+      inspectionQuality,
     );
-  }, [dataset, fullRenderPlan.cells, selectedQuality, sliceCells, viewMode]);
+  }, [
+    dataset,
+    fullRenderPlan.cells,
+    inspectionQuality,
+    inspectionValueAccessor,
+    sliceCells,
+    viewMode,
+  ]);
 
   const visibleCellsForHover =
     !dataset
@@ -298,10 +349,12 @@ export function StockpileWorkspace({
       : null;
   const massDistribution = useMemo(
     () =>
-      dataset && selectedQuality
-        ? buildMassDistribution(dataset.cells, selectedQuality)
+      dataset && inspectionQuality
+        ? buildMassDistribution(dataset.cells, inspectionQuality, {
+            valueAccessor: inspectionValueAccessor,
+          })
         : null,
-    [dataset, selectedQuality],
+    [dataset, inspectionQuality, inspectionValueAccessor],
   );
   const materialTimeSummary = useMemo(
     () =>
@@ -323,35 +376,38 @@ export function StockpileWorkspace({
     content = (
       <PileColumnView
         cells={dataset.cells}
-        quality={selectedQuality}
+        quality={inspectionQuality}
         numericDomain={colorDomain}
         onHoverCellChange={setHoveredCell}
+        valueAccessor={inspectionValueAccessor}
       />
     );
   } else if (dataset.dimension === 2) {
     content = (
       <PileHeatmapView
         cells={dataset.cells}
-        quality={selectedQuality}
+        quality={inspectionQuality}
         numericDomain={colorDomain}
         columns={dataset.extents.x}
         rows={dataset.extents.y}
         xAccessor={(cell) => cell.ix}
         yAccessor={(cell) => cell.iy}
         onHoverCellChange={setHoveredCell}
+        valueAccessor={inspectionValueAccessor}
       />
     );
   } else if (viewMode === "slice") {
     content = (
       <PileHeatmapView
         cells={sliceCells}
-        quality={selectedQuality}
+        quality={inspectionQuality}
         numericDomain={colorDomain}
         columns={sliceAxis === "y" ? dataset.extents.x : dataset.extents.y}
         rows={sliceAxis === "z" ? dataset.extents.y : dataset.extents.z}
         xAccessor={(cell) => (sliceAxis === "y" ? cell.ix : cell.iy)}
         yAccessor={(cell) => (sliceAxis === "z" ? cell.iy : cell.iz)}
         onHoverCellChange={setHoveredCell}
+        valueAccessor={inspectionValueAccessor}
       />
     );
   } else {
@@ -366,12 +422,13 @@ export function StockpileWorkspace({
 
     content = (
       <Pile3DCanvas
-        key={`${dataset.objectId}:${viewMode}:${effectiveQualityId}`}
+        key={`${dataset.objectId}:${viewMode}:${effectiveQualityId}:${selectedTimeMode}`}
         cells={cells}
         extents={dataset.extents}
-        quality={selectedQuality}
+        quality={inspectionQuality}
         numericDomain={colorDomain}
         onHoverCellChange={setHoveredCell}
+        valueAccessor={inspectionValueAccessor}
       />
     );
   }
@@ -398,6 +455,11 @@ export function StockpileWorkspace({
           qualities={availableQualities}
           value={effectiveQualityId}
           onChange={handleSelectQuality}
+        />
+        <MaterialTimeModeSelector
+          value={selectedTimeMode}
+          onChange={handleSelectTimeMode}
+          label="Inspection mode"
         />
         {dataset?.dimension === 3 ? (
           <>
@@ -478,13 +540,19 @@ export function StockpileWorkspace({
           </InlineNotice>
         ) : null}
         {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
-        {selectedQuality?.kind === "numerical" && colorDomain?.mode === "adaptive-local" ? (
+        {inspectionQuality?.kind === "numerical" && colorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
-            The current visible cells occupy only a narrow slice of the configured property
+            The current visible cells occupy only a narrow slice of the selected inspection
             range, so the pile view is using a local color domain to keep voxel contrast readable.
           </InlineNotice>
         ) : null}
-        <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
+        {selectedTimeMode !== "property" ? (
+          <InlineNotice tone="info" title="Material time mode active">
+            The pile colors and distribution are using represented material timestamps relative
+            to the current pile snapshot instead of a tracked property.
+          </InlineNotice>
+        ) : null}
+        <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
         {dataset ? (
           <PileAnchorFrame
             inputs={dataset.inputs}
@@ -533,12 +601,12 @@ export function StockpileWorkspace({
             ]}
           />
         ) : null}
-        {massDistribution && selectedQuality ? (
+        {massDistribution && inspectionQuality ? (
           <div className="inspector-stack">
             <div className="section-label">Mass distribution</div>
             <MassDistributionChart
               distribution={massDistribution}
-              quality={selectedQuality}
+              quality={inspectionQuality}
               subjectLabel={dataset?.displayName ?? "Selected pile"}
               recordLabel="cells"
             />

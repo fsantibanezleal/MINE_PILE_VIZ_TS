@@ -359,6 +359,37 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("10 t")).toBeInTheDocument();
   });
 
+  it("switches the pile inspection to material time mode", async () => {
+    const pileA = createPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/stockpiles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+      />,
+    );
+
+    await screen.findByText("Pile A Feed");
+    fireEvent.change(screen.getByLabelText("Inspection mode"), {
+      target: { value: "oldest-age" },
+    });
+
+    expect(screen.getByText("Material time mode active")).toBeInTheDocument();
+    expect(screen.getByText("Oldest material age")).toBeInTheDocument();
+  });
+
   it("renders in-figure pile anchors for 2D stockpiles while keeping the external anchor tracks", async () => {
     const pileA = create2DPileDataset("pile_a", "Pile A", 1.1);
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
