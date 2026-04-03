@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.050`
-- Active tracked version: `0.01.051`
+- Closed release baseline: `0.01.051`
+- Active tracked version: `0.01.052`
 
 ## Release History
+
+### 0.01.052
+
+- Added an explicit profiler semantic layer that distinguishes circuit summary rows from detail-mode summary rows, summary bands, and summary cells.
+- Reframed profiler side panels and histogram labels so historical summarized content stops reading like dense live state.
+- Added profiler-focused unit and component coverage for the new summary-vs-dense semantics.
 
 ### 0.01.051
 

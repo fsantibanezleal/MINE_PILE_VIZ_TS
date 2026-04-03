@@ -23,6 +23,10 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildMassDistribution } from "@/lib/mass-distribution";
+import {
+  getProfilerSemanticFrame,
+  type ProfilerMode,
+} from "@/lib/profiler-semantics";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
@@ -48,8 +52,6 @@ interface ProfilerWorkspaceProps {
   index: ProfilerIndex;
   qualities: QualityDefinition[];
 }
-
-type ProfilerMode = "circuit" | "detail";
 
 function isSameCell(left: PileCellRecord, right: PileCellRecord) {
   return left.ix === right.ix && left.iy === right.iy && left.iz === right.iz;
@@ -286,6 +288,20 @@ export function ProfilerWorkspace({
     availableQualities[0];
   const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
   const selectedGraphNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
+  const semanticFrame = getProfilerSemanticFrame(
+    mode,
+    detailSnapshot
+      ? {
+          objectType: detailSnapshot.objectType,
+          dimension: detailSnapshot.dimension,
+        }
+      : selectedIndexEntry
+        ? {
+            objectType: selectedIndexEntry.objectType,
+            dimension: selectedIndexEntry.dimension,
+          }
+        : null,
+  );
 
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
@@ -496,16 +512,20 @@ export function ProfilerWorkspace({
           ]}
         />
         <RouteBasisPanel
-          source={mode === "circuit" ? "Profiler summary rows" : "Profiler detail snapshot"}
-          resolution={mode === "circuit" ? "Reduced circuit summaries" : "Reduced per-object rows"}
+          source={semanticFrame.source}
+          resolution={semanticFrame.resolution}
           timeBasis={effectiveSnapshotId ? "Selected historical timestep" : "Pending"}
-          note="Use live or stockpiles when you need current dense state instead of historical summarized content."
+          note={semanticFrame.note}
         />
         <MetricGrid
           metrics={[
-            { label: "Summary rows", value: loadingSummary ? "Loading" : String(summaryRows.length) },
+            {
+              label: "Summary rows",
+              value: loadingSummary ? "Loading" : String(summaryRows.length),
+            },
             { label: "Snapshots", value: String(selectedObjectRows.length) },
-            { label: "Mode", value: mode },
+            { label: semanticFrame.basisLabel, value: semanticFrame.aggregationLabel },
+            { label: "Density", value: semanticFrame.densityLabel },
           ]}
         />
         {detailDistribution && selectedQuality ? (
@@ -517,7 +537,7 @@ export function ProfilerWorkspace({
               subjectLabel={
                 selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"
               }
-              recordLabel="rows"
+              recordLabel={semanticFrame.recordLabel}
             />
           </div>
         ) : null}
@@ -535,10 +555,10 @@ export function ProfilerWorkspace({
           selectedQuality={selectedQuality}
           inactiveMessage={
             mode !== "detail"
-              ? "Switch to detail mode to inspect hovered pile or belt cells from the current profiler snapshot."
+              ? "Switch to detail mode to inspect hovered summary cells, bands, or rows from the current profiler snapshot."
               : undefined
           }
-          emptyMessage="Hover a cell or voxel in the active profiler detail view to inspect its coordinates, mass, and property values."
+          emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values."
         />
         <WorkspaceJumpLinks
           objectId={selectedObjectId}
