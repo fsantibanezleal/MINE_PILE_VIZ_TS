@@ -5,11 +5,9 @@ import type { CircuitEdge, CircuitGraph, CircuitNode } from "@/types/app-data";
 
 const NODE_WIDTH = 260;
 const NODE_HEIGHT = 132;
-const STAGE_PADDING_X = 28;
-const STAGE_PADDING_TOP = 54;
-const STAGE_PADDING_BOTTOM = 26;
 const STAGE_LOCAL_X_OFFSET_SCALE = 0.32;
 const STAGE_LOCAL_Y_OFFSET_SCALE = 0.42;
+const MIN_STAGE_FRAME_WIDTH_SCALE = 0.94;
 
 export interface CircuitNodeData extends Record<string, unknown> {
   label: string;
@@ -104,6 +102,7 @@ export function layoutCircuitGraph(
 
   const stageNodes: Node<CircuitStageNodeData, "stage">[] = stages.flatMap((stage) => {
       const memberNodes = laidOutNodes.filter((node) => stage.nodeIds.includes(node.id));
+      const presentationStage = presentationStageMap.get(stage.index);
 
       if (memberNodes.length === 0) {
         return [];
@@ -117,14 +116,25 @@ export function layoutCircuitGraph(
       const maxBottom = Math.max(
         ...memberNodes.map((node) => node.position.y + NODE_HEIGHT),
       );
+      const rawWidth = maxRight - minX;
+      const rawHeight = maxBottom - minY;
+      const framePaddingX = presentationStage?.framePaddingX ?? 28;
+      const framePaddingTop = presentationStage?.framePaddingTop ?? 54;
+      const framePaddingBottom = presentationStage?.framePaddingBottom ?? 26;
+      const rawWidthWithPadding = rawWidth + framePaddingX * 2;
+      const desiredFrameWidth = Math.max(
+        rawWidthWithPadding,
+        (presentationStage?.width ?? rawWidthWithPadding) * MIN_STAGE_FRAME_WIDTH_SCALE,
+      );
+      const horizontalExpansion = Math.max(0, desiredFrameWidth - rawWidthWithPadding) / 2;
 
       return [
         {
         id: `stage-${stage.index}`,
         type: "stage",
         position: {
-          x: minX - STAGE_PADDING_X,
-          y: minY - STAGE_PADDING_TOP,
+          x: minX - framePaddingX - horizontalExpansion,
+          y: minY - framePaddingTop,
         },
         data: {
           label: stage.label,
@@ -137,8 +147,8 @@ export function layoutCircuitGraph(
         focusable: false,
         zIndex: 0,
         style: {
-          width: maxRight - minX + STAGE_PADDING_X * 2,
-          height: maxBottom - minY + STAGE_PADDING_TOP + STAGE_PADDING_BOTTOM,
+          width: desiredFrameWidth,
+          height: rawHeight + framePaddingTop + framePaddingBottom,
           pointerEvents: "none",
         },
         } satisfies Node<CircuitStageNodeData, "stage">,

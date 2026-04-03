@@ -162,4 +162,23 @@ describe("layoutCircuitGraph", () => {
     expect(Math.abs(center!.position.x - west!.position.x)).toBeGreaterThan(30);
     expect(Math.abs(east!.position.x - center!.position.x)).toBeGreaterThan(30);
   });
+
+  it("expands the downstream stage frame beyond raw node bounds for high-fanout layouts", () => {
+    const result = layoutCircuitGraph(
+      fanoutGraph.stages,
+      fanoutGraph.nodes,
+      fanoutGraph.edges,
+    );
+    const stageFrame = result.stageNodes.find((node) => node.id === "stage-1");
+    const stageMembers = result.nodes.filter((node) =>
+      ["west", "center", "east"].includes(node.id),
+    );
+    const rawMinX = Math.min(...stageMembers.map((node) => node.position.x));
+    const rawMaxRight = Math.max(...stageMembers.map((node) => node.position.x + 260));
+    const rawWidth = rawMaxRight - rawMinX;
+    const frameWidth = Number(stageFrame?.style?.width ?? 0);
+
+    expect(stageFrame).toBeDefined();
+    expect(frameWidth - rawWidth).toBeGreaterThan(78);
+  });
 });

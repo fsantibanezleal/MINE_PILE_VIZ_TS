@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.056`
-- Active tracked version: `0.01.057`
+- Closed release baseline: `0.01.057`
+- Active tracked version: `0.01.058`
 
 ## Release History
+
+### 0.01.058
+
+- Reworked stage padding in the shared circuit presentation so automatic stage width, side breathing room, and minimum `3D` stage depth now scale with fanout and branch-cluster complexity instead of relying on one fixed frame.
+- Propagated that richer stage sizing into the `Diagram` route so its stage boxes inherit stronger horizontal containment from the same parametric presentation model used by `2D` and `3D`.
+- Tightened layout regression coverage to require meaningful inner stage margins and wider stage frames for fanout-heavy downstream stages.
 
 ### 0.01.057
 

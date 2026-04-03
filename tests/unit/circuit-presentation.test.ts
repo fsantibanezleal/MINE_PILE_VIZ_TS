@@ -719,10 +719,12 @@ describe("circuit pile anchor presentation", () => {
     const directOutputNodes = presentation.nodes
       .filter((node) => node.stageIndex === 1)
       .sort((left, right) => left.x - right.x);
+    const dischargeStage = presentation.stages.find((stage) => stage.index === 1);
     const yValues = directOutputNodes.map((node) => node.y);
     const zValues = directOutputNodes.map((node) => node.z);
 
     expect(directOutputNodes).toHaveLength(6);
+    expect(dischargeStage).toBeDefined();
     expect(directOutputNodes.map((node) => node.id)).toEqual([
       "vbelt_out_01",
       "vbelt_out_02",
@@ -733,6 +735,7 @@ describe("circuit pile anchor presentation", () => {
     ]);
     expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(36);
     expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(2.2);
+    expect(dischargeStage!.depth).toBeGreaterThan(22);
   });
 
   it("keeps grouped discharge pairs farther apart than the members inside each pair", () => {
@@ -769,8 +772,12 @@ describe("circuit pile anchor presentation", () => {
       const stage = presentation.stages.find((candidate) => candidate.index === node.stageIndex);
 
       expect(stage).toBeDefined();
+      const leftMargin = node.x - node.width / 2 - stage!.x;
+      const rightMargin = stage!.x + stage!.width - (node.x + node.width / 2);
       expect(node.x - node.width / 2).toBeGreaterThan(stage!.x);
       expect(node.x + node.width / 2).toBeLessThan(stage!.x + stage!.width);
+      expect(leftMargin).toBeGreaterThan(44);
+      expect(rightMargin).toBeGreaterThan(44);
       expect(node.y - node.height / 2).toBeGreaterThan(
         presentation.stageFrameTop,
       );
