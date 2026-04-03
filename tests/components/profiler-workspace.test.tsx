@@ -311,6 +311,38 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getAllByText("20 t").length).toBeGreaterThan(0);
   });
 
+  it("states explicitly that profiler detail is summarized historical content", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByRole("heading", { name: "Pile A" });
+    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
+
+    await screen.findByText("Historical summary only");
+    expect(screen.getByText("Reduced pile summary bands")).toBeInTheDocument();
+    expect(screen.getByText("Band basis")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("adds in-figure anchors for 2D profiler pile detail snapshots", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
