@@ -88,31 +88,31 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.054` |
+| Release-synced version | `0.01.055` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.053` |
-| Active tracked version | `0.01.054` |
+| Closed baseline | `0.01.054` |
+| Active tracked version | `0.01.055` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The illustrative layouts now keep clearer spatial lanes for belts, piles, and virtual objects so they stop collapsing into the same local area, especially in mixed stages and in the `3D` overview. Stage widths now expand with fanout demand, downstream branch placement is derived from graph flow and anchor structure instead of only from a fixed lane index, and grouped high-fanout discharge stages reserve explicit inter-route gaps so sibling outputs read as route families instead of one uniform strip. The `3D` depth model now follows predecessor route zones more closely, which keeps downstream physical conveyors spatially tied to the discharge path instead of snapping back to one fixed belt plane. The diagram mode now also renders stage grouping boxes and borrows the same branch-aware stage-local spread, so the staged sequence remains visible even in the abstract graph view. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The illustrative layouts now keep clearer spatial lanes for belts, piles, and virtual objects so they stop collapsing into the same local area, especially in mixed stages and in the `3D` overview. Stage widths now expand with fanout demand, downstream branch placement is derived from graph flow and anchor structure instead of only from a fixed lane index, and grouped high-fanout discharge stages reserve explicit inter-route gaps so sibling outputs read as route families instead of one uniform strip. The `3D` depth model now follows predecessor route zones more closely, which keeps downstream physical conveyors spatially tied to the discharge path instead of snapping back to one fixed belt plane. The diagram mode now also renders stage grouping boxes and borrows the same branch-aware stage-local spread, so the staged sequence remains visible even in the abstract graph view. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
 
 ### Live Workspace
 
-The live workspace focuses on instantaneous transport state. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected property across the current belt content without losing the block ordering view. The route now states explicitly that it is reading current live belt snapshots and current object summaries rather than historical profiler content. The side panel separates profiled properties into quantitative averages, dominant mapped categorical values, and selector-driven qualitative distributions. When explicit categorical proportion channels are present in the app-ready cache, the qualitative tab uses them directly; otherwise it falls back to an estimate built from predominant block labels and states that limitation clearly. Qualitative values are now treated as true categories end to end, so mapped labels continue to work whether the cache emits numeric codes or string tokens.
+The live workspace focuses on instantaneous transport state. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected property across the current belt content without losing the block ordering view. The route now states explicitly that it is reading current live belt snapshots and current object summaries rather than historical profiler content. The side panel separates profiled properties into quantitative averages, dominant mapped categorical values, and selector-driven qualitative distributions. When explicit categorical proportion channels are present in the app-ready cache, the qualitative tab uses them directly; otherwise it falls back to an estimate built from predominant block labels and states that limitation clearly. Qualitative values are now treated as true categories end to end, so mapped labels continue to work whether the cache emits numeric codes or string tokens. The same graph-derived flow semantics are now visible in the live sidebar, so a selected object can immediately read as source transport, measured transport, merge accumulation, or accumulation without forcing a route change.
 Route query state now preserves the current object and property context when the operator moves to another workspace through the top navigation.
 The side inspection panels now expose direct cross-workspace actions so the operator can jump into a more suitable view without resetting object or property context.
 
 ### Simulator Workspace
 
-The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section now treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The route framing now also states explicitly that the central pile can follow a selected historical snapshot while downstream conveyors still come from the current live cache until time-aligned route history is available. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card.
+The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section now treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The route framing now also states explicitly that the central pile can follow a selected historical snapshot while downstream conveyors still come from the current live cache until time-aligned route history is available. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport.
 
 ### Stockpile Workspace
 
@@ -261,7 +261,7 @@ types/
 
 ## Current Version
 
-`0.01.054`
+`0.01.055`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

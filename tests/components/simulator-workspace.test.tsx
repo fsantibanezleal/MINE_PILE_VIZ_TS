@@ -374,10 +374,12 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByText("Direct reclaim")).toBeInTheDocument();
     expect(screen.getAllByText("Virtual merge").length).toBeGreaterThan(0);
     expect(screen.getByText("Downstream conveyors")).toBeInTheDocument();
-    expect(screen.getByText("Virtual Lane")).toBeInTheDocument();
+    expect(screen.getAllByText("Virtual Lane").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
     expect(screen.getByText("Active lane summary")).toBeInTheDocument();
+    expect(screen.getByText("Route semantics")).toBeInTheDocument();
+    expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
     expect(
       screen.getByLabelText("West reclaim numerical mass distribution for Fe"),

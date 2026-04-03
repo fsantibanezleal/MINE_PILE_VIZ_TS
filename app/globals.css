@@ -1050,6 +1050,48 @@ code {
   border-radius: 50%;
 }
 
+.relationship-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.relationship-panel__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.relationship-panel__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.relationship-panel__group-title {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.relationship-panel__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.relationship-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-field);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
 .belt-strip-panel {
   display: flex;
   flex-direction: column;
@@ -1290,6 +1332,18 @@ code {
   background: var(--surface-control-muted);
   color: var(--text-secondary);
   text-align: left;
+}
+
+.simulator-discharge-button__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.simulator-discharge-button__subtext {
+  color: var(--text-muted);
+  font-size: 0.76rem;
 }
 
 .simulator-discharge-button strong {

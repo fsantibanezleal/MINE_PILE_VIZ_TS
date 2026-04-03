@@ -18,9 +18,11 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
+import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -70,8 +72,14 @@ export function LiveWorkspace({
   const selectedQuality = qualities.find((quality) => quality.id === selectedQualityId);
   const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
   const selectedRegistryEntry = registry.find((entry) => entry.objectId === selectedObjectId);
+  const selectedNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
   const selectedObjectIsBelt = beltEntries.some(
     (entry) => entry.objectId === selectedObjectId,
+  );
+  const transportSemantics = useMemo(
+    () =>
+      selectedNode ? deriveTransportNodeSemantics(graph, selectedNode.id) : null,
+    [graph, selectedNode],
   );
   const beltTimeSummary = useMemo(
     () => buildMaterialTimeSummary(currentBelt.blocks, currentBelt.timestamp),
@@ -262,6 +270,7 @@ export function LiveWorkspace({
               : "Use the stockpile or profiler routes when the selected object needs internal content or historical context."
           }
         />
+        {transportSemantics ? <TransportSemanticsPanel semantics={transportSemantics} /> : null}
         {selectedObjectIsBelt ? <MaterialTimePanel summary={beltTimeSummary} /> : null}
         <ProfiledPropertiesPanel
           qualities={qualities}

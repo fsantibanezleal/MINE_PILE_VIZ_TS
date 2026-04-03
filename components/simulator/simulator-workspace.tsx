@@ -23,7 +23,10 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
+import { RelationshipPanel } from "@/components/ui/relationship-panel";
+import { RouteSemanticsPanel } from "@/components/ui/route-semantics-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { deriveNumericColorDomain } from "@/lib/color";
@@ -45,6 +48,10 @@ import {
   type SimulatorDischargeBelt,
   type SimulatorDischargeMergeNode,
 } from "@/lib/simulator-topology";
+import {
+  buildSimulatorRouteGrouping,
+  deriveTransportNodeSemantics,
+} from "@/lib/transport-semantics";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -109,6 +116,7 @@ interface DischargeLaneCardProps {
 
 interface MergeNodeCardProps {
   mergeNode: SimulatorDischargeMergeNode;
+  contributorLabels: string[];
 }
 
 function isSameCell(left: PileCellRecord, right: PileCellRecord) {
@@ -273,7 +281,10 @@ function SimulatorDischargeLaneCard({
   );
 }
 
-function SimulatorMergeNodeCard({ mergeNode }: MergeNodeCardProps) {
+function SimulatorMergeNodeCard({
+  mergeNode,
+  contributorLabels,
+}: MergeNodeCardProps) {
   return (
     <article className="simulator-merge-card">
       <div className="simulator-merge-card__header">
@@ -297,11 +308,28 @@ function SimulatorMergeNodeCard({ mergeNode }: MergeNodeCardProps) {
             value: String(mergeNode.downstreamBelts.length),
           },
           {
+            label: "Grouped outputs",
+            value: String(contributorLabels.length),
+          },
+          {
             label: "Role",
             value: mergeNode.objectRole === "virtual" ? "Virtual pile" : "Physical pile",
           },
         ]}
       />
+      {contributorLabels.length > 0 ? (
+        <RelationshipPanel
+          title="Merge contributors"
+          summary="These configured outputs converge on this merge node before the downstream conveyor context."
+          metrics={[{ label: "Contributors", value: String(contributorLabels.length) }]}
+          groups={[
+            {
+              label: "Outputs",
+              items: contributorLabels,
+            },
+          ]}
+        />
+      ) : null}
       {mergeNode.downstreamBelts.length > 0 ? (
         <div className="anchor-list">
           {mergeNode.downstreamBelts.map((belt) => (
@@ -394,6 +422,10 @@ export function SimulatorWorkspace({
     () => (selectedNode ? buildSimulatorDischargeLanes(graph, selectedObjectId) : []),
     [graph, selectedNode, selectedObjectId],
   );
+  const routeGrouping = useMemo(
+    () => buildSimulatorRouteGrouping(dischargeLanes),
+    [dischargeLanes],
+  );
   const availableQualities = qualities.filter((quality) =>
     centralData ? centralData.availableQualityIds.includes(quality.id) : true,
   );
@@ -411,6 +443,9 @@ export function SimulatorWorkspace({
   const activeLane =
     dischargeLanes.find((lane) => lane.output.id === effectiveSelectedOutputId) ??
     dischargeLanes[0];
+  const activeLaneSemantics = activeLane
+    ? routeGrouping.laneSemanticsByOutputId[activeLane.output.id]
+    : null;
   const activeLaneBelts = useMemo(
     () => (activeLane ? getSimulatorLaneBelts(activeLane) : []),
     [activeLane],
@@ -429,6 +464,11 @@ export function SimulatorWorkspace({
         ? buildMaterialTimeSummary(centralData.cells, centralData.timestamp)
         : null,
     [centralData],
+  );
+  const centralTransportSemantics = useMemo(
+    () =>
+      selectedNode ? deriveTransportNodeSemantics(graph, selectedNode.id) : null,
+    [graph, selectedNode],
   );
 
   useEffect(() => {
@@ -1071,6 +1111,9 @@ export function SimulatorWorkspace({
                 },
               ]}
             />
+            {activeLaneSemantics ? (
+              <RouteSemanticsPanel semantics={activeLaneSemantics} />
+            ) : null}
             {!activeLaneSnapshot ? (
               <InlineNotice tone="info" title="Awaiting downstream belt content">
                 The selected discharge route is configured, but its downstream live belt
@@ -1122,7 +1165,13 @@ export function SimulatorWorkspace({
                       }`}
                       onClick={() => handleSelectOutput(lane.output.id)}
                     >
-                      <span>{lane.output.label}</span>
+                      <span className="simulator-discharge-button__content">
+                        <span>{lane.output.label}</span>
+                        <span className="simulator-discharge-button__subtext">
+                          {routeGrouping.laneSemanticsByOutputId[lane.output.id]?.routeKindLabel ??
+                            "Route"}
+                        </span>
+                      </span>
                       <strong>
                         {lane.directBelts.length} direct / {routeBelts.length} total
                       </strong>
@@ -1182,6 +1231,10 @@ export function SimulatorWorkspace({
                             <SimulatorMergeNodeCard
                               key={`${activeLane.output.id}:merge:${mergeNode.objectId}`}
                               mergeNode={mergeNode}
+                              contributorLabels={
+                                routeGrouping.mergeContributorLabelsByNodeId[mergeNode.objectId] ??
+                                []
+                              }
                             />
                           ))
                         )}
@@ -1269,6 +1322,9 @@ export function SimulatorWorkspace({
           }
           note="The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
         />
+        {centralTransportSemantics ? (
+          <TransportSemanticsPanel semantics={centralTransportSemantics} />
+        ) : null}
         <MaterialTimePanel
           summary={centralMaterialTimeSummary}
           title="Central object material time"
