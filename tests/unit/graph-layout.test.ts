@@ -38,6 +38,55 @@ const graph: CircuitGraph = {
   edges: [{ id: "edge", source: "a", target: "b", label: "flow" }],
 };
 
+const sameStageGraph: CircuitGraph = {
+  stages: [{ index: 0, label: "Stage 1", nodeIds: ["a", "b", "c"] }],
+  nodes: [
+    {
+      id: "a",
+      objectId: "a",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Source",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "b",
+      objectId: "b",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Branch 1",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "c",
+      objectId: "c",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "C",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Branch 2",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [
+    { id: "a-b", source: "a", target: "b", label: "a-b" },
+    { id: "a-c", source: "a", target: "c", label: "a-c" },
+  ],
+};
+
 const fanoutGraph: CircuitGraph = {
   stages: [
     { index: 0, label: "Stage 1", nodeIds: ["pile"] },
@@ -130,21 +179,48 @@ const fanoutGraph: CircuitGraph = {
 };
 
 describe("layoutCircuitGraph", () => {
-  it("keeps the original node and edge counts while adding stage frames", () => {
+  it("keeps the original node and edge counts while adding full-height stage frames", () => {
     const result = layoutCircuitGraph(graph.stages, graph.nodes, graph.edges);
 
     expect(result.nodes).toHaveLength(2);
     expect(result.stageNodes).toHaveLength(2);
     expect(result.edges).toHaveLength(1);
-    expect(result.nodes[0]?.position.x).toBeTypeOf("number");
-    expect(result.nodes[1]?.position.y).toBeTypeOf("number");
-    expect(result.stageNodes[0]?.data.label).toBe("Stage 1");
-    expect(result.stageNodes[1]?.data.nodeCount).toBe(1);
+    expect(result.stageNodes[0]?.position.y).toBe(result.stageNodes[1]?.position.y);
+    expect(result.stageNodes[0]?.style?.height).toBe(result.stageNodes[1]?.style?.height);
     expect(result.stageNodes[0]?.style?.width).toBeTypeOf("number");
-    expect(result.stageNodes[0]?.style?.height).toBeTypeOf("number");
   });
 
-  it("keeps fanout branches separated inside the downstream stage", () => {
+  it("keeps stage frames contiguous from left to right", () => {
+    const result = layoutCircuitGraph(graph.stages, graph.nodes, graph.edges);
+    const firstStage = result.stageNodes.find((node) => node.id === "stage-0");
+    const secondStage = result.stageNodes.find((node) => node.id === "stage-1");
+    const firstRight = firstStage!.position.x + Number(firstStage!.style?.width ?? 0);
+
+    expect(firstStage).toBeDefined();
+    expect(secondStage).toBeDefined();
+    expect(firstRight).toBe(secondStage!.position.x);
+  });
+
+  it("pushes same-stage receivers to the right and stacks siblings vertically", () => {
+    const result = layoutCircuitGraph(
+      sameStageGraph.stages,
+      sameStageGraph.nodes,
+      sameStageGraph.edges,
+    );
+    const a = result.nodes.find((node) => node.id === "a");
+    const b = result.nodes.find((node) => node.id === "b");
+    const c = result.nodes.find((node) => node.id === "c");
+
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    expect(c).toBeDefined();
+    expect(b!.position.x).toBeGreaterThan(a!.position.x);
+    expect(c!.position.x).toBeGreaterThan(a!.position.x);
+    expect(b!.position.x).toBe(c!.position.x);
+    expect(Math.abs(b!.position.y - c!.position.y)).toBeGreaterThan(140);
+  });
+
+  it("stacks disconnected downstream branches vertically inside the same stage column", () => {
     const result = layoutCircuitGraph(
       fanoutGraph.stages,
       fanoutGraph.nodes,
@@ -157,29 +233,9 @@ describe("layoutCircuitGraph", () => {
     expect(west).toBeDefined();
     expect(center).toBeDefined();
     expect(east).toBeDefined();
-    expect(west!.position.x).toBeLessThan(center!.position.x);
-    expect(center!.position.x).toBeLessThan(east!.position.x);
-    expect(Math.abs(center!.position.x - west!.position.x)).toBeGreaterThan(120);
-    expect(Math.abs(east!.position.x - center!.position.x)).toBeGreaterThan(110);
-  });
-
-  it("expands the downstream stage frame beyond raw node bounds for high-fanout layouts", () => {
-    const result = layoutCircuitGraph(
-      fanoutGraph.stages,
-      fanoutGraph.nodes,
-      fanoutGraph.edges,
-    );
-    const stageFrame = result.stageNodes.find((node) => node.id === "stage-1");
-    const stageMembers = result.nodes.filter((node) =>
-      ["west", "center", "east"].includes(node.id),
-    );
-    const rawMinX = Math.min(...stageMembers.map((node) => node.position.x));
-    const rawMaxRight = Math.max(...stageMembers.map((node) => node.position.x + 260));
-    const rawWidth = rawMaxRight - rawMinX;
-    const frameWidth = Number(stageFrame?.style?.width ?? 0);
-
-    expect(stageFrame).toBeDefined();
-    expect(frameWidth).toBeGreaterThan(1000);
-    expect(frameWidth - rawWidth).toBeGreaterThan(110);
+    expect(west!.position.x).toBe(center!.position.x);
+    expect(center!.position.x).toBe(east!.position.x);
+    expect(west!.position.y).toBeLessThan(center!.position.y);
+    expect(center!.position.y).toBeLessThan(east!.position.y);
   });
 });

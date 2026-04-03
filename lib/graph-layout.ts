@@ -1,15 +1,17 @@
-import dagre from "dagre";
 import { Position, type Edge, type Node } from "@xyflow/react";
 import { buildCircuitPresentation } from "@/lib/circuit-presentation";
 import type { CircuitEdge, CircuitGraph, CircuitNode } from "@/types/app-data";
 
 const NODE_WIDTH = 260;
 const NODE_HEIGHT = 132;
-const STAGE_LOCAL_X_OFFSET_SCALE = 0.32;
-const STAGE_LOCAL_Y_OFFSET_SCALE = 0.42;
-const MIN_STAGE_FRAME_WIDTH_SCALE = 0.94;
-const BASE_PRESENTATION_STAGE_WIDTH = 360;
-const BASE_PRESENTATION_STAGE_DEPTH = 18.8;
+const STAGE_TOP = 28;
+const STAGE_HEIGHT = 760;
+const STAGE_GAP = 0;
+const STAGE_SIDE_PADDING_X = 44;
+const STAGE_TOP_PADDING = 44;
+const STAGE_BOTTOM_PADDING = 44;
+const STAGE_COLUMN_GAP = 68;
+const MIN_STAGE_WIDTH = 360;
 
 export interface CircuitNodeData extends Record<string, unknown> {
   label: string;
@@ -30,6 +32,55 @@ export interface CircuitStageNodeData extends Record<string, unknown> {
   isActive?: boolean;
 }
 
+function groupStageColumns(nodes: Array<{ id: string; x: number; y: number }>) {
+  const sorted = [...nodes].sort((left, right) => left.x - right.x);
+  const columns: Array<Array<{ id: string; x: number; y: number }>> = [];
+
+  sorted.forEach((node) => {
+    const currentColumn = columns[columns.length - 1];
+
+    if (
+      currentColumn &&
+      Math.abs(currentColumn[0]!.x - node.x) <= 1
+    ) {
+      currentColumn.push(node);
+      return;
+    }
+
+    columns.push([node]);
+  });
+
+  return columns.map((column) =>
+    column.sort((left, right) => left.y - right.y),
+  );
+}
+
+function distributeNodeTopPositions(nodeCount: number) {
+  if (nodeCount === 0) {
+    return [];
+  }
+
+  const top = STAGE_TOP + STAGE_TOP_PADDING;
+  const bottom = STAGE_TOP + STAGE_HEIGHT - STAGE_BOTTOM_PADDING;
+
+  if (nodeCount === 1) {
+    return [top + (bottom - top - NODE_HEIGHT) / 2];
+  }
+
+  const availableHeight = bottom - top;
+  const contentHeight = NODE_HEIGHT * nodeCount;
+  const gap = Math.max(28, (availableHeight - contentHeight) / (nodeCount - 1));
+  const positions: number[] = [];
+  let currentTop = top;
+
+  for (let index = 0; index < nodeCount; index += 1) {
+    positions.push(currentTop);
+    currentTop += NODE_HEIGHT + gap;
+  }
+
+  return positions;
+}
+
 export function layoutCircuitGraph(
   stages: CircuitGraph["stages"],
   nodes: CircuitNode[],
@@ -40,116 +91,81 @@ export function layoutCircuitGraph(
   edges: Edge[];
 } {
   const presentation = buildCircuitPresentation({ stages, nodes, edges });
-  const presentationNodeMap = new Map(
-    presentation.nodes.map((node) => [node.id, node]),
-  );
-  const presentationStageMap = new Map(
+  const stageFrameMap = new Map(
     presentation.stages.map((stage) => [stage.index, stage]),
   );
-  const graph = new dagre.graphlib.Graph();
-  graph.setDefaultEdgeLabel(() => ({}));
-  graph.setGraph({
-    rankdir: "LR",
-    ranksep: 140,
-    nodesep: 72,
-    marginx: 40,
-    marginy: 40,
+  const presentationNodesByStage = new Map<number, Array<{ id: string; x: number; y: number }>>();
+
+  presentation.nodes.forEach((node) => {
+    const current = presentationNodesByStage.get(node.stageIndex) ?? [];
+    current.push({ id: node.id, x: node.x, y: node.y });
+    presentationNodesByStage.set(node.stageIndex, current);
   });
 
-  nodes.forEach((node) => {
-    graph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-  });
+  let currentStageX = 24;
+  const stageNodes: Node<CircuitStageNodeData, "stage">[] = [];
+  const laidOutNodes: Node<CircuitNodeData, "circuit">[] = [];
 
-  edges.forEach((edge) => {
-    graph.setEdge(edge.source, edge.target);
-  });
+  stages.forEach((stage) => {
+    const memberNodes = nodes.filter((node) => stage.nodeIds.includes(node.id));
+    const presentationStage = stageFrameMap.get(stage.index);
+    const stageColumns = groupStageColumns(
+      presentationNodesByStage.get(stage.index) ?? [],
+    );
+    const stageWidth = Math.max(
+      MIN_STAGE_WIDTH,
+      STAGE_SIDE_PADDING_X * 2 +
+        stageColumns.length * NODE_WIDTH +
+        Math.max(0, stageColumns.length - 1) * STAGE_COLUMN_GAP,
+      Math.round((presentationStage?.width ?? MIN_STAGE_WIDTH) * 1.08),
+    );
+    const columnLefts = stageColumns.map(
+      (_, index) =>
+        currentStageX +
+        STAGE_SIDE_PADDING_X +
+        index * (NODE_WIDTH + STAGE_COLUMN_GAP),
+    );
 
-  dagre.layout(graph);
+    stageColumns.forEach((column, columnIndex) => {
+      const topPositions = distributeNodeTopPositions(column.length);
 
-  const laidOutNodes = nodes.map((node) => {
-    const position = graph.node(node.id);
-    const presentationNode = presentationNodeMap.get(node.id);
-    const presentationStage = presentationStageMap.get(node.stageIndex);
-    const stageCenterX = presentationStage
-      ? presentationStage.x + presentationStage.width / 2
-      : presentationNode?.x ?? 0;
-    const stageWidthExpansion = presentationStage
-      ? Math.max(0, presentationStage.width - BASE_PRESENTATION_STAGE_WIDTH)
-      : 0;
-    const stageDepthExpansion = presentationStage
-      ? Math.max(0, presentationStage.depth - BASE_PRESENTATION_STAGE_DEPTH)
-      : 0;
-    const localXScale =
-      STAGE_LOCAL_X_OFFSET_SCALE +
-      Math.min(0.18, stageWidthExpansion / 1800);
-    const localYScale =
-      STAGE_LOCAL_Y_OFFSET_SCALE +
-      Math.min(0.14, stageDepthExpansion / 48) +
-      Math.min(0.06, stageWidthExpansion / 2400);
-    const localXOffset = presentationNode
-      ? (presentationNode.x - stageCenterX) * localXScale
-      : 0;
-    const localYOffset = presentationNode
-      ? (presentationNode.y - presentation.height / 2) * localYScale
-      : 0;
+      column.forEach((columnNode, rowIndex) => {
+        const baseNode = nodes.find((candidate) => candidate.id === columnNode.id);
 
-    return {
-      id: node.id,
-      type: "circuit",
-      position: {
-        x: position.x - NODE_WIDTH / 2 + localXOffset,
-        y: position.y - NODE_HEIGHT / 2 + localYOffset,
-      },
-      data: {
-        label: node.label,
-        shortDescription: node.shortDescription,
-        objectType: node.objectType,
-        objectRole: node.objectRole,
-        stageIndex: node.stageIndex,
-        isProfiled: node.isProfiled,
-        dimension: node.dimension,
-      },
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
-      zIndex: 10,
-    } satisfies Node<CircuitNodeData, "circuit">;
-  });
+        if (!baseNode) {
+          return;
+        }
 
-  const stageNodes: Node<CircuitStageNodeData, "stage">[] = stages.flatMap((stage) => {
-      const memberNodes = laidOutNodes.filter((node) => stage.nodeIds.includes(node.id));
-      const presentationStage = presentationStageMap.get(stage.index);
+        laidOutNodes.push({
+          id: baseNode.id,
+          type: "circuit",
+          position: {
+            x: columnLefts[columnIndex]!,
+            y: topPositions[rowIndex]!,
+          },
+          data: {
+            label: baseNode.label,
+            shortDescription: baseNode.shortDescription,
+            objectType: baseNode.objectType,
+            objectRole: baseNode.objectRole,
+            stageIndex: baseNode.stageIndex,
+            isProfiled: baseNode.isProfiled,
+            dimension: baseNode.dimension,
+          },
+          sourcePosition: Position.Right,
+          targetPosition: Position.Left,
+          zIndex: 10,
+        } satisfies Node<CircuitNodeData, "circuit">);
+      });
+    });
 
-      if (memberNodes.length === 0) {
-        return [];
-      }
-
-      const minX = Math.min(...memberNodes.map((node) => node.position.x));
-      const minY = Math.min(...memberNodes.map((node) => node.position.y));
-      const maxRight = Math.max(
-        ...memberNodes.map((node) => node.position.x + NODE_WIDTH),
-      );
-      const maxBottom = Math.max(
-        ...memberNodes.map((node) => node.position.y + NODE_HEIGHT),
-      );
-      const rawWidth = maxRight - minX;
-      const rawHeight = maxBottom - minY;
-      const framePaddingX = presentationStage?.framePaddingX ?? 28;
-      const framePaddingTop = presentationStage?.framePaddingTop ?? 54;
-      const framePaddingBottom = presentationStage?.framePaddingBottom ?? 26;
-      const rawWidthWithPadding = rawWidth + framePaddingX * 2;
-      const desiredFrameWidth = Math.max(
-        rawWidthWithPadding,
-        (presentationStage?.width ?? rawWidthWithPadding) * MIN_STAGE_FRAME_WIDTH_SCALE,
-      );
-      const horizontalExpansion = Math.max(0, desiredFrameWidth - rawWidthWithPadding) / 2;
-
-      return [
-        {
+    if (memberNodes.length > 0) {
+      stageNodes.push({
         id: `stage-${stage.index}`,
         type: "stage",
         position: {
-          x: minX - framePaddingX - horizontalExpansion,
-          y: minY - framePaddingTop,
+          x: currentStageX,
+          y: STAGE_TOP,
         },
         data: {
           label: stage.label,
@@ -162,13 +178,15 @@ export function layoutCircuitGraph(
         focusable: false,
         zIndex: 0,
         style: {
-          width: desiredFrameWidth,
-          height: rawHeight + framePaddingTop + framePaddingBottom,
+          width: stageWidth,
+          height: STAGE_HEIGHT,
           pointerEvents: "none",
         },
-        } satisfies Node<CircuitStageNodeData, "stage">,
-      ];
-    });
+      } satisfies Node<CircuitStageNodeData, "stage">);
+    }
+
+    currentStageX += stageWidth + STAGE_GAP;
+  });
 
   return {
     stageNodes,

@@ -76,120 +76,61 @@ interface CircuitPresentationEdgeContext {
   targetAnchor?: GraphAnchor;
 }
 
-interface StageDraft {
-  index: number;
-  label: string;
-  x: number;
+interface StageLayoutNodeDraft {
+  node: CircuitNode;
+  visualKind: CircuitPresentationVisualKind;
   width: number;
-  slotCount: number;
-  slotHints: number[];
-  slotCenters: number[];
-  clusterCount: number;
-  maxClusterLogicalWidth: number;
-  sidePaddingX: number;
-  slotGap: number;
-  framePaddingX: number;
-  framePaddingTop: number;
-  framePaddingBottom: number;
-  crossAxisScale: number;
-  depthScale: number;
+  height: number;
+  level: number;
+  sortHint: number;
 }
 
-interface StageClusterEntry {
-  key: string;
-  memberNodeIds: string[];
-  multiMember: boolean;
-  logicalWidthUnits: number;
+interface StageNodePlacement extends StageLayoutNodeDraft {
+  x: number;
+  y: number;
+  z: number;
 }
 
-interface StageClusterPlan {
-  clusters: StageClusterEntry[];
-  interClusterGapUnits: number;
-  totalLogicalPositions: number;
-  enablesGroupDepthZoning: boolean;
-  maxClusterLogicalWidth: number;
-}
-
-const BASE_STAGE_WIDTH = 360;
-const BASE_STAGE_GAP = 240;
-const STAGE_PADDING_X = 96;
-const STAGE_SIDE_PADDING_X = 74;
-const STAGE_SLOT_GAP = 124;
-const STAGE_SLOT_MIN_NORMALIZED = 0.18;
-const STAGE_SLOT_MAX_NORMALIZED = 0.82;
-const STAGE_MIN_SLOT_COUNT = 3;
-const PRESENTATION_HEIGHT = 780;
-const STAGE_FRAME_TOP = 26;
-const STAGE_FRAME_BOTTOM_PADDING = 86;
-const STAGE_LABEL_Y = 72;
+const PRESENTATION_HEIGHT = 880;
+const STAGE_FRAME_TOP = 24;
+const STAGE_FRAME_BOTTOM_PADDING = 76;
+const STAGE_LABEL_Y = 58;
 const FOOTNOTE_Y = PRESENTATION_HEIGHT - 28;
-const PRESENTATION_3D_X_SCALE = 26;
+const STAGE_PADDING_X = 72;
+const BASE_STAGE_GAP = 0;
+const BASE_STAGE_WIDTH = 360;
+const STAGE_SIDE_PADDING_X = 68;
+const STAGE_COLUMN_GAP = 94;
+const STAGE_NODE_TOP_PADDING = 112;
+const STAGE_NODE_BOTTOM_PADDING = 56;
+const STAGE_FRAME_PADDING_X = 20;
+const STAGE_FRAME_PADDING_TOP = 44;
+const STAGE_FRAME_PADDING_BOTTOM = 26;
+const MIN_VERTICAL_GAP = 28;
+const PRESENTATION_3D_X_SCALE = 28;
+const PRESENTATION_3D_Z_SCALE = 30;
 const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
-const STAGE_DEPTH_PREDECESSOR_WEIGHT = 0.72;
-const STAGE_DEPTH_KIND_OFFSET_SCALE = 0.92;
-const LANE_TOP = 178;
-const LANE_BOTTOM = 654;
-const LANE_ORDER: CircuitPresentationVisualKind[] = [
-  "physical-belt",
-  "physical-pile",
-  "virtual-belt",
-  "virtual-pile",
-];
 const PILE_ANCHOR_MIN_X = 0.18;
 const PILE_ANCHOR_MAX_X = 0.82;
 const PILE_ANCHOR_DEPTH_STEP = 0.55;
 
-const LANE_CONFIG: Record<
-  CircuitPresentationVisualKind,
-  {
-    z: number;
-    crossDepthSpan: number;
-    orderingDepthSpan: number;
-    groupDepthSpan: number;
-    crossYOffset: number;
-  }
-> = {
-  "physical-belt": {
-    z: -2.8,
-    crossDepthSpan: 0.9,
-    orderingDepthSpan: 1.2,
-    groupDepthSpan: 0.65,
-    crossYOffset: 18,
-  },
-  "physical-pile": {
-    z: 1.8,
-    crossDepthSpan: 0.7,
-    orderingDepthSpan: 0.84,
-    groupDepthSpan: 0.25,
-    crossYOffset: 14,
-  },
-  "virtual-belt": {
-    z: 7.6,
-    crossDepthSpan: 2.3,
-    orderingDepthSpan: 1.12,
-    groupDepthSpan: 1.5,
-    crossYOffset: 54,
-  },
-  "virtual-pile": {
-    z: 11.2,
-    crossDepthSpan: 1.7,
-    orderingDepthSpan: 0.96,
-    groupDepthSpan: 1.1,
-    crossYOffset: 32,
-  },
+const DEFAULT_SORT_HINT: Record<CircuitPresentationVisualKind, number> = {
+  "physical-belt": 0.22,
+  "physical-pile": 0.46,
+  "virtual-belt": 0.68,
+  "virtual-pile": 0.82,
 };
-
-const DEFAULT_FLOW_HINT: Record<CircuitPresentationVisualKind, number> = {
-  "physical-belt": 0.28,
-  "physical-pile": 0.5,
-  "virtual-belt": 0.64,
-  "virtual-pile": 0.72,
-};
-const EMPTY_NORMALIZED_ASSIGNMENTS = new Map<string, number>();
-const EMPTY_CROSS_AXIS_ASSIGNMENTS = new Map<string, number>();
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function average(values: number[]) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function getNodeVisualKind(node: CircuitNode): CircuitPresentationVisualKind {
@@ -209,39 +150,12 @@ function getNodeSize(node: CircuitNode) {
 
   switch (visualKind) {
     case "physical-belt":
-      return { width: 176, height: 42 };
+      return { width: 188, height: 48 };
     case "physical-pile":
-      return { width: 126, height: 104 };
+      return { width: 138, height: 120 };
     default:
-      return { width: 140, height: 46 };
+      return { width: 148, height: 48 };
   }
-}
-
-function getNodeDepthEnvelope(node: Pick<CircuitPresentationNode, "visualKind">) {
-  switch (node.visualKind) {
-    case "physical-pile":
-      return 3.8;
-    case "virtual-pile":
-      return 2.8;
-    case "virtual-belt":
-      return 2.4;
-    default:
-      return 1.9;
-  }
-}
-
-function getLaneCenterY(visualKind: CircuitPresentationVisualKind) {
-  const laneIndex = LANE_ORDER.indexOf(visualKind);
-
-  if (laneIndex <= 0) {
-    return LANE_TOP;
-  }
-
-  if (laneIndex >= LANE_ORDER.length - 1) {
-    return LANE_BOTTOM;
-  }
-
-  return LANE_TOP + ((LANE_BOTTOM - LANE_TOP) * laneIndex) / (LANE_ORDER.length - 1);
 }
 
 export function getPresentationInputAnchor(node: CircuitPresentationNode) {
@@ -263,11 +177,6 @@ export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
 function getNormalizedPileAnchorX(anchor: GraphAnchor | undefined) {
   const anchorX = clamp(anchor?.x ?? 0.5, 0, 1);
   return PILE_ANCHOR_MIN_X + anchorX * (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X);
-}
-
-function getAnchorBandHint(anchor: GraphAnchor | undefined) {
-  const normalizedY = clamp(anchor?.y ?? 0.5, 0, 1);
-  return clamp((normalizedY - 0.5) * 3.4, -1, 1);
 }
 
 function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
@@ -386,8 +295,8 @@ export function getPresentationAnchorPoint(
     const x = node.x - node.width / 2 + normalizedX * node.width;
     const y =
       kind === "input"
-        ? node.y - node.height / 2 - 30
-        : node.y + node.height / 2 + 34;
+        ? node.y - node.height / 2 - 32
+        : node.y + node.height / 2 + 36;
 
     return { x, y };
   }
@@ -422,7 +331,7 @@ export function getPresentationAnchorPoint3d(
 
     return {
       x: centerX + localX,
-      y: kind === "input" ? 6.4 : 0.52,
+      y: kind === "input" ? 6.6 : 0.52,
       z: centerZ + depthOffset,
     };
   }
@@ -430,7 +339,7 @@ export function getPresentationAnchorPoint3d(
   const normalizedY = clamp(anchor?.y ?? 0.5, 0, 1);
 
   return {
-    x: centerX + (kind === "input" ? -3.3 : 3.3),
+    x: centerX + (kind === "input" ? -3.4 : 3.4),
     y: 0.42 + normalizedY * 0.6,
     z: centerZ,
   };
@@ -443,12 +352,12 @@ function buildEdgePath(
   to: { x: number; y: number },
 ) {
   if (target.visualKind === "physical-pile") {
-    const controlY = Math.min(from.y, to.y) - 48;
+    const controlY = Math.min(from.y, to.y) - 52;
     return `M ${from.x} ${from.y} C ${from.x + 48} ${from.y}, ${to.x} ${controlY}, ${to.x} ${to.y}`;
   }
 
   if (source.visualKind === "physical-pile") {
-    const controlY = Math.max(from.y, to.y) + 48;
+    const controlY = Math.max(from.y, to.y) + 52;
     return `M ${from.x} ${from.y} C ${from.x} ${controlY}, ${to.x - 48} ${to.y}, ${to.x} ${to.y}`;
   }
 
@@ -484,7 +393,7 @@ function buildEdgePoints3d(
 
   return [
     [from.x, from.y, from.z],
-    [midX, from.y + 0.35, (from.z + to.z) / 2],
+    [midX, from.y + 0.3, (from.z + to.z) / 2],
     [to.x, to.y, to.z],
   ] as Array<[number, number, number]>;
 }
@@ -541,555 +450,296 @@ function buildEdgeContexts(
   });
 }
 
-function getStageSlotHints(slotCount: number) {
-  if (slotCount <= 1) {
-    return [0.5];
-  }
-
-  return Array.from({ length: slotCount }, (_, index) => {
-    return (
-      STAGE_SLOT_MIN_NORMALIZED +
-      ((STAGE_SLOT_MAX_NORMALIZED - STAGE_SLOT_MIN_NORMALIZED) * index) /
-        (slotCount - 1)
-    );
-  });
-}
-
-function getStageSlotCenters(
-  stageX: number,
-  stageWidth: number,
-  slotCount: number,
-  maxNodeWidth: number,
-  sidePaddingX: number,
-) {
-  if (slotCount <= 1) {
-    return [stageX + stageWidth / 2];
-  }
-
-  const left = stageX + sidePaddingX + maxNodeWidth / 2;
-  const right = stageX + stageWidth - sidePaddingX - maxNodeWidth / 2;
-
-  return Array.from({ length: slotCount }, (_, index) => {
-    return left + ((right - left) * index) / (slotCount - 1);
-  });
-}
-
-function getDistributedSlotIndices(slotCount: number, nodeCount: number) {
-  if (nodeCount <= 0 || slotCount <= 0) {
-    return [];
-  }
-
-  if (nodeCount === 1) {
-    return [Math.floor((slotCount - 1) / 2)];
-  }
-
-  const indices = Array.from({ length: nodeCount }, (_, index) =>
-    Math.round((index * (slotCount - 1)) / (nodeCount - 1)),
-  );
-
-  for (let index = 1; index < indices.length; index += 1) {
-    indices[index] = Math.max(indices[index]!, indices[index - 1]! + 1);
-  }
-
-  for (let index = indices.length - 2; index >= 0; index -= 1) {
-    indices[index] = Math.min(indices[index]!, indices[index + 1]! - 1);
-  }
-
-  return indices.map((index) => clamp(index, 0, slotCount - 1));
-}
-
-function getConnectionHint(
-  context: CircuitPresentationEdgeContext,
-  direction: "source" | "target",
-  normalizedAssignments: Map<string, number>,
-) {
-  const sourceVisualKind = getNodeVisualKind(context.source);
-  const targetVisualKind = getNodeVisualKind(context.target);
-
-  if (sourceVisualKind === "physical-pile" && context.sourceAnchor) {
-    return getNormalizedPileAnchorX(context.sourceAnchor);
-  }
-
-  if (targetVisualKind === "physical-pile" && context.targetAnchor) {
-    return getNormalizedPileAnchorX(context.targetAnchor);
-  }
-
-  if (direction === "target") {
-    return (
-      normalizedAssignments.get(context.source.id) ??
-      DEFAULT_FLOW_HINT[sourceVisualKind]
-    );
-  }
-
-  return (
-    normalizedAssignments.get(context.target.id) ??
-    DEFAULT_FLOW_HINT[targetVisualKind]
-  );
-}
-
-function getConnectionBandHint(
-  context: CircuitPresentationEdgeContext,
-  direction: "source" | "target",
-  crossAxisAssignments: Map<string, number>,
-) {
-  const sourceVisualKind = getNodeVisualKind(context.source);
-  const targetVisualKind = getNodeVisualKind(context.target);
-
-  if (sourceVisualKind === "physical-pile" && context.sourceAnchor) {
-    return getAnchorBandHint(context.sourceAnchor);
-  }
-
-  if (targetVisualKind === "physical-pile" && context.targetAnchor) {
-    return getAnchorBandHint(context.targetAnchor);
-  }
-
-  if (direction === "target") {
-    return crossAxisAssignments.get(context.source.id) ?? 0;
-  }
-
-  return crossAxisAssignments.get(context.target.id) ?? 0;
-}
-
-function getNodeBranchGroupKey(
-  node: CircuitNode,
-  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-) {
-  const outgoing = (outgoingByNodeId.get(node.id) ?? []).filter(
-    (context) => context.target.stageIndex > node.stageIndex,
-  );
-
-  if (outgoing.length > 0) {
-    const nextStageIndex = Math.min(
-      ...outgoing.map((context) => context.target.stageIndex),
-    );
-    const relatedTargetIds = [...new Set(
-      outgoing
-        .filter((context) => context.target.stageIndex === nextStageIndex)
-        .map((context) => context.target.id),
-    )].sort((left, right) => left.localeCompare(right));
-
-    return `out:${nextStageIndex}:${relatedTargetIds.join("|")}`;
-  }
-
-  const incoming = (incomingByNodeId.get(node.id) ?? []).filter(
-    (context) => context.source.stageIndex < node.stageIndex,
-  );
-
-  if (incoming.length > 0) {
-    const previousStageIndex = Math.max(
-      ...incoming.map((context) => context.source.stageIndex),
-    );
-    const relatedSourceIds = [...new Set(
-      incoming
-        .filter((context) => context.source.stageIndex === previousStageIndex)
-        .map((context) => context.source.id),
-    )].sort((left, right) => left.localeCompare(right));
-
-    return `in:${previousStageIndex}:${relatedSourceIds.join("|")}`;
-  }
-
-  return `self:${node.id}`;
-}
-
-function buildStageClusterPlan<
-  T extends {
-    node: CircuitNode;
-    xHint: number;
-    crossAxisHint: number;
-    clusterKey: string;
-  },
->(entries: T[]) {
-  const groupedEntries = new Map<string, T[]>();
-
-  entries.forEach((entry) => {
-    const current = groupedEntries.get(entry.clusterKey) ?? [];
-    current.push(entry);
-    groupedEntries.set(entry.clusterKey, current);
-  });
-
-  const clusters = [...groupedEntries.entries()]
-    .map(([key, clusterEntries]) => ({
-      clusterEntries,
-      key,
-      memberNodeIds: clusterEntries.map((entry) => entry.node.id),
-      multiMember: clusterEntries.length > 1,
-      xHint:
-        clusterEntries.reduce((sum, entry) => sum + entry.xHint, 0) /
-        Math.max(clusterEntries.length, 1),
-      crossAxisHint:
-        clusterEntries.reduce((sum, entry) => sum + entry.crossAxisHint, 0) /
-        Math.max(clusterEntries.length, 1),
-      flowSpread:
-        clusterEntries.length > 1
-          ? Math.max(...clusterEntries.map((entry) => entry.xHint)) -
-            Math.min(...clusterEntries.map((entry) => entry.xHint))
-          : 0,
-      crossAxisSpread:
-        clusterEntries.length > 1
-          ? Math.max(...clusterEntries.map((entry) => entry.crossAxisHint)) -
-            Math.min(...clusterEntries.map((entry) => entry.crossAxisHint))
-          : 0,
-      visualKinds: new Set(
-        clusterEntries.map((entry) => getNodeVisualKind(entry.node)),
-      ),
-    }))
-    .sort((left, right) => {
-      const hintDifference = left.xHint - right.xHint;
-
-      if (Math.abs(hintDifference) > 1e-6) {
-        return hintDifference;
-      }
-
-      const bandDifference = left.crossAxisHint - right.crossAxisHint;
-
-      if (Math.abs(bandDifference) > 1e-6) {
-        return bandDifference;
-      }
-
-      return left.key.localeCompare(right.key);
-    });
-  const logicalClusters = clusters.map((cluster) => {
-    const branchWidthBonus = Math.ceil(
-      Math.max(0, cluster.clusterEntries.length - 1) * 0.35,
-    );
-    const flowSpreadBonus = cluster.flowSpread > 0.24 ? 1 : 0;
-    const crossAxisSpreadBonus = cluster.crossAxisSpread > 0.42 ? 1 : 0;
-    const mixedVisualBonus = cluster.visualKinds.size > 1 ? 1 : 0;
-
-    return {
-      key: cluster.key,
-      memberNodeIds: cluster.memberNodeIds,
-      multiMember: cluster.multiMember,
-      logicalWidthUnits:
-        cluster.clusterEntries.length +
-        branchWidthBonus +
-        flowSpreadBonus +
-        crossAxisSpreadBonus +
-        mixedVisualBonus,
-    };
-  });
-  const maxClusterLogicalWidth = logicalClusters.reduce(
-    (maxWidth, cluster) => Math.max(maxWidth, cluster.logicalWidthUnits),
-    1,
-  );
-  const interClusterGapUnits =
-    logicalClusters.length <= 1
-      ? 0
-      : Math.min(
-          3,
-          1 +
-            (logicalClusters.some((cluster) => cluster.multiMember) ? 1 : 0) +
-            (maxClusterLogicalWidth >= 4 ? 1 : 0),
-        );
-  const totalLogicalPositions =
-    logicalClusters.reduce(
-      (sum, cluster) => sum + cluster.logicalWidthUnits,
-      0,
-    ) +
-    Math.max(0, logicalClusters.length - 1) * interClusterGapUnits;
-  const stageVisualKinds = new Set(entries.map((entry) => getNodeVisualKind(entry.node)));
-
+function getStageNodeUsableBounds() {
   return {
-    clusters: logicalClusters.map((cluster) => ({
-      key: cluster.key,
-      memberNodeIds: cluster.memberNodeIds,
-      multiMember: cluster.multiMember,
-      logicalWidthUnits: cluster.logicalWidthUnits,
-    })),
-    interClusterGapUnits,
-    totalLogicalPositions,
-    enablesGroupDepthZoning:
-      logicalClusters.length > 1 &&
-      stageVisualKinds.size === 1 &&
-      entries.length > 1,
-    maxClusterLogicalWidth,
-  } satisfies StageClusterPlan;
-}
-
-function getStageDefaultDepthBase(nodes: CircuitNode[]) {
-  if (nodes.length === 0) {
-    return 0;
-  }
-
-  return (
-    nodes.reduce(
-      (sum, node) => sum + LANE_CONFIG[getNodeVisualKind(node)].z,
-      0,
-    ) / nodes.length
-  );
-}
-
-function buildStageDepthBaseMap(
-  stages: CircuitGraph["stages"],
-  nodesByStage: Map<number, CircuitNode[]>,
-  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-) {
-  const stageDepthBaseMap = new Map<number, number>();
-
-  [...stages]
-    .sort((left, right) => left.index - right.index)
-    .forEach((stage) => {
-      const stageNodes = nodesByStage.get(stage.index) ?? [];
-      const defaultDepthBase = getStageDefaultDepthBase(stageNodes);
-      const predecessorStageBases = [
-        ...new Set(
-          stageNodes.flatMap((node) =>
-            (incomingByNodeId.get(node.id) ?? [])
-              .filter((context) => context.source.stageIndex < stage.index)
-              .map((context) => context.source.stageIndex),
-          ),
-        ),
-      ]
-        .map((stageIndex) => stageDepthBaseMap.get(stageIndex))
-        .filter((value): value is number => typeof value === "number");
-
-      if (predecessorStageBases.length === 0) {
-        stageDepthBaseMap.set(stage.index, defaultDepthBase);
-        return;
-      }
-
-      const predecessorAverage =
-        predecessorStageBases.reduce((sum, value) => sum + value, 0) /
-        predecessorStageBases.length;
-
-      stageDepthBaseMap.set(
-        stage.index,
-        predecessorAverage * STAGE_DEPTH_PREDECESSOR_WEIGHT +
-          defaultDepthBase * (1 - STAGE_DEPTH_PREDECESSOR_WEIGHT),
-      );
-    });
-
-  return stageDepthBaseMap;
-}
-
-function getStageSlotCount(
-  nodes: CircuitNode[],
-  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-) {
-  const clusterPlan = buildStageClusterPlan(
-    nodes.map((node) => ({
-      node,
-      xHint: getNodeFlowHint(
-        node,
-        incomingByNodeId,
-        outgoingByNodeId,
-        EMPTY_NORMALIZED_ASSIGNMENTS,
-      ),
-      crossAxisHint: getNodeCrossAxisHint(
-        node,
-        incomingByNodeId,
-        outgoingByNodeId,
-        EMPTY_CROSS_AXIS_ASSIGNMENTS,
-      ),
-      clusterKey: getNodeBranchGroupKey(
-        node,
-        incomingByNodeId,
-        outgoingByNodeId,
-      ),
-    })),
-  );
-  const fanoutDemand = nodes.reduce((maxDemand, node) => {
-    return Math.max(
-      maxDemand,
-      node.inputs.length + 1,
-      node.outputs.length + 1,
-      (incomingByNodeId.get(node.id)?.length ?? 0) + 1,
-      (outgoingByNodeId.get(node.id)?.length ?? 0) + 1,
-    );
-  }, 0);
-
-  return Math.max(
-    STAGE_MIN_SLOT_COUNT,
-    nodes.length,
-    fanoutDemand,
-    clusterPlan.totalLogicalPositions,
-  );
-}
-
-function getStageSidePaddingX(
-  stageNodes: CircuitNode[],
-  slotCount: number,
-  clusterCount: number,
-  maxClusterLogicalWidth: number,
-) {
-  const hasPhysicalPile = stageNodes.some(
-    (node) => getNodeVisualKind(node) === "physical-pile",
-  );
-  const hasVirtualObjects = stageNodes.some(
-    (node) => node.objectRole === "virtual",
-  );
-
-  return (
-    STAGE_SIDE_PADDING_X +
-    Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 10 +
-    Math.max(0, clusterCount - 1) * 12 +
-    Math.max(0, maxClusterLogicalWidth - 2) * 6 +
-    (hasPhysicalPile ? 14 : 0) +
-    (hasVirtualObjects ? 6 : 0)
-  );
-}
-
-function getStageSlotGap(
-  slotCount: number,
-  clusterCount: number,
-  maxClusterLogicalWidth: number,
-) {
-  return (
-    STAGE_SLOT_GAP +
-    Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 8 +
-    Math.max(0, clusterCount - 1) * 6 +
-    Math.max(0, maxClusterLogicalWidth - 2) * 4
-  );
-}
-
-function getStageFramePadding(
-  stageNodes: CircuitNode[],
-  slotCount: number,
-  clusterCount: number,
-  maxClusterLogicalWidth: number,
-) {
-  const hasPhysicalPile = stageNodes.some(
-    (node) => getNodeVisualKind(node) === "physical-pile",
-  );
-  const hasVirtualObjects = stageNodes.some(
-    (node) => node.objectRole === "virtual",
-  );
-
-  return {
-    x:
-      28 +
-      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 8 +
-      Math.max(0, clusterCount - 1) * 6 +
-      Math.max(0, maxClusterLogicalWidth - 2) * 4,
-    top:
-      54 +
-      Math.max(0, clusterCount - 1) * 4 +
-      Math.max(0, maxClusterLogicalWidth - 2) * 3 +
-      (hasPhysicalPile ? 8 : 0),
+    top: STAGE_FRAME_TOP + STAGE_NODE_TOP_PADDING,
     bottom:
-      26 +
-      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 4 +
-      Math.max(0, maxClusterLogicalWidth - 2) * 2 +
-      (hasVirtualObjects ? 6 : 0),
+      PRESENTATION_HEIGHT -
+      STAGE_FRAME_BOTTOM_PADDING -
+      STAGE_NODE_BOTTOM_PADDING,
   };
 }
 
-function getStageDepthPadding(
-  stageDraft: Pick<StageDraft, "slotCount" | "clusterCount" | "maxClusterLogicalWidth">,
+function getConnectionSortHint(
+  context: CircuitPresentationEdgeContext,
+  direction: "source" | "target",
 ) {
-  return (
-    5.6 +
-    Math.max(0, stageDraft.slotCount - STAGE_MIN_SLOT_COUNT) * 0.85 +
-    Math.max(0, stageDraft.clusterCount - 1) * 0.9 +
-    Math.max(0, stageDraft.maxClusterLogicalWidth - 2) * 0.55
-  );
+  if (context.source.objectType === "pile" && context.sourceAnchor) {
+    return clamp(context.sourceAnchor.x, 0, 1);
+  }
+
+  if (context.target.objectType === "pile" && context.targetAnchor) {
+    return clamp(context.targetAnchor.x, 0, 1);
+  }
+
+  if (direction === "source" && context.sourceAnchor) {
+    return clamp(context.sourceAnchor.y, 0, 1);
+  }
+
+  if (direction === "target" && context.targetAnchor) {
+    return clamp(context.targetAnchor.y, 0, 1);
+  }
+
+  return DEFAULT_SORT_HINT[getNodeVisualKind(direction === "source" ? context.source : context.target)];
 }
 
-function getStageMinimumDepth(
-  stageDraft: Pick<StageDraft, "slotCount" | "clusterCount" | "maxClusterLogicalWidth">,
-) {
-  return (
-    18.8 +
-    Math.max(0, stageDraft.slotCount - STAGE_MIN_SLOT_COUNT) * 0.75 +
-    Math.max(0, stageDraft.clusterCount - 1) * 0.65 +
-    Math.max(0, stageDraft.maxClusterLogicalWidth - 2) * 0.7
+function getNodeAnchorSortHint(node: CircuitNode) {
+  const anchorHints = [...node.inputs, ...node.outputs].map((anchor) =>
+    clamp(
+      node.objectType === "pile" ? anchor.x : anchor.y,
+      0,
+      1,
+    ),
   );
+
+  if (anchorHints.length > 0) {
+    return average(anchorHints);
+  }
+
+  return DEFAULT_SORT_HINT[getNodeVisualKind(node)];
 }
 
-function getStageCrossAxisScale(
-  slotCount: number,
-  clusterCount: number,
-  maxClusterLogicalWidth: number,
+function buildStageLevelMap(
+  stageNodes: CircuitNode[],
+  edgeContexts: CircuitPresentationEdgeContext[],
 ) {
-  return (
-    1 +
-    Math.min(
-      0.58,
-      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 0.03 +
-        Math.max(0, clusterCount - 1) * 0.08 +
-        Math.max(0, maxClusterLogicalWidth - 2) * 0.06,
-    )
-  );
+  const nodeIds = new Set(stageNodes.map((node) => node.id));
+  const incomingSameStage = new Map<string, string[]>();
+  const outgoingSameStage = new Map<string, string[]>();
+  const indegree = new Map(stageNodes.map((node) => [node.id, 0]));
+  const levelMap = new Map<string, number>();
+
+  edgeContexts.forEach((context) => {
+    if (!nodeIds.has(context.source.id) || !nodeIds.has(context.target.id)) {
+      return;
+    }
+
+    const outgoing = outgoingSameStage.get(context.source.id) ?? [];
+    outgoing.push(context.target.id);
+    outgoingSameStage.set(context.source.id, outgoing);
+
+    const incoming = incomingSameStage.get(context.target.id) ?? [];
+    incoming.push(context.source.id);
+    incomingSameStage.set(context.target.id, incoming);
+
+    indegree.set(context.target.id, (indegree.get(context.target.id) ?? 0) + 1);
+  });
+
+  const queue = stageNodes
+    .filter((node) => (indegree.get(node.id) ?? 0) === 0)
+    .sort((left, right) => left.label.localeCompare(right.label));
+  const processed = new Set<string>();
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    processed.add(current.id);
+    const currentLevel = levelMap.get(current.id) ?? 0;
+
+    (outgoingSameStage.get(current.id) ?? []).forEach((targetId) => {
+      levelMap.set(targetId, Math.max(levelMap.get(targetId) ?? 0, currentLevel + 1));
+      indegree.set(targetId, Math.max(0, (indegree.get(targetId) ?? 0) - 1));
+
+      if ((indegree.get(targetId) ?? 0) === 0) {
+        const targetNode = stageNodes.find((node) => node.id === targetId);
+
+        if (targetNode) {
+          queue.push(targetNode);
+          queue.sort((left, right) => left.label.localeCompare(right.label));
+        }
+      }
+    });
+  }
+
+  stageNodes
+    .filter((node) => !processed.has(node.id))
+    .sort((left, right) => left.label.localeCompare(right.label))
+    .forEach((node) => {
+      const predecessorLevels = (incomingSameStage.get(node.id) ?? [])
+        .map((predecessorId) => levelMap.get(predecessorId))
+        .filter((value): value is number => value !== undefined);
+      levelMap.set(
+        node.id,
+        predecessorLevels.length > 0 ? Math.max(...predecessorLevels) + 1 : 0,
+      );
+    });
+
+  return levelMap;
 }
 
-function getStageDepthScale(
-  slotCount: number,
-  clusterCount: number,
-  maxClusterLogicalWidth: number,
+function distributeCenters(
+  top: number,
+  bottom: number,
+  heights: number[],
 ) {
-  return (
-    1 +
-    Math.min(
-      0.82,
-      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 0.035 +
-        Math.max(0, clusterCount - 1) * 0.1 +
-        Math.max(0, maxClusterLogicalWidth - 2) * 0.08,
-    )
-  );
+  if (heights.length === 0) {
+    return [];
+  }
+
+  if (heights.length === 1) {
+    return [(top + bottom) / 2];
+  }
+
+  const availableHeight = bottom - top;
+  const contentHeight =
+    heights.reduce((sum, height) => sum + height, 0) +
+    MIN_VERTICAL_GAP * (heights.length - 1);
+  const extraHeight = Math.max(0, availableHeight - contentHeight);
+  const gap = MIN_VERTICAL_GAP + extraHeight / (heights.length - 1);
+  const centers: number[] = [];
+  let cursor = top;
+
+  heights.forEach((height, index) => {
+    cursor += height / 2;
+    centers.push(cursor);
+
+    if (index < heights.length - 1) {
+      cursor += height / 2 + gap;
+    }
+  });
+
+  return centers;
 }
 
-function getNodeFlowHint(
-  node: CircuitNode,
+function buildStageNodePlacements(
+  stageNodes: CircuitNode[],
+  stageX: number,
+  edgeContexts: CircuitPresentationEdgeContext[],
   incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
   outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-  normalizedAssignments: Map<string, number>,
 ) {
-  const predecessorHints = (incomingByNodeId.get(node.id) ?? [])
-    .filter((context) => context.source.stageIndex < node.stageIndex)
-    .map((context) => getConnectionHint(context, "target", normalizedAssignments));
+  const levelMap = buildStageLevelMap(stageNodes, edgeContexts);
+  const columnCount =
+    Math.max(0, ...stageNodes.map((node) => levelMap.get(node.id) ?? 0)) + 1;
+  const maxNodeWidth = stageNodes.reduce(
+    (maxWidth, node) => Math.max(maxWidth, getNodeSize(node).width),
+    148,
+  );
+  const columnStride = maxNodeWidth + STAGE_COLUMN_GAP;
+  const stageBounds = getStageNodeUsableBounds();
+  const frameCenterY = STAGE_FRAME_TOP + (PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING) / 2;
+  const draftNodes: StageLayoutNodeDraft[] = [];
+  const resolvedSortHints = new Map<string, number>();
+  const placementMap = new Map<string, StageNodePlacement>();
 
-  if (predecessorHints.length > 0) {
-    return predecessorHints.reduce((sum, value) => sum + value, 0) / predecessorHints.length;
+  stageNodes.forEach((node) => {
+    const size = getNodeSize(node);
+    draftNodes.push({
+      node,
+      visualKind: getNodeVisualKind(node),
+      width: size.width,
+      height: size.height,
+      level: levelMap.get(node.id) ?? 0,
+      sortHint: 0,
+    });
+  });
+
+  for (let level = 0; level < columnCount; level += 1) {
+    const levelNodes = draftNodes
+      .filter((draftNode) => draftNode.level === level)
+      .map((draftNode) => {
+        const hints: number[] = [];
+
+        (incomingByNodeId.get(draftNode.node.id) ?? []).forEach((context) => {
+          if (context.source.stageIndex === draftNode.node.stageIndex) {
+            const predecessorHint = resolvedSortHints.get(context.source.id);
+
+            if (predecessorHint !== undefined) {
+              hints.push(predecessorHint);
+            }
+            return;
+          }
+
+          hints.push(getConnectionSortHint(context, "target"));
+        });
+
+        (outgoingByNodeId.get(draftNode.node.id) ?? []).forEach((context) => {
+          if (context.target.stageIndex === draftNode.node.stageIndex) {
+            return;
+          }
+
+          hints.push(getConnectionSortHint(context, "source"));
+        });
+
+        hints.push(getNodeAnchorSortHint(draftNode.node));
+
+        return {
+          ...draftNode,
+          sortHint: average(hints),
+        };
+      })
+      .sort((left, right) => {
+        const sortDifference = left.sortHint - right.sortHint;
+
+        if (Math.abs(sortDifference) > 1e-6) {
+          return sortDifference;
+        }
+
+        return left.node.label.localeCompare(right.node.label);
+      });
+    const centers = distributeCenters(
+      stageBounds.top,
+      stageBounds.bottom,
+      levelNodes.map((draftNode) => draftNode.height),
+    );
+
+    levelNodes.forEach((draftNode, index) => {
+      const centerX =
+        stageX +
+        STAGE_SIDE_PADDING_X +
+        maxNodeWidth / 2 +
+        level * columnStride;
+      resolvedSortHints.set(draftNode.node.id, draftNode.sortHint);
+      placementMap.set(draftNode.node.id, {
+        ...draftNode,
+        x: centerX,
+        y: centers[index]!,
+        z: (centers[index]! - frameCenterY) / PRESENTATION_3D_Z_SCALE,
+      });
+    });
   }
 
-  const outgoingHints = (outgoingByNodeId.get(node.id) ?? [])
-    .filter((context) => context.target.stageIndex > node.stageIndex)
-    .map((context) => getConnectionHint(context, "source", normalizedAssignments));
+  return draftNodes.map((draftNode) => {
+    const placement = placementMap.get(draftNode.node.id);
 
-  if (outgoingHints.length > 0) {
-    return outgoingHints.reduce((sum, value) => sum + value, 0) / outgoingHints.length;
-  }
+    if (placement) {
+      return placement;
+    }
 
-  return DEFAULT_FLOW_HINT[getNodeVisualKind(node)];
+    return {
+      ...draftNode,
+      x: stageX + STAGE_SIDE_PADDING_X + maxNodeWidth / 2,
+      y: (stageBounds.top + stageBounds.bottom) / 2,
+      z: 0,
+    } satisfies StageNodePlacement;
+  });
 }
 
-function getNodeCrossAxisHint(
-  node: CircuitNode,
-  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
-  crossAxisAssignments: Map<string, number>,
-) {
-  const predecessorHints = (incomingByNodeId.get(node.id) ?? [])
-    .filter((context) => context.source.stageIndex < node.stageIndex)
-    .map((context) =>
-      getConnectionBandHint(context, "target", crossAxisAssignments),
-    );
+function getStageWidth(stageNodes: CircuitNode[], edgeContexts: CircuitPresentationEdgeContext[]) {
+  const levelMap = buildStageLevelMap(stageNodes, edgeContexts);
+  const columnCount =
+    Math.max(0, ...stageNodes.map((node) => levelMap.get(node.id) ?? 0)) + 1;
+  const maxNodeWidth = stageNodes.reduce(
+    (maxWidth, node) => Math.max(maxWidth, getNodeSize(node).width),
+    148,
+  );
 
-  if (predecessorHints.length > 0) {
-    return predecessorHints.reduce((sum, value) => sum + value, 0) / predecessorHints.length;
-  }
-
-  const outgoingHints = (outgoingByNodeId.get(node.id) ?? [])
-    .filter((context) => context.target.stageIndex > node.stageIndex)
-    .map((context) =>
-      getConnectionBandHint(context, "source", crossAxisAssignments),
-    );
-
-  if (outgoingHints.length > 0) {
-    return outgoingHints.reduce((sum, value) => sum + value, 0) / outgoingHints.length;
-  }
-
-  return 0;
+  return Math.max(
+    BASE_STAGE_WIDTH,
+    STAGE_SIDE_PADDING_X * 2 +
+      columnCount * maxNodeWidth +
+      Math.max(0, columnCount - 1) * STAGE_COLUMN_GAP,
+  );
 }
 
 export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentation {
-  const baseNodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
-  const edgeContexts = buildEdgeContexts(graph, baseNodeMap);
+  const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+  const edgeContexts = buildEdgeContexts(graph, nodeMap);
   const nodesByStage = new Map<number, CircuitNode[]>();
   const incomingByNodeId = new Map<string, CircuitPresentationEdgeContext[]>();
   const outgoingByNodeId = new Map<string, CircuitPresentationEdgeContext[]>();
+  const stageFrameHeight =
+    PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING;
+  const stageDepth = stageFrameHeight / PRESENTATION_3D_Z_SCALE + 2.2;
 
   graph.nodes.forEach((node) => {
     const current = nodesByStage.get(node.stageIndex) ?? [];
@@ -1108,337 +758,73 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
   });
 
   let currentStageX = STAGE_PADDING_X;
-  const stageDrafts: StageDraft[] = graph.stages.map((stage) => {
+  const stageDrafts = graph.stages.map((stage) => {
     const stageNodes = nodesByStage.get(stage.index) ?? [];
-    const widthClusterPlan = buildStageClusterPlan(
-      stageNodes.map((node) => ({
-        node,
-        xHint: getNodeFlowHint(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-          EMPTY_NORMALIZED_ASSIGNMENTS,
-        ),
-        crossAxisHint: getNodeCrossAxisHint(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-          EMPTY_CROSS_AXIS_ASSIGNMENTS,
-        ),
-        clusterKey: getNodeBranchGroupKey(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-        ),
-      })),
+    const stageEdgeContexts = edgeContexts.filter(
+      (context) =>
+        context.source.stageIndex === stage.index &&
+        context.target.stageIndex === stage.index,
     );
-    const slotCount = getStageSlotCount(
-      stageNodes,
-      incomingByNodeId,
-      outgoingByNodeId,
-    );
-    const maxNodeWidth = stageNodes.reduce((maxWidth, node) => {
-      return Math.max(maxWidth, getNodeSize(node).width);
-    }, 140);
-    const clusterCount = Math.max(1, widthClusterPlan.clusters.length);
-    const maxClusterLogicalWidth = widthClusterPlan.maxClusterLogicalWidth;
-    const sidePaddingX = getStageSidePaddingX(
-      stageNodes,
-      slotCount,
-      clusterCount,
-      maxClusterLogicalWidth,
-    );
-    const slotGap = getStageSlotGap(
-      slotCount,
-      clusterCount,
-      maxClusterLogicalWidth,
-    );
-    const framePadding = getStageFramePadding(
-      stageNodes,
-      slotCount,
-      clusterCount,
-      maxClusterLogicalWidth,
-    );
-    const crossAxisScale = getStageCrossAxisScale(
-      slotCount,
-      clusterCount,
-      maxClusterLogicalWidth,
-    );
-    const depthScale = getStageDepthScale(
-      slotCount,
-      clusterCount,
-      maxClusterLogicalWidth,
-    );
-    const width = Math.max(
-      BASE_STAGE_WIDTH,
-      sidePaddingX * 2 + maxNodeWidth + (slotCount - 1) * slotGap,
-    );
-    const draft = {
+    const width = getStageWidth(stageNodes, stageEdgeContexts);
+    const stageDraft = {
       index: stage.index,
       label: stage.label,
       x: currentStageX,
       width,
-      slotCount,
-      slotHints: getStageSlotHints(slotCount),
-      slotCenters: getStageSlotCenters(
-        currentStageX,
-        width,
-        slotCount,
-        maxNodeWidth,
-        sidePaddingX,
-      ),
-      clusterCount,
-      maxClusterLogicalWidth,
-      sidePaddingX,
-      slotGap,
-      framePaddingX: framePadding.x,
-      framePaddingTop: framePadding.top,
-      framePaddingBottom: framePadding.bottom,
-      crossAxisScale,
-      depthScale,
-    } satisfies StageDraft;
+      z: 0,
+      depth: stageDepth,
+      framePaddingX: STAGE_FRAME_PADDING_X,
+      framePaddingTop: STAGE_FRAME_PADDING_TOP,
+      framePaddingBottom: STAGE_FRAME_PADDING_BOTTOM,
+    } satisfies CircuitPresentationStage;
 
     currentStageX += width + BASE_STAGE_GAP;
 
-    return draft;
+    return stageDraft;
   });
 
   const stageMap = new Map(stageDrafts.map((stage) => [stage.index, stage]));
-  const normalizedAssignments = new Map<string, number>();
-  const crossAxisAssignments = new Map<string, number>();
-  const groupDepthAssignments = new Map<string, number>();
-  const slotAssignments = new Map<string, number>();
-  const stageDefaultDepthBaseMap = new Map(
-    graph.stages.map((stage) => [
-      stage.index,
-      getStageDefaultDepthBase(nodesByStage.get(stage.index) ?? []),
-    ]),
-  );
-  const stageDepthBaseMap = buildStageDepthBaseMap(
-    graph.stages,
-    nodesByStage,
-    incomingByNodeId,
-  );
+  const stagePlacementsByNodeId = new Map<string, StageNodePlacement>();
 
   graph.stages.forEach((stage) => {
-    const stageNodes = nodesByStage.get(stage.index) ?? [];
     const stageDraft = stageMap.get(stage.index);
-
-    if (!stageDraft) {
-      return;
-    }
-
-    const orderedNodes = stageNodes
-      .map((node) => ({
-        node,
-        xHint: getNodeFlowHint(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-          normalizedAssignments,
-        ),
-        crossAxisHint: getNodeCrossAxisHint(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-          crossAxisAssignments,
-        ),
-        clusterKey: getNodeBranchGroupKey(
-          node,
-          incomingByNodeId,
-          outgoingByNodeId,
-        ),
-      }))
-      .sort((left, right) => {
-        const hintDifference = left.xHint - right.xHint;
-
-        if (Math.abs(hintDifference) > 1e-6) {
-          return hintDifference;
-        }
-
-        const crossAxisDifference = left.crossAxisHint - right.crossAxisHint;
-
-        if (Math.abs(crossAxisDifference) > 1e-6) {
-          return crossAxisDifference;
-        }
-
-        return (
-          LANE_ORDER.indexOf(getNodeVisualKind(left.node)) -
-            LANE_ORDER.indexOf(getNodeVisualKind(right.node)) ||
-          left.node.label.localeCompare(right.node.label)
-        );
-      });
-    const clusterPlan = buildStageClusterPlan(orderedNodes);
-    const logicalSlotIndices = getDistributedSlotIndices(
-      stageDraft.slotCount,
-      clusterPlan.totalLogicalPositions,
+    const stageNodes = nodesByStage.get(stage.index) ?? [];
+    const stageEdgeContexts = edgeContexts.filter(
+      (context) =>
+        context.source.stageIndex === stage.index &&
+        context.target.stageIndex === stage.index,
     );
-    let logicalPositionIndex = 0;
+    const placements = buildStageNodePlacements(
+      stageNodes,
+      stageDraft?.x ?? STAGE_PADDING_X,
+      stageEdgeContexts,
+      incomingByNodeId,
+      outgoingByNodeId,
+    );
 
-    clusterPlan.clusters.forEach((cluster, clusterIndex) => {
-      const clusterNodes = orderedNodes.filter(
-        (entry) => entry.clusterKey === cluster.key,
-      );
-      const clusterSlotWindow = logicalSlotIndices.slice(
-        logicalPositionIndex,
-        logicalPositionIndex + cluster.logicalWidthUnits,
-      );
-      const clusterWindowMargin =
-        clusterPlan.clusters.length > 1
-          ? Math.min(
-              1,
-              Math.floor(
-                Math.max(
-                  0,
-                  clusterSlotWindow.length - clusterNodes.length,
-                ) / 2,
-              ),
-            )
-          : 0;
-      const usableClusterWindow =
-        clusterWindowMargin > 0
-          ? clusterSlotWindow.slice(
-              clusterWindowMargin,
-              clusterSlotWindow.length - clusterWindowMargin,
-            )
-          : clusterSlotWindow;
-      const clusterLocalSlots =
-        usableClusterWindow.length > 0
-          ? getDistributedSlotIndices(
-              usableClusterWindow.length,
-              clusterNodes.length,
-            ).map((slotIndex) => usableClusterWindow[slotIndex]!)
-          : [];
-      const normalizedGroupDepthHint =
-        clusterPlan.enablesGroupDepthZoning && clusterPlan.clusters.length > 1
-          ? (clusterIndex / (clusterPlan.clusters.length - 1)) * 2 - 1
-          : 0;
-
-      clusterNodes.forEach(({ node, xHint, crossAxisHint }, memberIndex) => {
-        const slotIndex =
-          clusterLocalSlots[memberIndex] ??
-          Math.floor((stageDraft.slotCount - 1) / 2);
-        const assignedHint =
-          stageDraft.slotHints[slotIndex]! * 0.62 + clamp(xHint, 0, 1) * 0.38;
-
-        slotAssignments.set(node.id, slotIndex);
-        normalizedAssignments.set(node.id, clamp(assignedHint, 0, 1));
-        crossAxisAssignments.set(node.id, clamp(crossAxisHint, -1, 1));
-        groupDepthAssignments.set(node.id, normalizedGroupDepthHint);
-      });
-
-      logicalPositionIndex += cluster.logicalWidthUnits;
-
-      if (clusterIndex < clusterPlan.clusters.length - 1) {
-        logicalPositionIndex += clusterPlan.interClusterGapUnits;
-      }
+    placements.forEach((placement) => {
+      stagePlacementsByNodeId.set(placement.node.id, placement);
     });
   });
 
   const nodes = graph.nodes.map((node) => {
-    const visualKind = getNodeVisualKind(node);
-    const nodeSize = getNodeSize(node);
-    const stage = stageMap.get(node.stageIndex);
-    const laneCenterY = getLaneCenterY(visualKind);
-    const slotIndex =
-      slotAssignments.get(node.id) ?? Math.floor((stage?.slotCount ?? 1) / 2);
-    const assignedHint =
-      normalizedAssignments.get(node.id) ?? DEFAULT_FLOW_HINT[visualKind];
-    const crossAxisHint = crossAxisAssignments.get(node.id) ?? 0;
-    const groupDepthHint = groupDepthAssignments.get(node.id) ?? 0;
-    const slotCenterX =
-      stage?.slotCenters[slotIndex] ??
-      (stage?.x ?? STAGE_PADDING_X) + (stage?.width ?? BASE_STAGE_WIDTH) / 2;
-    const laneConfig = LANE_CONFIG[visualKind];
-    const stageNodeCount = nodesByStage.get(node.stageIndex)?.length ?? 1;
-    const crossAxisScale = stage?.crossAxisScale ?? 1;
-    const depthScale = stage?.depthScale ?? 1;
-    const yOffset =
-      stageNodeCount > 1
-        ? crossAxisHint * laneConfig.crossYOffset * crossAxisScale
-        : 0;
-    const yTopBound = STAGE_FRAME_TOP + nodeSize.height / 2 + 46;
-    const yBottomBound =
-      PRESENTATION_HEIGHT -
-      STAGE_FRAME_BOTTOM_PADDING -
-      nodeSize.height / 2 -
-      42;
-    const stageDefaultDepthBase =
-      stageDefaultDepthBaseMap.get(node.stageIndex) ?? laneConfig.z;
-    const stageDepthBase = stageDepthBaseMap.get(node.stageIndex) ?? stageDefaultDepthBase;
-    const visualKindDepthOffset =
-      (laneConfig.z - stageDefaultDepthBase) * STAGE_DEPTH_KIND_OFFSET_SCALE;
+    const placement = stagePlacementsByNodeId.get(node.id)!;
 
     return {
       ...node,
-      visualKind,
-      x: slotCenterX,
-      y: clamp(laneCenterY + yOffset, yTopBound, yBottomBound),
-      z:
-        stageDepthBase +
-        visualKindDepthOffset +
-        groupDepthHint * laneConfig.groupDepthSpan * depthScale +
-        crossAxisHint * laneConfig.crossDepthSpan * depthScale +
-        (assignedHint - 0.5) * laneConfig.orderingDepthSpan,
-      width: nodeSize.width,
-      height: nodeSize.height,
+      visualKind: placement.visualKind,
+      x: placement.x,
+      y: placement.y,
+      z: placement.z,
+      width: placement.width,
+      height: placement.height,
     } satisfies CircuitPresentationNode;
   });
 
-  const stageDepthByIndex = new Map<number, { z: number; depth: number }>();
-
-  graph.stages.forEach((stage) => {
-    const memberNodes = nodes.filter((node) => node.stageIndex === stage.index);
-    const stageDraft = stageMap.get(stage.index);
-
-    if (memberNodes.length === 0) {
-      stageDepthByIndex.set(stage.index, {
-        z: 3.6,
-        depth: stageDraft ? getStageMinimumDepth(stageDraft) : 18.8,
-      });
-      return;
-    }
-
-    const minZ = Math.min(
-      ...memberNodes.map((node) => node.z - getNodeDepthEnvelope(node)),
-    );
-    const maxZ = Math.max(
-      ...memberNodes.map((node) => node.z + getNodeDepthEnvelope(node)),
-    );
-
-    stageDepthByIndex.set(stage.index, {
-      z: (minZ + maxZ) / 2,
-        depth: Math.max(
-          stageDraft ? getStageMinimumDepth(stageDraft) : 18.8,
-          maxZ -
-            minZ +
-            getStageDepthPadding(
-              stageDraft ?? {
-                slotCount: 3,
-                clusterCount: 1,
-                maxClusterLogicalWidth: 1,
-              },
-            ),
-        ),
-      });
-  });
-
-  const stages = stageDrafts.map((stage) => ({
-    index: stage.index,
-    label: stage.label,
-    x: stage.x,
-    width: stage.width,
-    z: stageDepthByIndex.get(stage.index)?.z ?? 3.6,
-    depth: stageDepthByIndex.get(stage.index)?.depth ?? 18.8,
-    framePaddingX: stage.framePaddingX,
-    framePaddingTop: stage.framePaddingTop,
-    framePaddingBottom: stage.framePaddingBottom,
-  }));
-
-  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const presentationNodeMap = new Map(nodes.map((node) => [node.id, node]));
   const edges = edgeContexts.map((context) => {
-    const source = nodeMap.get(context.source.id)!;
-    const target = nodeMap.get(context.target.id)!;
+    const source = presentationNodeMap.get(context.source.id)!;
+    const target = presentationNodeMap.get(context.target.id)!;
     const sourcePoint = getPresentationAnchorPoint(
       source,
       context.sourceAnchor,
@@ -1478,16 +864,15 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
 
   return {
     width:
-      (stages[stages.length - 1]?.x ?? STAGE_PADDING_X) +
-      (stages[stages.length - 1]?.width ?? BASE_STAGE_WIDTH) +
+      (stageDrafts[stageDrafts.length - 1]?.x ?? STAGE_PADDING_X) +
+      (stageDrafts[stageDrafts.length - 1]?.width ?? BASE_STAGE_WIDTH) +
       STAGE_PADDING_X,
     height: PRESENTATION_HEIGHT,
     stageFrameTop: STAGE_FRAME_TOP,
-    stageFrameHeight:
-      PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING,
+    stageFrameHeight,
     stageLabelY: STAGE_LABEL_Y,
     footnoteY: FOOTNOTE_Y,
-    stages,
+    stages: stageDrafts,
     nodes,
     edges,
   };
@@ -1500,7 +885,7 @@ export function getPresentationStageFootprint3d(
     x: (stage.x + stage.width / 2) / PRESENTATION_3D_X_SCALE,
     y: STAGE_FOOTPRINT_3D_HEIGHT / 2,
     z: stage.z,
-    width: Math.max(4.4, stage.width / PRESENTATION_3D_X_SCALE - 0.64),
+    width: Math.max(4.4, stage.width / PRESENTATION_3D_X_SCALE - 0.16),
     height: STAGE_FOOTPRINT_3D_HEIGHT,
     depth: stage.depth,
   };
