@@ -227,11 +227,6 @@ export function LiveWorkspace({
       <aside className="panel">
         <div className="section-label">Current runtime object</div>
         <h3>{selectedSummary?.displayName ?? currentBelt.displayName}</h3>
-        <p className="muted-text">
-          {selectedObjectIsBelt
-            ? "This selection is reading a current dense belt snapshot with ordered block content from the live runtime cache."
-            : "This selection is reading the current object summary only. Live belt strips apply only to transport objects on this route."}
-        </p>
         <MetricGrid
           metrics={[
             {

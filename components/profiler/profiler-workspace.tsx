@@ -475,10 +475,6 @@ export function ProfilerWorkspace({
         <h3>
           {selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"}
         </h3>
-        <p className="muted-text">
-          Profiler content is historical and aggregated. It replays reduced-resolution
-          snapshots through time instead of exposing the dense current state.
-        </p>
         <MetricGrid
           metrics={[
             {

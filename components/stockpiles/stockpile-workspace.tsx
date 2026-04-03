@@ -494,11 +494,6 @@ export function StockpileWorkspace({
       <aside className="panel">
         <div className="section-label">Dense current pile state</div>
         <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
-        <p className="muted-text">
-          {dataset
-            ? "This route reads the current dense pile inventory, including occupied cells or voxels plus configured feed and reclaim geometry."
-            : "Dense pile content is requested after selection so the route can mount without preloading the full voxel table."}
-        </p>
         <MetricGrid
           metrics={[
             { label: "Mass", value: dataset ? formatMassTon(totalMass) : "Pending" },
