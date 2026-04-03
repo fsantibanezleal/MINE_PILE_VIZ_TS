@@ -48,6 +48,24 @@ interface VoxelInstancesProps {
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
 }
 
+function getCameraPlacement(extents: { x: number; y: number; z: number }) {
+  const direction = new THREE.Vector3(1, 0.72, 1).normalize();
+  const radius = Math.max(
+    Math.sqrt(extents.x ** 2 + extents.y ** 2 + extents.z ** 2) * 0.5,
+    1,
+  );
+  const fov = 42;
+  const fitDistance = radius / Math.sin(THREE.MathUtils.degToRad(fov * 0.5));
+  const distance = fitDistance * 1.08;
+
+  return {
+    fov,
+    radius,
+    distance,
+    position: direction.multiplyScalar(distance).toArray() as [number, number, number],
+  };
+}
+
 function VoxelInstances({
   cells,
   extents,
@@ -94,6 +112,12 @@ function VoxelInstances({
     if (mesh.instanceColor) {
       mesh.instanceColor.needsUpdate = true;
     }
+    if (typeof mesh.computeBoundingBox === "function") {
+      mesh.computeBoundingBox();
+    }
+    if (typeof mesh.computeBoundingSphere === "function") {
+      mesh.computeBoundingSphere();
+    }
     if (Array.isArray(mesh.material)) {
       mesh.material.forEach((material) => {
         material.needsUpdate = true;
@@ -108,6 +132,7 @@ function VoxelInstances({
     <instancedMesh
       ref={ref}
       args={[undefined, undefined, cells.length]}
+      frustumCulled={false}
       onPointerMove={(event: ThreeEvent<PointerEvent>) => {
         if (event.instanceId === undefined) {
           onHoverCellChange?.(null);
@@ -118,11 +143,10 @@ function VoxelInstances({
       }}
       onPointerOut={() => onHoverCellChange?.(null)}
     >
-      <boxGeometry args={[0.92, 0.92, 0.92]} />
+      <boxGeometry args={[0.98, 0.98, 0.98]} />
       <meshBasicMaterial
         vertexColors
-        transparent
-        opacity={0.98}
+        opacity={1}
         toneMapped={false}
       />
     </instancedMesh>
@@ -158,8 +182,9 @@ export function Pile3DCanvas({
     );
   }
 
-  const cameraDistance = Math.max(extents.x, extents.y, extents.z) * 1.5;
   const palette = getThemeCanvasPalette(theme);
+  const camera = getCameraPlacement(extents);
+  const sceneGridSize = Math.max(extents.x, extents.y) + 8;
 
   return (
     <div className="pile-canvas">
@@ -168,23 +193,22 @@ export function Pile3DCanvas({
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         camera={{
-          position: [cameraDistance, cameraDistance * 0.8, cameraDistance],
-          fov: 45,
+          position: camera.position,
+          fov: camera.fov,
           near: 0.1,
-          far: cameraDistance * 12,
+          far: camera.distance * 8,
         }}
       >
         <color attach="background" args={[palette.sceneBackground]} />
         <gridHelper
           args={[
-            Math.max(extents.x, extents.y) + 8,
-            Math.max(extents.x, extents.y) + 8,
+            sceneGridSize,
+            sceneGridSize,
             palette.sceneGridMajor,
             palette.sceneGridMinor,
           ]}
           position={[0, -extents.z / 2 - 0.1, 0]}
         />
-        <axesHelper args={[Math.max(extents.x, extents.y, extents.z) * 0.5 + 2]} />
         <VoxelInstances
           cells={cells}
           extents={extents}
@@ -192,7 +216,13 @@ export function Pile3DCanvas({
           numericDomain={numericDomain}
           onHoverCellChange={onHoverCellChange}
         />
-        <OrbitControls makeDefault enableDamping />
+        <OrbitControls
+          makeDefault
+          enableDamping
+          target={[0, 0, 0]}
+          minDistance={Math.max(camera.radius * 0.65, 4)}
+          maxDistance={camera.distance * 3}
+        />
       </Canvas>
     </div>
   );
