@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.047`
-- Active tracked version: `0.01.048`
+- Closed release baseline: `0.01.048`
+- Active tracked version: `0.01.049`
 
 ## Release History
+
+### 0.01.049
+
+- Reworked the circuit presentation layout so stage widths expand from node/fanout demand instead of using one fixed width for every stage.
+- Replaced the old visual-kind lane indexing with a flow-aware stage placement pass that uses graph sequence and anchor hints to spread downstream branches more coherently.
+- Fed the new stage depth back into the `3D` illustration so stage boxes and ground extents follow the actual node spread instead of one fixed depth strip.
 
 ### 0.01.048
 

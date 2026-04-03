@@ -11,6 +11,8 @@ export interface CircuitPresentationStage {
   label: string;
   x: number;
   width: number;
+  z: number;
+  depth: number;
 }
 
 export interface CircuitPresentationStageFootprint3d {
@@ -63,18 +65,39 @@ export interface CircuitPresentation {
   edges: CircuitPresentationEdge[];
 }
 
-const STAGE_WIDTH = 320;
-const STAGE_GAP = 300;
+interface CircuitPresentationEdgeContext {
+  edge: CircuitGraph["edges"][number];
+  source: CircuitNode;
+  target: CircuitNode;
+  sourceAnchor?: GraphAnchor;
+  targetAnchor?: GraphAnchor;
+}
+
+interface StageDraft {
+  index: number;
+  label: string;
+  x: number;
+  width: number;
+  slotCount: number;
+  slotHints: number[];
+  slotCenters: number[];
+}
+
+const BASE_STAGE_WIDTH = 360;
+const BASE_STAGE_GAP = 240;
 const STAGE_PADDING_X = 96;
+const STAGE_SIDE_PADDING_X = 74;
+const STAGE_SLOT_GAP = 124;
+const STAGE_SLOT_MIN_NORMALIZED = 0.18;
+const STAGE_SLOT_MAX_NORMALIZED = 0.82;
+const STAGE_MIN_SLOT_COUNT = 3;
 const PRESENTATION_HEIGHT = 780;
 const STAGE_FRAME_TOP = 26;
 const STAGE_FRAME_BOTTOM_PADDING = 86;
 const STAGE_LABEL_Y = 72;
 const FOOTNOTE_Y = PRESENTATION_HEIGHT - 28;
 const PRESENTATION_3D_X_SCALE = 26;
-const STAGE_FOOTPRINT_3D_Z = 3.6;
-const STAGE_FOOTPRINT_3D_HEIGHT = 0.18;
-const STAGE_FOOTPRINT_3D_DEPTH = 18.8;
+const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
 const LANE_TOP = 178;
 const LANE_BOTTOM = 654;
 const LANE_ORDER: CircuitPresentationVisualKind[] = [
@@ -91,35 +114,32 @@ const LANE_CONFIG: Record<
   CircuitPresentationVisualKind,
   {
     z: number;
-    xBias: number;
-    yGap: number;
-    xGap: number;
+    branchDepthSpan: number;
   }
 > = {
   "physical-belt": {
     z: -2.8,
-    xBias: -28,
-    yGap: 96,
-    xGap: 88,
+    branchDepthSpan: 2.2,
   },
   "physical-pile": {
     z: 1.8,
-    xBias: 36,
-    yGap: 104,
-    xGap: 102,
+    branchDepthSpan: 3.2,
   },
   "virtual-belt": {
     z: 7.6,
-    xBias: -16,
-    yGap: 92,
-    xGap: 84,
+    branchDepthSpan: 4.8,
   },
   "virtual-pile": {
     z: 11.2,
-    xBias: 26,
-    yGap: 98,
-    xGap: 92,
+    branchDepthSpan: 5.4,
   },
+};
+
+const DEFAULT_FLOW_HINT: Record<CircuitPresentationVisualKind, number> = {
+  "physical-belt": 0.28,
+  "physical-pile": 0.5,
+  "virtual-belt": 0.64,
+  "virtual-pile": 0.72,
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -151,15 +171,17 @@ function getNodeSize(node: CircuitNode) {
   }
 }
 
-function distributeAround(count: number, center: number, gap: number) {
-  if (count <= 1) {
-    return [center];
+function getNodeDepthEnvelope(node: Pick<CircuitPresentationNode, "visualKind">) {
+  switch (node.visualKind) {
+    case "physical-pile":
+      return 3.8;
+    case "virtual-pile":
+      return 2.8;
+    case "virtual-belt":
+      return 2.4;
+    default:
+      return 1.9;
   }
-
-  const totalSpan = (count - 1) * gap;
-  const start = center - totalSpan / 2;
-
-  return Array.from({ length: count }, (_, index) => start + index * gap);
 }
 
 function getLaneCenterY(visualKind: CircuitPresentationVisualKind) {
@@ -219,19 +241,28 @@ function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
 
     return (
       PILE_ANCHOR_MIN_X +
-      ((PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) * index) / (orderedAnchors.length - 1)
+      ((PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) * index) /
+        (orderedAnchors.length - 1)
     );
   });
   const minimumGap = Math.min(
     0.14,
-    (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) / Math.max(orderedAnchors.length + 1, 4),
+    (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X) /
+      Math.max(orderedAnchors.length + 1, 4),
   );
   const positions = orderedAnchors.map((entry, index) =>
-    clamp(entry.normalizedX * 0.72 + evenlySpaced[index]! * 0.28, PILE_ANCHOR_MIN_X, PILE_ANCHOR_MAX_X),
+    clamp(
+      entry.normalizedX * 0.72 + evenlySpaced[index]! * 0.28,
+      PILE_ANCHOR_MIN_X,
+      PILE_ANCHOR_MAX_X,
+    ),
   );
 
   for (let index = 1; index < positions.length; index += 1) {
-    positions[index] = Math.max(positions[index]!, positions[index - 1]! + minimumGap);
+    positions[index] = Math.max(
+      positions[index]!,
+      positions[index - 1]! + minimumGap,
+    );
   }
 
   const overflow = positions[positions.length - 1]! - PILE_ANCHOR_MAX_X;
@@ -243,7 +274,10 @@ function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
   }
 
   for (let index = positions.length - 2; index >= 0; index -= 1) {
-    positions[index] = Math.min(positions[index]!, positions[index + 1]! - minimumGap);
+    positions[index] = Math.min(
+      positions[index]!,
+      positions[index + 1]! - minimumGap,
+    );
   }
 
   const underflow = PILE_ANCHOR_MIN_X - positions[0]!;
@@ -418,16 +452,181 @@ function pickRelatedAnchor(
   return candidates[Math.min(occurrenceIndex, candidates.length - 1)];
 }
 
-export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentation {
-  const stages = graph.stages.map((stage, index) => ({
-    index: stage.index,
-    label: stage.label,
-    x: STAGE_PADDING_X + index * STAGE_GAP,
-    width: STAGE_WIDTH,
-  }));
+function buildEdgeContexts(
+  graph: CircuitGraph,
+  nodeMap: Map<string, CircuitNode>,
+) {
+  const pairOccurrences = new Map<string, number>();
 
-  const stageMap = new Map(stages.map((stage) => [stage.index, stage]));
+  return graph.edges.flatMap((edge) => {
+    const source = nodeMap.get(edge.source);
+    const target = nodeMap.get(edge.target);
+
+    if (!source || !target) {
+      return [];
+    }
+
+    const pairKey = `${source.id}->${target.id}`;
+    const occurrenceIndex = pairOccurrences.get(pairKey) ?? 0;
+    pairOccurrences.set(pairKey, occurrenceIndex + 1);
+
+    return [
+      {
+        edge,
+        source,
+        target,
+        sourceAnchor: pickRelatedAnchor(
+          source.outputs,
+          target.objectId,
+          occurrenceIndex,
+        ),
+        targetAnchor: pickRelatedAnchor(
+          target.inputs,
+          source.objectId,
+          occurrenceIndex,
+        ),
+      } satisfies CircuitPresentationEdgeContext,
+    ];
+  });
+}
+
+function getStageSlotHints(slotCount: number) {
+  if (slotCount <= 1) {
+    return [0.5];
+  }
+
+  return Array.from({ length: slotCount }, (_, index) => {
+    return (
+      STAGE_SLOT_MIN_NORMALIZED +
+      ((STAGE_SLOT_MAX_NORMALIZED - STAGE_SLOT_MIN_NORMALIZED) * index) /
+        (slotCount - 1)
+    );
+  });
+}
+
+function getStageSlotCenters(
+  stageX: number,
+  stageWidth: number,
+  slotCount: number,
+  maxNodeWidth: number,
+) {
+  if (slotCount <= 1) {
+    return [stageX + stageWidth / 2];
+  }
+
+  const left = stageX + STAGE_SIDE_PADDING_X + maxNodeWidth / 2;
+  const right = stageX + stageWidth - STAGE_SIDE_PADDING_X - maxNodeWidth / 2;
+
+  return Array.from({ length: slotCount }, (_, index) => {
+    return left + ((right - left) * index) / (slotCount - 1);
+  });
+}
+
+function getNearestFreeSlotIndex(
+  desiredHint: number,
+  slotHints: number[],
+  takenSlots: Set<number>,
+) {
+  const desiredIndex = slotHints.reduce((bestIndex, currentHint, index) => {
+    const bestDistance = Math.abs(slotHints[bestIndex]! - desiredHint);
+    const currentDistance = Math.abs(currentHint - desiredHint);
+    return currentDistance < bestDistance ? index : bestIndex;
+  }, 0);
+
+  for (let radius = 0; radius < slotHints.length; radius += 1) {
+    const left = desiredIndex - radius;
+    const right = desiredIndex + radius;
+
+    if (left >= 0 && !takenSlots.has(left)) {
+      return left;
+    }
+
+    if (right < slotHints.length && !takenSlots.has(right)) {
+      return right;
+    }
+  }
+
+  return desiredIndex;
+}
+
+function getConnectionHint(
+  context: CircuitPresentationEdgeContext,
+  direction: "source" | "target",
+  normalizedAssignments: Map<string, number>,
+) {
+  const sourceVisualKind = getNodeVisualKind(context.source);
+  const targetVisualKind = getNodeVisualKind(context.target);
+
+  if (sourceVisualKind === "physical-pile" && context.sourceAnchor) {
+    return getNormalizedPileAnchorX(context.sourceAnchor);
+  }
+
+  if (targetVisualKind === "physical-pile" && context.targetAnchor) {
+    return getNormalizedPileAnchorX(context.targetAnchor);
+  }
+
+  if (direction === "target") {
+    return (
+      normalizedAssignments.get(context.source.id) ??
+      DEFAULT_FLOW_HINT[sourceVisualKind]
+    );
+  }
+
+  return (
+    normalizedAssignments.get(context.target.id) ??
+    DEFAULT_FLOW_HINT[targetVisualKind]
+  );
+}
+
+function getStageSlotCount(
+  nodes: CircuitNode[],
+  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+) {
+  const fanoutDemand = nodes.reduce((maxDemand, node) => {
+    return Math.max(
+      maxDemand,
+      node.inputs.length + 1,
+      node.outputs.length + 1,
+      (incomingByNodeId.get(node.id)?.length ?? 0) + 1,
+      (outgoingByNodeId.get(node.id)?.length ?? 0) + 1,
+    );
+  }, 0);
+
+  return Math.max(STAGE_MIN_SLOT_COUNT, nodes.length, fanoutDemand);
+}
+
+function getNodeFlowHint(
+  node: CircuitNode,
+  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  normalizedAssignments: Map<string, number>,
+) {
+  const predecessorHints = (incomingByNodeId.get(node.id) ?? [])
+    .filter((context) => context.source.stageIndex < node.stageIndex)
+    .map((context) => getConnectionHint(context, "target", normalizedAssignments));
+
+  if (predecessorHints.length > 0) {
+    return predecessorHints.reduce((sum, value) => sum + value, 0) / predecessorHints.length;
+  }
+
+  const outgoingHints = (outgoingByNodeId.get(node.id) ?? [])
+    .filter((context) => context.target.stageIndex > node.stageIndex)
+    .map((context) => getConnectionHint(context, "source", normalizedAssignments));
+
+  if (outgoingHints.length > 0) {
+    return outgoingHints.reduce((sum, value) => sum + value, 0) / outgoingHints.length;
+  }
+
+  return DEFAULT_FLOW_HINT[getNodeVisualKind(node)];
+}
+
+export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentation {
+  const baseNodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+  const edgeContexts = buildEdgeContexts(graph, baseNodeMap);
   const nodesByStage = new Map<number, CircuitNode[]>();
+  const incomingByNodeId = new Map<string, CircuitPresentationEdgeContext[]>();
+  const outgoingByNodeId = new Map<string, CircuitPresentationEdgeContext[]>();
 
   graph.nodes.forEach((node) => {
     const current = nodesByStage.get(node.stageIndex) ?? [];
@@ -435,84 +634,210 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     nodesByStage.set(node.stageIndex, current);
   });
 
-  const nodes = graph.nodes.map((node) => {
-    const stageNodes = nodesByStage.get(node.stageIndex) ?? [];
-    const visualKind = getNodeVisualKind(node);
-    const laneNodes = stageNodes.filter(
-      (entry) => getNodeVisualKind(entry) === visualKind,
+  edgeContexts.forEach((context) => {
+    const incoming = incomingByNodeId.get(context.target.id) ?? [];
+    incoming.push(context);
+    incomingByNodeId.set(context.target.id, incoming);
+
+    const outgoing = outgoingByNodeId.get(context.source.id) ?? [];
+    outgoing.push(context);
+    outgoingByNodeId.set(context.source.id, outgoing);
+  });
+
+  let currentStageX = STAGE_PADDING_X;
+  const stageDrafts: StageDraft[] = graph.stages.map((stage) => {
+    const stageNodes = nodesByStage.get(stage.index) ?? [];
+    const slotCount = getStageSlotCount(
+      stageNodes,
+      incomingByNodeId,
+      outgoingByNodeId,
     );
+    const maxNodeWidth = stageNodes.reduce((maxWidth, node) => {
+      return Math.max(maxWidth, getNodeSize(node).width);
+    }, 140);
+    const width = Math.max(
+      BASE_STAGE_WIDTH,
+      STAGE_SIDE_PADDING_X * 2 + maxNodeWidth + (slotCount - 1) * STAGE_SLOT_GAP,
+    );
+    const draft = {
+      index: stage.index,
+      label: stage.label,
+      x: currentStageX,
+      width,
+      slotCount,
+      slotHints: getStageSlotHints(slotCount),
+      slotCenters: getStageSlotCenters(
+        currentStageX,
+        width,
+        slotCount,
+        maxNodeWidth,
+      ),
+    } satisfies StageDraft;
+
+    currentStageX += width + BASE_STAGE_GAP;
+
+    return draft;
+  });
+
+  const stageMap = new Map(stageDrafts.map((stage) => [stage.index, stage]));
+  const normalizedAssignments = new Map<string, number>();
+  const slotAssignments = new Map<string, number>();
+
+  graph.stages.forEach((stage) => {
+    const stageNodes = nodesByStage.get(stage.index) ?? [];
+    const stageDraft = stageMap.get(stage.index);
+
+    if (!stageDraft) {
+      return;
+    }
+
+    const orderedNodes = stageNodes
+      .map((node) => ({
+        node,
+        hint: getNodeFlowHint(
+          node,
+          incomingByNodeId,
+          outgoingByNodeId,
+          normalizedAssignments,
+        ),
+      }))
+      .sort((left, right) => {
+        const hintDifference = left.hint - right.hint;
+
+        if (Math.abs(hintDifference) > 1e-6) {
+          return hintDifference;
+        }
+
+        return (
+          LANE_ORDER.indexOf(getNodeVisualKind(left.node)) -
+            LANE_ORDER.indexOf(getNodeVisualKind(right.node)) ||
+          left.node.label.localeCompare(right.node.label)
+        );
+      });
+    const takenSlots = new Set<number>();
+
+    orderedNodes.forEach(({ node, hint }) => {
+      const slotIndex = getNearestFreeSlotIndex(
+        hint,
+        stageDraft.slotHints,
+        takenSlots,
+      );
+      const assignedHint =
+        stageDraft.slotHints[slotIndex]! * 0.72 + clamp(hint, 0, 1) * 0.28;
+
+      takenSlots.add(slotIndex);
+      slotAssignments.set(node.id, slotIndex);
+      normalizedAssignments.set(node.id, clamp(assignedHint, 0, 1));
+    });
+  });
+
+  const nodes = graph.nodes.map((node) => {
+    const visualKind = getNodeVisualKind(node);
     const nodeSize = getNodeSize(node);
     const stage = stageMap.get(node.stageIndex);
-    const laneConfig = LANE_CONFIG[visualKind];
     const laneCenterY = getLaneCenterY(visualKind);
-    const laneIndex = Math.max(
-      0,
-      laneNodes.findIndex((entry) => entry.id === node.id),
-    );
-    const baseCenterX =
-      (stage?.x ?? STAGE_PADDING_X) + STAGE_WIDTH / 2 + laneConfig.xBias;
-    const xPositions = distributeAround(laneNodes.length, baseCenterX, laneConfig.xGap);
-    const yPositions = distributeAround(
-      laneNodes.length,
-      laneCenterY,
-      laneConfig.yGap,
-    );
+    const slotIndex =
+      slotAssignments.get(node.id) ?? Math.floor((stage?.slotCount ?? 1) / 2);
+    const assignedHint =
+      normalizedAssignments.get(node.id) ?? DEFAULT_FLOW_HINT[visualKind];
+    const slotCenterX =
+      stage?.slotCenters[slotIndex] ??
+      (stage?.x ?? STAGE_PADDING_X) + (stage?.width ?? BASE_STAGE_WIDTH) / 2;
+    const laneConfig = LANE_CONFIG[visualKind];
 
     return {
       ...node,
       visualKind,
-      x: xPositions[laneIndex] ?? baseCenterX,
-      y: yPositions[laneIndex] ?? laneCenterY,
-      z: laneConfig.z,
+      x: slotCenterX,
+      y: laneCenterY,
+      z: laneConfig.z + (assignedHint - 0.5) * laneConfig.branchDepthSpan,
       width: nodeSize.width,
       height: nodeSize.height,
     } satisfies CircuitPresentationNode;
   });
 
+  const stageDepthByIndex = new Map<number, { z: number; depth: number }>();
+
+  graph.stages.forEach((stage) => {
+    const memberNodes = nodes.filter((node) => node.stageIndex === stage.index);
+
+    if (memberNodes.length === 0) {
+      stageDepthByIndex.set(stage.index, { z: 3.6, depth: 18.8 });
+      return;
+    }
+
+    const minZ = Math.min(
+      ...memberNodes.map((node) => node.z - getNodeDepthEnvelope(node)),
+    );
+    const maxZ = Math.max(
+      ...memberNodes.map((node) => node.z + getNodeDepthEnvelope(node)),
+    );
+
+    stageDepthByIndex.set(stage.index, {
+      z: (minZ + maxZ) / 2,
+      depth: Math.max(18.8, maxZ - minZ + 5.6),
+    });
+  });
+
+  const stages = stageDrafts.map((stage) => ({
+    index: stage.index,
+    label: stage.label,
+    x: stage.x,
+    width: stage.width,
+    z: stageDepthByIndex.get(stage.index)?.z ?? 3.6,
+    depth: stageDepthByIndex.get(stage.index)?.depth ?? 18.8,
+  }));
+
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-  const pairOccurrences = new Map<string, number>();
-  const edges = graph.edges
-    .map((edge) => {
-      const source = nodeMap.get(edge.source);
-      const target = nodeMap.get(edge.target);
+  const edges = edgeContexts.map((context) => {
+    const source = nodeMap.get(context.source.id)!;
+    const target = nodeMap.get(context.target.id)!;
+    const sourcePoint = getPresentationAnchorPoint(
+      source,
+      context.sourceAnchor,
+      "output",
+    );
+    const targetPoint = getPresentationAnchorPoint(
+      target,
+      context.targetAnchor,
+      "input",
+    );
+    const sourcePoint3d = getPresentationAnchorPoint3d(
+      source,
+      context.sourceAnchor,
+      "output",
+    );
+    const targetPoint3d = getPresentationAnchorPoint3d(
+      target,
+      context.targetAnchor,
+      "input",
+    );
 
-      if (!source || !target) {
-        return null;
-      }
-
-      const pairKey = `${source.id}->${target.id}`;
-      const occurrenceIndex = pairOccurrences.get(pairKey) ?? 0;
-      pairOccurrences.set(pairKey, occurrenceIndex + 1);
-
-      const sourceAnchor = pickRelatedAnchor(source.outputs, target.objectId, occurrenceIndex);
-      const targetAnchor = pickRelatedAnchor(target.inputs, source.objectId, occurrenceIndex);
-      const sourcePoint = getPresentationAnchorPoint(source, sourceAnchor, "output");
-      const targetPoint = getPresentationAnchorPoint(target, targetAnchor, "input");
-      const sourcePoint3d = getPresentationAnchorPoint3d(source, sourceAnchor, "output");
-      const targetPoint3d = getPresentationAnchorPoint3d(target, targetAnchor, "input");
-
-      return {
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        label: edge.label,
-        sourceAnchorId: sourceAnchor?.id ?? null,
-        targetAnchorId: targetAnchor?.id ?? null,
-        sourcePoint,
-        targetPoint,
-        path: buildEdgePath(source, target, sourcePoint, targetPoint),
-        points3d: buildEdgePoints3d(source, target, sourcePoint3d, targetPoint3d),
-        isVirtualLink: source.objectRole === "virtual" || target.objectRole === "virtual",
-      } satisfies CircuitPresentationEdge;
-    })
-    .filter((edge): edge is CircuitPresentationEdge => edge !== null);
+    return {
+      id: context.edge.id,
+      source: context.edge.source,
+      target: context.edge.target,
+      label: context.edge.label,
+      sourceAnchorId: context.sourceAnchor?.id ?? null,
+      targetAnchorId: context.targetAnchor?.id ?? null,
+      sourcePoint,
+      targetPoint,
+      path: buildEdgePath(source, target, sourcePoint, targetPoint),
+      points3d: buildEdgePoints3d(source, target, sourcePoint3d, targetPoint3d),
+      isVirtualLink:
+        context.source.objectRole === "virtual" || context.target.objectRole === "virtual",
+    } satisfies CircuitPresentationEdge;
+  });
 
   return {
     width:
-      (stages[stages.length - 1]?.x ?? STAGE_PADDING_X) + STAGE_WIDTH + STAGE_PADDING_X,
+      (stages[stages.length - 1]?.x ?? STAGE_PADDING_X) +
+      (stages[stages.length - 1]?.width ?? BASE_STAGE_WIDTH) +
+      STAGE_PADDING_X,
     height: PRESENTATION_HEIGHT,
     stageFrameTop: STAGE_FRAME_TOP,
-    stageFrameHeight: PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING,
+    stageFrameHeight:
+      PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING,
     stageLabelY: STAGE_LABEL_Y,
     footnoteY: FOOTNOTE_Y,
     stages,
@@ -527,9 +852,9 @@ export function getPresentationStageFootprint3d(
   return {
     x: (stage.x + stage.width / 2) / PRESENTATION_3D_X_SCALE,
     y: STAGE_FOOTPRINT_3D_HEIGHT / 2,
-    z: STAGE_FOOTPRINT_3D_Z,
+    z: stage.z,
     width: Math.max(4.4, stage.width / PRESENTATION_3D_X_SCALE - 0.64),
     height: STAGE_FOOTPRINT_3D_HEIGHT,
-    depth: STAGE_FOOTPRINT_3D_DEPTH,
+    depth: stage.depth,
   };
 }
