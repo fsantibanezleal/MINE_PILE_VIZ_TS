@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.055`
-- Active tracked version: `0.01.056`
+- Closed release baseline: `0.01.056`
+- Active tracked version: `0.01.057`
 
 ## Release History
+
+### 0.01.057
+
+- Reduced duplicated state blocks inside the live workspace by keeping the left column focused on selection/control context instead of repeating belt mass and timestamp that already exist in the inspector and content view.
+- Reframed the simulator right sidebar around central-object detail instead of echoing the active-route summary that already exists in the main content column.
+- Tightened the live/simulator column responsibilities so each route reads with a clearer control-to-content-to-inspection hierarchy.
 
 ### 0.01.056
 
