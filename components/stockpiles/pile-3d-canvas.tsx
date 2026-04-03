@@ -18,6 +18,28 @@ const THREE_CLOCK_DEPRECATION_PATTERN =
 
 let threeClockWarningSuppressed = false;
 
+const VOXEL_VERTEX_SHADER = `
+  attribute vec3 instanceColor;
+  varying vec3 vInstanceColor;
+
+  void main() {
+    vInstanceColor = instanceColor;
+    vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const VOXEL_FRAGMENT_SHADER = `
+  varying vec3 vInstanceColor;
+
+  #include <colorspace_pars_fragment>
+
+  void main() {
+    gl_FragColor = vec4(vInstanceColor, 1.0);
+    #include <colorspace_fragment>
+  }
+`;
+
 function suppressKnownThreeClockWarning() {
   if (typeof window === "undefined" || threeClockWarningSuppressed) {
     return;
@@ -85,16 +107,26 @@ function VoxelInstances({
   useLayoutEffect(() => {
     const mesh = ref.current;
 
-    if (
-      !mesh ||
-      typeof mesh.setMatrixAt !== "function" ||
-      typeof mesh.setColorAt !== "function"
-    ) {
+    if (!mesh || typeof mesh.setMatrixAt !== "function") {
       return;
     }
 
     const transform = new THREE.Object3D();
     const color = new THREE.Color();
+    const requiredColorCount = Math.max(cells.length, 1);
+    const instanceColor =
+      mesh.instanceColor && mesh.instanceColor.count === requiredColorCount
+        ? mesh.instanceColor
+        : new THREE.InstancedBufferAttribute(
+            new Float32Array(requiredColorCount * 3),
+            3,
+          );
+    const colorBuffer = instanceColor.array as Float32Array;
+
+    if (mesh.instanceColor !== instanceColor) {
+      instanceColor.setUsage(THREE.DynamicDrawUsage);
+      mesh.instanceColor = instanceColor;
+    }
 
     cells.forEach((cell, index) => {
       transform.position.set(
@@ -104,24 +136,28 @@ function VoxelInstances({
       );
       transform.updateMatrix();
       mesh.setMatrixAt(index, transform.matrix);
-        color.set(
-          getQualityColor(
-            quality,
-            valueAccessor
-              ? valueAccessor(cell)
-              : quality
-                ? cell.qualityValues[quality.id]
-                : null,
-            numericDomain,
-          ),
-        );
-      mesh.setColorAt(index, color);
+      color.set(
+        getQualityColor(
+          quality,
+          valueAccessor
+            ? valueAccessor(cell)
+            : quality
+              ? cell.qualityValues[quality.id]
+              : null,
+          numericDomain,
+        ),
+      );
+      color.toArray(colorBuffer, index * 3);
     });
 
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) {
-      mesh.instanceColor.needsUpdate = true;
+    for (let index = cells.length; index < instanceColor.count; index += 1) {
+      colorBuffer[index * 3] = 0;
+      colorBuffer[index * 3 + 1] = 0;
+      colorBuffer[index * 3 + 2] = 0;
     }
+
+    mesh.instanceMatrix.needsUpdate = true;
+    instanceColor.needsUpdate = true;
     if (typeof mesh.computeBoundingBox === "function") {
       mesh.computeBoundingBox();
     }
@@ -163,9 +199,10 @@ function VoxelInstances({
       onPointerOut={() => onHoverCellChange?.(null)}
     >
       <boxGeometry args={[0.98, 0.98, 0.98]} />
-      <meshBasicMaterial
-        vertexColors
-        opacity={1}
+      <shaderMaterial
+        vertexShader={VOXEL_VERTEX_SHADER}
+        fragmentShader={VOXEL_FRAGMENT_SHADER}
+        side={THREE.DoubleSide}
         toneMapped={false}
       />
     </instancedMesh>

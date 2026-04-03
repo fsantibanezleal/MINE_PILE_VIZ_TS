@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.065`
-- Active tracked version: `0.01.066`
+- Closed release baseline: `0.01.066`
+- Active tracked version: `0.01.067`
 
 ## Release History
+
+### 0.01.067
+
+- Replaced the `3D` pile voxel material path with an explicit shader-driven instance-color pipeline so dense stockpile views stop collapsing into black silhouettes when the selected property should color visible voxels.
+- Added visual issue evidence for the stockpile `3D` color regression under `docs/issue-evidence/2026-04-03/` so the GitHub issue can reference reproducible before/after captures from the local cache.
+- Tightened renderer coverage around the new shader path in the `Pile3DCanvas` component tests while keeping the dense instanced mesh rendering route intact.
 
 ### 0.01.066
 
