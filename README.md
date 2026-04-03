@@ -88,21 +88,21 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.048` |
+| Release-synced version | `0.01.049` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.047` |
-| Active tracked version | `0.01.048` |
+| Closed baseline | `0.01.048` |
+| Active tracked version | `0.01.049` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The illustrative layouts now keep clearer spatial lanes for belts, piles, and virtual objects so they stop collapsing into the same local area, especially in mixed stages and in the `3D` overview. The diagram mode now also renders stage grouping boxes so the staged sequence remains visible even in the abstract graph view. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The illustrative layouts now keep clearer spatial lanes for belts, piles, and virtual objects so they stop collapsing into the same local area, especially in mixed stages and in the `3D` overview. Stage widths now expand with fanout demand, and downstream branch placement is derived from graph flow and anchor structure instead of only from a fixed lane index. The diagram mode now also renders stage grouping boxes so the staged sequence remains visible even in the abstract graph view. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels.
 
 ### Live Workspace
 

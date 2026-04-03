@@ -463,8 +463,8 @@ function StageBase3D({
           opacity={active ? 0.9 : 0.72}
         />
       </mesh>
-      <mesh position={[0, footprint.height / 2 + 0.02, 0]} receiveShadow>
-        <boxGeometry args={[footprint.width - 0.18, 0.03, footprint.depth - 0.18]} />
+      <mesh position={[0, footprint.height / 2 + 0.035, 0]} receiveShadow>
+        <boxGeometry args={[footprint.width - 0.18, 0.07, footprint.depth - 0.18]} />
         <meshStandardMaterial
           color={active ? stageTopActiveColor : stageTopIdleColor}
           emissive={active ? "#1d4f78" : "#0f2031"}
@@ -487,8 +487,22 @@ function Illustration3D({
 }: Omit<CircuitIllustrationProps, "mode">) {
   const { theme } = useTheme();
   const presentation = useMemo(() => buildCircuitPresentation(graph), [graph]);
+  const stageFootprints = useMemo(
+    () => presentation.stages.map((stage) => getPresentationStageFootprint3d(stage)),
+    [presentation.stages],
+  );
   const palette = getThemeCanvasPalette(theme);
   const spreadX = Math.max(20, presentation.width / 26);
+  const groundMinZ =
+    stageFootprints.length > 0
+      ? Math.min(...stageFootprints.map((footprint) => footprint.z - footprint.depth / 2))
+      : -8;
+  const groundMaxZ =
+    stageFootprints.length > 0
+      ? Math.max(...stageFootprints.map((footprint) => footprint.z + footprint.depth / 2))
+      : 18;
+  const groundCenterZ = (groundMinZ + groundMaxZ) / 2;
+  const groundDepth = Math.max(34, groundMaxZ - groundMinZ + 10);
   const highlightedNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
   const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
@@ -513,7 +527,12 @@ function Illustration3D({
         <Canvas
           shadows
           dpr={[1, 1.5]}
-          camera={{ position: [spreadX * 0.38, 16, 34], fov: 40, near: 0.1, far: 300 }}
+          camera={{
+            position: [spreadX * 0.36, 16, groundCenterZ + Math.max(26, groundDepth * 0.72)],
+            fov: 40,
+            near: 0.1,
+            far: 320,
+          }}
         >
           <color attach="background" args={[palette.sceneBackground]} />
           <ambientLight intensity={1.15} />
@@ -522,19 +541,19 @@ function Illustration3D({
           <mesh
             receiveShadow
             rotation={[-Math.PI / 2, 0, 0]}
-            position={[spreadX / 2 - 4, -0.02, 3.6]}
+            position={[spreadX / 2 - 4, -0.02, groundCenterZ]}
           >
-            <planeGeometry args={[spreadX + 20, 40]} />
+            <planeGeometry args={[spreadX + 20, groundDepth]} />
             <meshStandardMaterial color={palette.sceneGround} />
           </mesh>
           <gridHelper
             args={[
               spreadX + 18,
-              presentation.stages.length * 8 + 10,
+              Math.max(12, Math.round(groundDepth / 2)),
               palette.sceneGridMajor,
               palette.sceneGridMinor,
             ]}
-            position={[spreadX / 2 - 4, 0, 3.6]}
+            position={[spreadX / 2 - 4, 0, groundCenterZ]}
           />
           {presentation.stages.map((stage) => (
             <StageBase3D

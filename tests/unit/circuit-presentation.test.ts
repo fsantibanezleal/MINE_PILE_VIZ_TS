@@ -196,6 +196,143 @@ const multiStageGraph: CircuitGraph = {
   edges: [],
 };
 
+const branchFanoutGraph: CircuitGraph = {
+  stages: [
+    { index: 0, label: "Accumulation", nodeIds: ["pile_stockpile"] },
+    {
+      index: 1,
+      label: "Discharge",
+      nodeIds: ["vbelt_out_west", "vbelt_out_center", "vbelt_out_east"],
+    },
+  ],
+  nodes: [
+    {
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Plant Stockpile",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Stockpile",
+      inputs: [],
+      outputs: [
+        {
+          id: "out-west",
+          label: "West",
+          kind: "output",
+          x: 0.18,
+          y: 0.9,
+          relatedObjectId: "vbelt_out_west",
+        },
+        {
+          id: "out-center",
+          label: "Center",
+          kind: "output",
+          x: 0.5,
+          y: 0.9,
+          relatedObjectId: "vbelt_out_center",
+        },
+        {
+          id: "out-east",
+          label: "East",
+          kind: "output",
+          x: 0.82,
+          y: 0.9,
+          relatedObjectId: "vbelt_out_east",
+        },
+      ],
+    },
+    {
+      id: "vbelt_out_west",
+      objectId: "vbelt_out_west",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Out West",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual belt west",
+      inputs: [
+        {
+          id: "in-west",
+          label: "From west output",
+          kind: "input",
+          x: 0,
+          y: 0.5,
+          relatedObjectId: "pile_stockpile",
+        },
+      ],
+      outputs: [],
+    },
+    {
+      id: "vbelt_out_center",
+      objectId: "vbelt_out_center",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Out Center",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual belt center",
+      inputs: [
+        {
+          id: "in-center",
+          label: "From center output",
+          kind: "input",
+          x: 0,
+          y: 0.5,
+          relatedObjectId: "pile_stockpile",
+        },
+      ],
+      outputs: [],
+    },
+    {
+      id: "vbelt_out_east",
+      objectId: "vbelt_out_east",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Out East",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual belt east",
+      inputs: [
+        {
+          id: "in-east",
+          label: "From east output",
+          kind: "input",
+          x: 0,
+          y: 0.5,
+          relatedObjectId: "pile_stockpile",
+        },
+      ],
+      outputs: [],
+    },
+  ],
+  edges: [
+    {
+      id: "edge-west",
+      source: "pile_stockpile",
+      target: "vbelt_out_west",
+      label: "west route",
+    },
+    {
+      id: "edge-center",
+      source: "pile_stockpile",
+      target: "vbelt_out_center",
+      label: "center route",
+    },
+    {
+      id: "edge-east",
+      source: "pile_stockpile",
+      target: "vbelt_out_east",
+      label: "east route",
+    },
+  ],
+};
+
 describe("circuit pile anchor presentation", () => {
   it("separates belt and pile lanes inside the same stage", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -228,6 +365,7 @@ describe("circuit pile anchor presentation", () => {
     expect(footprints[0]!.x).toBeLessThan(footprints[1]!.x);
     expect(footprints.every((footprint) => footprint.width > 10)).toBe(true);
     expect(footprints.every((footprint) => footprint.depth > 18)).toBe(true);
+    expect(footprints.every((footprint) => footprint.height > 0.5)).toBe(true);
   });
 
   it("keeps multiple feed anchors distinct in the 2D illustration", () => {
@@ -248,5 +386,35 @@ describe("circuit pile anchor presentation", () => {
     expect(points[0]!.x).toBeLessThan(points[1]!.x);
     expect(points[0]!.z).toBeLessThan(points[1]!.z);
     expect(points.every((point) => point.y === 0.52)).toBe(true);
+  });
+
+  it("expands the downstream stage and preserves output ordering for branch fanout", () => {
+    const presentation = buildCircuitPresentation(branchFanoutGraph);
+    const dischargeStage = presentation.stages.find((stage) => stage.index === 1);
+    const west = presentation.nodes.find((node) => node.id === "vbelt_out_west");
+    const center = presentation.nodes.find((node) => node.id === "vbelt_out_center");
+    const east = presentation.nodes.find((node) => node.id === "vbelt_out_east");
+
+    expect(dischargeStage).toBeDefined();
+    expect(dischargeStage!.width).toBeGreaterThan(420);
+    expect(west).toBeDefined();
+    expect(center).toBeDefined();
+    expect(east).toBeDefined();
+    expect(west!.x).toBeLessThan(center!.x);
+    expect(center!.x).toBeLessThan(east!.x);
+    expect(Math.abs(center!.x - west!.x)).toBeGreaterThan(80);
+    expect(Math.abs(east!.x - center!.x)).toBeGreaterThan(80);
+  });
+
+  it("keeps node centers contained inside the computed stage frames", () => {
+    const presentation = buildCircuitPresentation(branchFanoutGraph);
+
+    presentation.nodes.forEach((node) => {
+      const stage = presentation.stages.find((candidate) => candidate.index === node.stageIndex);
+
+      expect(stage).toBeDefined();
+      expect(node.x - node.width / 2).toBeGreaterThan(stage!.x);
+      expect(node.x + node.width / 2).toBeLessThan(stage!.x + stage!.width);
+    });
   });
 });
