@@ -30,7 +30,7 @@ const quality: QualityDefinition = {
 };
 
 describe("Pile3DCanvas", () => {
-  it("uses an unlit material so voxel colors stay faithful to the selected property", () => {
+  it("uses an explicit shader color path so voxel colors stay faithful to the selected property", () => {
     const { container } = render(
       <Pile3DCanvas
         cells={[
@@ -49,7 +49,7 @@ describe("Pile3DCanvas", () => {
       />,
     );
 
-    expect(container.querySelector("meshbasicmaterial")).not.toBeNull();
+    expect(container.querySelector("shadermaterial")).not.toBeNull();
     expect(container.querySelector("meshstandardmaterial")).toBeNull();
   });
 
@@ -73,6 +73,7 @@ describe("Pile3DCanvas", () => {
     );
 
     expect(container.querySelector("instancedmesh")).not.toBeNull();
+    expect(container.querySelector("shadermaterial")).not.toBeNull();
     expect(container.querySelector("axeshelper")).toBeNull();
   });
 });
