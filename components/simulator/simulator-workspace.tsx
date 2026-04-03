@@ -22,15 +22,14 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { QualityValueList } from "@/components/ui/quality-value-list";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
+import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { buildMassDistribution } from "@/lib/mass-distribution";
-import { getQualityDisplayLabel } from "@/lib/quality-display";
-import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
-import { findQualityCategory, getQualityValueKey } from "@/lib/quality-values";
+import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { getQualityValueKey } from "@/lib/quality-values";
 import {
   buildAdaptiveFullRenderPlan,
   deriveShellCells,
@@ -780,10 +779,6 @@ export function SimulatorWorkspace({
     hoveredCell && visibleCellsForHover.some((cell) => isSameCell(cell, hoveredCell))
       ? hoveredCell
       : null;
-  const activeHoveredCellQualityValue =
-    activeHoveredCell && selectedQuality
-      ? activeHoveredCell.qualityValues[selectedQuality.id]
-      : null;
   const centralDistribution = useMemo(
     () =>
       centralData && selectedQuality
@@ -1354,50 +1349,12 @@ export function SimulatorWorkspace({
             totalMassTon={totalMassTon}
           />
         ) : null}
-        <div className="inspector-stack">
-          <div className="section-label">Cell Focus</div>
-          {activeHoveredCell ? (
-            <>
-              <MetricGrid
-                metrics={[
-                  {
-                    label: "Indices",
-                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
-                  },
-                  {
-                    label: "Mass",
-                    value: formatMassTon(activeHoveredCell.massTon),
-                  },
-                  {
-                    label: getQualityDisplayLabel(selectedQuality),
-                    value:
-                      selectedQuality?.kind === "categorical"
-                        ? findQualityCategory(
-                            selectedQuality,
-                            activeHoveredCellQualityValue,
-                          )?.label ??
-                          String(activeHoveredCellQualityValue ?? "N/A")
-                        : formatNumber(
-                            typeof activeHoveredCellQualityValue === "number"
-                              ? activeHoveredCellQualityValue
-                              : null,
-                          ),
-                  },
-                ]}
-              />
-              <QualityValueList
-                qualities={availableQualities}
-                values={activeHoveredCell.qualityValues}
-                limit={Math.min(availableQualities.length, 6)}
-              />
-            </>
-          ) : (
-            <p className="muted-text">
-              Hover a cell, voxel, or cross-section cell in the central pile view to inspect
-              coordinates, mass, and property values.
-            </p>
-          )}
-        </div>
+        <CellFocusPanel
+          hoveredCell={activeHoveredCell}
+          qualities={availableQualities}
+          selectedQuality={selectedQuality}
+          emptyMessage="Hover a cell, voxel, or cross-section cell in the central pile view to inspect coordinates, mass, and property values."
+        />
         <WorkspaceJumpLinks
           objectId={selectedObjectId}
           objectType="pile"

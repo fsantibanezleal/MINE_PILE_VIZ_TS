@@ -71,6 +71,10 @@ export function getQualityDisplayLabel(
   return "Property";
 }
 
+/**
+ * Formats one quality value for operator-facing surfaces while preserving the
+ * distinction between numerical measurements and mapped categorical labels.
+ */
 export function formatQualityValueDisplay(
   quality: QualityDefinition | undefined,
   value: QualityValue | undefined,

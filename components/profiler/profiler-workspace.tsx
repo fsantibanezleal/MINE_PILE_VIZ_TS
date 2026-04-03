@@ -23,13 +23,12 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildMassDistribution } from "@/lib/mass-distribution";
-import { getQualityDisplayLabel } from "@/lib/quality-display";
+import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { QualityValueList } from "@/components/ui/quality-value-list";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
@@ -38,8 +37,7 @@ import {
   PileColumnView,
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
-import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
-import { findQualityCategory } from "@/lib/quality-values";
+import { formatMassTon, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -312,10 +310,6 @@ export function ProfilerWorkspace({
     detailSnapshot?.rows.some((row) => isSameCell(row, hoveredCell))
       ? hoveredCell
       : null;
-  const hoveredCellPropertyValue =
-    activeHoveredCell && selectedQuality
-      ? activeHoveredCell.qualityValues[selectedQuality.id]
-      : null;
   const detailDistribution = useMemo(
     () =>
       detailSnapshot && selectedQuality
@@ -323,17 +317,6 @@ export function ProfilerWorkspace({
         : null,
     [detailSnapshot, selectedQuality],
   );
-  const hoveredCellPropertyDisplay =
-    hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
-      ? "N/A"
-      : selectedQuality?.kind === "numerical"
-        ? formatNumber(
-            typeof hoveredCellPropertyValue === "number"
-              ? hoveredCellPropertyValue
-              : null,
-          )
-        : findQualityCategory(selectedQuality, hoveredCellPropertyValue)?.label ??
-          String(hoveredCellPropertyValue);
 
   let detailView: ReactNode = null;
 
@@ -550,44 +533,17 @@ export function ProfilerWorkspace({
             totalMassTon={selectedSummaryRow.massTon}
           />
         ) : null}
-        <div className="inspector-stack">
-          <div className="section-label">Cell Focus</div>
-          {mode !== "detail" ? (
-            <p className="muted-text">
-              Switch to detail mode to inspect hovered pile or belt cells from the current
-              profiler snapshot.
-            </p>
-          ) : activeHoveredCell ? (
-            <>
-              <MetricGrid
-                metrics={[
-                  {
-                    label: "Indices",
-                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
-                  },
-                  {
-                    label: "Mass",
-                    value: formatMassTon(activeHoveredCell.massTon),
-                  },
-                  {
-                    label: getQualityDisplayLabel(selectedQuality),
-                    value: hoveredCellPropertyDisplay,
-                  },
-                ]}
-              />
-              <QualityValueList
-                qualities={availableQualities}
-                values={activeHoveredCell.qualityValues}
-                limit={Math.min(availableQualities.length, 6)}
-              />
-            </>
-          ) : (
-            <p className="muted-text">
-              Hover a cell or voxel in the active profiler detail view to inspect its
-              coordinates, mass, and property values.
-            </p>
-          )}
-        </div>
+        <CellFocusPanel
+          hoveredCell={activeHoveredCell}
+          qualities={availableQualities}
+          selectedQuality={selectedQuality}
+          inactiveMessage={
+            mode !== "detail"
+              ? "Switch to detail mode to inspect hovered pile or belt cells from the current profiler snapshot."
+              : undefined
+          }
+          emptyMessage="Hover a cell or voxel in the active profiler detail view to inspect its coordinates, mass, and property values."
+        />
         <WorkspaceJumpLinks
           objectId={selectedObjectId}
           objectType={selectedIndexEntry?.objectType}

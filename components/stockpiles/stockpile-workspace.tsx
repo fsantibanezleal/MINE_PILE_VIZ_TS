@@ -13,14 +13,12 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
 import { buildMassDistribution } from "@/lib/mass-distribution";
-import { getQualityDisplayLabel } from "@/lib/quality-display";
-import { findQualityCategory } from "@/lib/quality-values";
+import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { QualityValueList } from "@/components/ui/quality-value-list";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
@@ -29,7 +27,7 @@ import {
   PileColumnView,
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
-import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import { formatMassTon, formatTimestamp } from "@/lib/format";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -303,21 +301,6 @@ export function StockpileWorkspace({
         : null,
     [dataset, selectedQuality],
   );
-  const hoveredCellPropertyValue =
-    activeHoveredCell && selectedQuality
-      ? activeHoveredCell.qualityValues[selectedQuality.id]
-      : null;
-  const hoveredCellPropertyDisplay =
-    hoveredCellPropertyValue === null || hoveredCellPropertyValue === undefined
-      ? "N/A"
-      : selectedQuality?.kind === "categorical"
-        ? findQualityCategory(selectedQuality, hoveredCellPropertyValue)?.label ??
-          String(hoveredCellPropertyValue)
-        : formatNumber(
-            typeof hoveredCellPropertyValue === "number"
-              ? hoveredCellPropertyValue
-              : null,
-          );
 
   let content: ReactNode;
 
@@ -566,39 +549,12 @@ export function StockpileWorkspace({
             totalMassTon={totalMass}
           />
         ) : null}
-        <div className="inspector-stack">
-          <div className="section-label">Cell Focus</div>
-          {activeHoveredCell ? (
-            <>
-              <MetricGrid
-                metrics={[
-                  {
-                    label: "Indices",
-                    value: `${activeHoveredCell.ix}, ${activeHoveredCell.iy}, ${activeHoveredCell.iz}`,
-                  },
-                  {
-                    label: "Mass",
-                    value: formatMassTon(activeHoveredCell.massTon),
-                  },
-                  {
-                    label: getQualityDisplayLabel(selectedQuality),
-                    value: hoveredCellPropertyDisplay,
-                  },
-                ]}
-              />
-              <QualityValueList
-                qualities={availableQualities}
-                values={activeHoveredCell.qualityValues}
-                limit={Math.min(availableQualities.length, 6)}
-              />
-            </>
-          ) : (
-            <p className="muted-text">
-              Hover a cell or voxel in the current pile view to inspect its coordinates,
-              mass, and property values.
-            </p>
-          )}
-        </div>
+        <CellFocusPanel
+          hoveredCell={activeHoveredCell}
+          qualities={availableQualities}
+          selectedQuality={selectedQuality}
+          emptyMessage="Hover a cell or voxel in the current pile view to inspect its coordinates, mass, and property values."
+        />
         <WorkspaceJumpLinks
           objectId={selectedPileId}
           objectType={selectedPileEntry?.objectType}
