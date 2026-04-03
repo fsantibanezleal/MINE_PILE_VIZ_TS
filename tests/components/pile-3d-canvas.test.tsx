@@ -52,4 +52,27 @@ describe("Pile3DCanvas", () => {
     expect(container.querySelector("meshbasicmaterial")).not.toBeNull();
     expect(container.querySelector("meshstandardmaterial")).toBeNull();
   });
+
+  it("keeps dense voxel scenes on the explicit instanced color path", () => {
+    const { container } = render(
+      <Pile3DCanvas
+        cells={[
+          {
+            ix: 0,
+            iy: 0,
+            iz: 0,
+            massTon: 12,
+            timestampOldestMs: 1,
+            timestampNewestMs: 2,
+            qualityValues: { q_num_fe: 1.2 },
+          },
+        ]}
+        extents={{ x: 100, y: 100, z: 70 }}
+        quality={quality}
+      />,
+    );
+
+    expect(container.querySelector("instancedmesh")).not.toBeNull();
+    expect(container.querySelector("axeshelper")).toBeNull();
+  });
 });

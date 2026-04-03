@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.046`
-- Active tracked version: `0.01.047`
+- Closed release baseline: `0.01.047`
+- Active tracked version: `0.01.048`
 
 ## Release History
+
+### 0.01.048
+
+- Reframed the `3D` pile camera to fit dense real stockpile scenes more tightly so colored voxels occupy more of the visible canvas instead of reading as a distant dark mass.
+- Disabled scene-axis clutter in the operator-facing pile canvas and slightly increased voxel fill so the selected property colors are easier to perceive on large piles.
+- Hardened the instanced mesh update path with explicit bounds recomputation and no frustum culling so large remapped voxel scenes stay stable while their colors update.
 
 ### 0.01.047
 
