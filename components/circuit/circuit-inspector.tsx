@@ -2,7 +2,7 @@
 
 import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
-import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
 import type { CircuitGraph, GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
 
@@ -56,7 +56,7 @@ export function CircuitInspector({
         <div className="section-label">Object Focus</div>
         <p className="muted-text">
           Select an object from the illustration, the diagram, or the selector to inspect
-          its role, current summary, and modeled anchors.
+          its stage role, flow semantics, and modeled anchors.
         </p>
       </aside>
     );
@@ -71,7 +71,7 @@ export function CircuitInspector({
       <p className="muted-text">{node.shortDescription}</p>
       <div className="metric-grid">
         <div className="metric-card">
-          <span>Role</span>
+          <span>Modeled role</span>
           <strong>{node.objectRole}</strong>
         </div>
         <div className="metric-card">
@@ -86,20 +86,33 @@ export function CircuitInspector({
           <span>Dimension</span>
           <strong>{node.dimension}D</strong>
         </div>
+        <div className="metric-card">
+          <span>Feed anchors</span>
+          <strong>{node.inputs.length}</strong>
+        </div>
+        <div className="metric-card">
+          <span>Discharge anchors</span>
+          <strong>{node.outputs.length}</strong>
+        </div>
       </div>
       {summary ? (
-        <>
+        <div className="inspector-stack">
+          <div className="section-label">Current runtime reference</div>
+          <p className="muted-text">
+            This route stays structural. Runtime values are shown only as cross-route
+            context for the selected object.
+          </p>
           <div className="metric-grid">
             <div className="metric-card">
-              <span>Mass</span>
+              <span>Runtime mass</span>
               <strong>{formatMassTon(summary.massTon)}</strong>
             </div>
             <div className="metric-card">
-              <span>Status</span>
+              <span>Summary status</span>
               <strong>{summary.status}</strong>
             </div>
             <div className="metric-card">
-              <span>Latest UTC</span>
+              <span>Latest live UTC</span>
               <strong>{formatTimestamp(summary.timestamp)}</strong>
             </div>
             <div className="metric-card">
@@ -107,26 +120,10 @@ export function CircuitInspector({
               <strong>{node.isProfiled ? "Yes" : "No"}</strong>
             </div>
           </div>
-          <div className="quality-list">
-            {Object.entries(summary.qualityValues)
-              .slice(0, 8)
-              .map(([qualityId, value]) => (
-                <div key={qualityId} className="quality-list__item">
-                  <span>{qualityId}</span>
-                  <strong>
-                    {value === null
-                      ? "N/A"
-                      : typeof value === "number"
-                        ? formatNumber(value)
-                        : value}
-                  </strong>
-                </div>
-              ))}
-          </div>
-        </>
+        </div>
       ) : (
         <p className="muted-text">
-          No current runtime summary is available for this object in the loaded cache.
+          No current runtime reference is available for this object in the loaded cache.
         </p>
       )}
       {semantics ? <TransportSemanticsPanel semantics={semantics} /> : null}

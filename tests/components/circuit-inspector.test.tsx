@@ -119,5 +119,7 @@ describe("CircuitInspector", () => {
     expect(screen.getByText("Virtual Lane B")).toBeInTheDocument();
     expect(screen.getByText("Shared downstream conveyors")).toBeInTheDocument();
     expect(screen.getByText("CV301")).toBeInTheDocument();
+    expect(screen.getByText("Current runtime reference")).toBeInTheDocument();
+    expect(screen.queryByText("q_num_fe")).not.toBeInTheDocument();
   });
 });
