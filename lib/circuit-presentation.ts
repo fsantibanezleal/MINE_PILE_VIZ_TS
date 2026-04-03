@@ -114,24 +114,34 @@ const LANE_CONFIG: Record<
   CircuitPresentationVisualKind,
   {
     z: number;
-    branchDepthSpan: number;
+    crossDepthSpan: number;
+    orderingDepthSpan: number;
+    crossYOffset: number;
   }
 > = {
   "physical-belt": {
     z: -2.8,
-    branchDepthSpan: 2.2,
+    crossDepthSpan: 0.9,
+    orderingDepthSpan: 1.2,
+    crossYOffset: 18,
   },
   "physical-pile": {
     z: 1.8,
-    branchDepthSpan: 3.2,
+    crossDepthSpan: 0.7,
+    orderingDepthSpan: 0.84,
+    crossYOffset: 14,
   },
   "virtual-belt": {
     z: 7.6,
-    branchDepthSpan: 4.8,
+    crossDepthSpan: 2.3,
+    orderingDepthSpan: 1.12,
+    crossYOffset: 54,
   },
   "virtual-pile": {
     z: 11.2,
-    branchDepthSpan: 5.4,
+    crossDepthSpan: 1.7,
+    orderingDepthSpan: 0.96,
+    crossYOffset: 32,
   },
 };
 
@@ -217,6 +227,11 @@ export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
 function getNormalizedPileAnchorX(anchor: GraphAnchor | undefined) {
   const anchorX = clamp(anchor?.x ?? 0.5, 0, 1);
   return PILE_ANCHOR_MIN_X + anchorX * (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X);
+}
+
+function getAnchorBandHint(anchor: GraphAnchor | undefined) {
+  const normalizedY = clamp(anchor?.y ?? 0.5, 0, 1);
+  return clamp((normalizedY - 0.5) * 3.4, -1, 1);
 }
 
 function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
@@ -522,31 +537,28 @@ function getStageSlotCenters(
   });
 }
 
-function getNearestFreeSlotIndex(
-  desiredHint: number,
-  slotHints: number[],
-  takenSlots: Set<number>,
-) {
-  const desiredIndex = slotHints.reduce((bestIndex, currentHint, index) => {
-    const bestDistance = Math.abs(slotHints[bestIndex]! - desiredHint);
-    const currentDistance = Math.abs(currentHint - desiredHint);
-    return currentDistance < bestDistance ? index : bestIndex;
-  }, 0);
-
-  for (let radius = 0; radius < slotHints.length; radius += 1) {
-    const left = desiredIndex - radius;
-    const right = desiredIndex + radius;
-
-    if (left >= 0 && !takenSlots.has(left)) {
-      return left;
-    }
-
-    if (right < slotHints.length && !takenSlots.has(right)) {
-      return right;
-    }
+function getDistributedSlotIndices(slotCount: number, nodeCount: number) {
+  if (nodeCount <= 0 || slotCount <= 0) {
+    return [];
   }
 
-  return desiredIndex;
+  if (nodeCount === 1) {
+    return [Math.floor((slotCount - 1) / 2)];
+  }
+
+  const indices = Array.from({ length: nodeCount }, (_, index) =>
+    Math.round((index * (slotCount - 1)) / (nodeCount - 1)),
+  );
+
+  for (let index = 1; index < indices.length; index += 1) {
+    indices[index] = Math.max(indices[index]!, indices[index - 1]! + 1);
+  }
+
+  for (let index = indices.length - 2; index >= 0; index -= 1) {
+    indices[index] = Math.min(indices[index]!, indices[index + 1]! - 1);
+  }
+
+  return indices.map((index) => clamp(index, 0, slotCount - 1));
 }
 
 function getConnectionHint(
@@ -576,6 +588,29 @@ function getConnectionHint(
     normalizedAssignments.get(context.target.id) ??
     DEFAULT_FLOW_HINT[targetVisualKind]
   );
+}
+
+function getConnectionBandHint(
+  context: CircuitPresentationEdgeContext,
+  direction: "source" | "target",
+  crossAxisAssignments: Map<string, number>,
+) {
+  const sourceVisualKind = getNodeVisualKind(context.source);
+  const targetVisualKind = getNodeVisualKind(context.target);
+
+  if (sourceVisualKind === "physical-pile" && context.sourceAnchor) {
+    return getAnchorBandHint(context.sourceAnchor);
+  }
+
+  if (targetVisualKind === "physical-pile" && context.targetAnchor) {
+    return getAnchorBandHint(context.targetAnchor);
+  }
+
+  if (direction === "target") {
+    return crossAxisAssignments.get(context.source.id) ?? 0;
+  }
+
+  return crossAxisAssignments.get(context.target.id) ?? 0;
 }
 
 function getStageSlotCount(
@@ -619,6 +654,35 @@ function getNodeFlowHint(
   }
 
   return DEFAULT_FLOW_HINT[getNodeVisualKind(node)];
+}
+
+function getNodeCrossAxisHint(
+  node: CircuitNode,
+  incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  crossAxisAssignments: Map<string, number>,
+) {
+  const predecessorHints = (incomingByNodeId.get(node.id) ?? [])
+    .filter((context) => context.source.stageIndex < node.stageIndex)
+    .map((context) =>
+      getConnectionBandHint(context, "target", crossAxisAssignments),
+    );
+
+  if (predecessorHints.length > 0) {
+    return predecessorHints.reduce((sum, value) => sum + value, 0) / predecessorHints.length;
+  }
+
+  const outgoingHints = (outgoingByNodeId.get(node.id) ?? [])
+    .filter((context) => context.target.stageIndex > node.stageIndex)
+    .map((context) =>
+      getConnectionBandHint(context, "source", crossAxisAssignments),
+    );
+
+  if (outgoingHints.length > 0) {
+    return outgoingHints.reduce((sum, value) => sum + value, 0) / outgoingHints.length;
+  }
+
+  return 0;
 }
 
 export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentation {
@@ -681,6 +745,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
 
   const stageMap = new Map(stageDrafts.map((stage) => [stage.index, stage]));
   const normalizedAssignments = new Map<string, number>();
+  const crossAxisAssignments = new Map<string, number>();
   const slotAssignments = new Map<string, number>();
 
   graph.stages.forEach((stage) => {
@@ -694,18 +759,30 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     const orderedNodes = stageNodes
       .map((node) => ({
         node,
-        hint: getNodeFlowHint(
+        xHint: getNodeFlowHint(
           node,
           incomingByNodeId,
           outgoingByNodeId,
           normalizedAssignments,
         ),
+        crossAxisHint: getNodeCrossAxisHint(
+          node,
+          incomingByNodeId,
+          outgoingByNodeId,
+          crossAxisAssignments,
+        ),
       }))
       .sort((left, right) => {
-        const hintDifference = left.hint - right.hint;
+        const hintDifference = left.xHint - right.xHint;
 
         if (Math.abs(hintDifference) > 1e-6) {
           return hintDifference;
+        }
+
+        const crossAxisDifference = left.crossAxisHint - right.crossAxisHint;
+
+        if (Math.abs(crossAxisDifference) > 1e-6) {
+          return crossAxisDifference;
         }
 
         return (
@@ -714,20 +791,20 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
           left.node.label.localeCompare(right.node.label)
         );
       });
-    const takenSlots = new Set<number>();
+    const slotIndices = getDistributedSlotIndices(
+      stageDraft.slotCount,
+      orderedNodes.length,
+    );
 
-    orderedNodes.forEach(({ node, hint }) => {
-      const slotIndex = getNearestFreeSlotIndex(
-        hint,
-        stageDraft.slotHints,
-        takenSlots,
-      );
+    orderedNodes.forEach(({ node, xHint, crossAxisHint }, index) => {
+      const slotIndex =
+        slotIndices[index] ?? Math.floor((stageDraft.slotCount - 1) / 2);
       const assignedHint =
-        stageDraft.slotHints[slotIndex]! * 0.72 + clamp(hint, 0, 1) * 0.28;
+        stageDraft.slotHints[slotIndex]! * 0.62 + clamp(xHint, 0, 1) * 0.38;
 
-      takenSlots.add(slotIndex);
       slotAssignments.set(node.id, slotIndex);
       normalizedAssignments.set(node.id, clamp(assignedHint, 0, 1));
+      crossAxisAssignments.set(node.id, clamp(crossAxisHint, -1, 1));
     });
   });
 
@@ -740,17 +817,29 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
       slotAssignments.get(node.id) ?? Math.floor((stage?.slotCount ?? 1) / 2);
     const assignedHint =
       normalizedAssignments.get(node.id) ?? DEFAULT_FLOW_HINT[visualKind];
+    const crossAxisHint = crossAxisAssignments.get(node.id) ?? 0;
     const slotCenterX =
       stage?.slotCenters[slotIndex] ??
       (stage?.x ?? STAGE_PADDING_X) + (stage?.width ?? BASE_STAGE_WIDTH) / 2;
     const laneConfig = LANE_CONFIG[visualKind];
+    const stageNodeCount = nodesByStage.get(node.stageIndex)?.length ?? 1;
+    const yOffset = stageNodeCount > 1 ? crossAxisHint * laneConfig.crossYOffset : 0;
+    const yTopBound = STAGE_FRAME_TOP + nodeSize.height / 2 + 46;
+    const yBottomBound =
+      PRESENTATION_HEIGHT -
+      STAGE_FRAME_BOTTOM_PADDING -
+      nodeSize.height / 2 -
+      42;
 
     return {
       ...node,
       visualKind,
       x: slotCenterX,
-      y: laneCenterY,
-      z: laneConfig.z + (assignedHint - 0.5) * laneConfig.branchDepthSpan,
+      y: clamp(laneCenterY + yOffset, yTopBound, yBottomBound),
+      z:
+        laneConfig.z +
+        crossAxisHint * laneConfig.crossDepthSpan +
+        (assignedHint - 0.5) * laneConfig.orderingDepthSpan,
       width: nodeSize.width,
       height: nodeSize.height,
     } satisfies CircuitPresentationNode;
