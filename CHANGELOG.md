@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.060`
-- Active tracked version: `0.01.061`
+- Closed release baseline: `0.01.061`
+- Active tracked version: `0.01.062`
 
 ## Release History
+
+### 0.01.062
+
+- Reframed the profiler sidebar so `circuit` mode now reads as historical coverage and selected-timestep context instead of another dense object inspection surface.
+- Reserved summarized rows, bands, cells, mass distribution, and profiled-property panels for `detail` mode, which makes the route separation between `Profiler` and `Stockpiles` more explicit.
+- Advanced `#94` again by tightening the semantic boundary between historical comparison mode and object-detail mode inside the profiler route itself.
 
 ### 0.01.061
 

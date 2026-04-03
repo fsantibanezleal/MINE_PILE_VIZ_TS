@@ -35,6 +35,7 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
+import { RelationshipPanel } from "@/components/ui/relationship-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
@@ -301,6 +302,8 @@ export function ProfilerWorkspace({
   const selectedSummaryRow = selectedObjectRows.find(
     (row) => row.snapshotId === effectiveSnapshotId,
   );
+  const firstObjectRow = selectedObjectRows[0];
+  const lastObjectRow = selectedObjectRows[selectedObjectRows.length - 1];
   const currentTimestamp = selectedSummaryRow?.timestamp;
   const circuitSummaries: ObjectSummary[] = summaryRows
     .filter((row) => row.timestamp === currentTimestamp)
@@ -343,6 +346,10 @@ export function ProfilerWorkspace({
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
   );
+  const selectedStepLabel =
+    snapshotIndex >= 0 && selectedObjectRows.length > 0
+      ? `${snapshotIndex + 1}/${selectedObjectRows.length}`
+      : "N/A";
 
   const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
   const inspectionValueAccessor = useMemo(
@@ -564,7 +571,9 @@ export function ProfilerWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Historical summary snapshot</div>
+        <div className="section-label">
+          {mode === "circuit" ? "Historical circuit reading" : "Historical detail snapshot"}
+        </div>
         <h3>
           {selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"}
         </h3>
@@ -601,15 +610,55 @@ export function ProfilerWorkspace({
               value: loadingSummary ? "Loading" : String(summaryRows.length),
             },
             { label: "Snapshots", value: String(selectedObjectRows.length) },
+            { label: "Selected step", value: selectedStepLabel },
             { label: semanticFrame.basisLabel, value: semanticFrame.aggregationLabel },
             { label: "Density", value: semanticFrame.densityLabel },
           ]}
         />
-        <MaterialTimePanel
-          summary={materialTimeSummary}
-          emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
+        <RelationshipPanel
+          title="History coverage"
+          summary={
+            mode === "circuit"
+              ? "Circuit mode is for comparing one selected historical timestep across the profiled circuit, not for dense object inspection."
+              : "Detail mode keeps the selected object and timestep fixed so summarized rows, bands, or cells can be inspected in context."
+          }
+          metrics={[
+            {
+              label: "First snapshot",
+              value: firstObjectRow ? formatTimestamp(firstObjectRow.timestamp) : "N/A",
+            },
+            {
+              label: "Last snapshot",
+              value: lastObjectRow ? formatTimestamp(lastObjectRow.timestamp) : "N/A",
+            },
+            {
+              label: "Objects at step",
+              value: String(circuitSummaries.length),
+            },
+          ]}
+          groups={
+            mode === "circuit"
+              ? [
+                  {
+                    label: "Objects at selected timestep",
+                    items: circuitSummaries.map((row) => row.displayName),
+                  },
+                ]
+              : []
+          }
         />
-        {detailDistribution && inspectionQuality ? (
+        {mode === "detail" ? (
+          <MaterialTimePanel
+            summary={materialTimeSummary}
+            emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
+          />
+        ) : (
+          <InlineNotice tone="info" title="Detail-only inspection panels">
+            Switch to detail mode when you need summarized rows, bands, or cells, plus
+            material-time inspection and mass distributions for one profiled object.
+          </InlineNotice>
+        )}
+        {mode === "detail" && detailDistribution && inspectionQuality ? (
           <div className="inspector-stack">
             <div className="section-label">Mass distribution</div>
             <MassDistributionChart
@@ -622,7 +671,7 @@ export function ProfilerWorkspace({
             />
           </div>
         ) : null}
-        {selectedSummaryRow ? (
+        {mode === "detail" && selectedSummaryRow ? (
           <ProfiledPropertiesPanel
             qualities={availableQualities}
             values={selectedSummaryRow.qualityValues}

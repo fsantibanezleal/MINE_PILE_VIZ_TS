@@ -275,6 +275,9 @@ describe("ProfilerWorkspace", () => {
       );
     });
     await screen.findByRole("heading", { name: "Belt B" });
+    expect(screen.getByText("Historical circuit reading")).toBeInTheDocument();
+    expect(screen.getByText("History coverage")).toBeInTheDocument();
+    expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
   });
 
   it("shows pile anchors and hovered cell details in profiler detail mode", async () => {
