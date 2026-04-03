@@ -333,6 +333,107 @@ const branchFanoutGraph: CircuitGraph = {
   ],
 };
 
+const multiBandFanoutGraph: CircuitGraph = {
+  stages: [
+    { index: 0, label: "Accumulation", nodeIds: ["pile_stockpile"] },
+    {
+      index: 1,
+      label: "Direct Outputs",
+      nodeIds: [
+        "vbelt_out_01",
+        "vbelt_out_02",
+        "vbelt_out_03",
+        "vbelt_out_04",
+        "vbelt_out_05",
+        "vbelt_out_06",
+      ],
+    },
+  ],
+  nodes: [
+    {
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Plant Stockpile",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Stockpile",
+      inputs: [],
+      outputs: [
+        {
+          id: "out-01",
+          label: "Out 01",
+          kind: "output",
+          x: 0.2,
+          y: 0.35,
+          relatedObjectId: "vbelt_out_01",
+        },
+        {
+          id: "out-02",
+          label: "Out 02",
+          kind: "output",
+          x: 0.3,
+          y: 0.65,
+          relatedObjectId: "vbelt_out_02",
+        },
+        {
+          id: "out-03",
+          label: "Out 03",
+          kind: "output",
+          x: 0.45,
+          y: 0.35,
+          relatedObjectId: "vbelt_out_03",
+        },
+        {
+          id: "out-04",
+          label: "Out 04",
+          kind: "output",
+          x: 0.55,
+          y: 0.65,
+          relatedObjectId: "vbelt_out_04",
+        },
+        {
+          id: "out-05",
+          label: "Out 05",
+          kind: "output",
+          x: 0.7,
+          y: 0.35,
+          relatedObjectId: "vbelt_out_05",
+        },
+        {
+          id: "out-06",
+          label: "Out 06",
+          kind: "output",
+          x: 0.8,
+          y: 0.65,
+          relatedObjectId: "vbelt_out_06",
+        },
+      ],
+    },
+    ...Array.from({ length: 6 }, (_, index) => ({
+      id: `vbelt_out_0${index + 1}`,
+      objectId: `vbelt_out_0${index + 1}`,
+      objectType: "belt" as const,
+      objectRole: "virtual" as const,
+      label: `Out ${index + 1}`,
+      stageIndex: 1,
+      dimension: 1 as const,
+      isProfiled: false,
+      shortDescription: "Virtual belt",
+      inputs: [],
+      outputs: [],
+    })),
+  ],
+  edges: Array.from({ length: 6 }, (_, index) => ({
+    id: `edge-${index + 1}`,
+    source: "pile_stockpile",
+    target: `vbelt_out_0${index + 1}`,
+    label: `route-${index + 1}`,
+  })),
+};
+
 describe("circuit pile anchor presentation", () => {
   it("separates belt and pile lanes inside the same stage", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -406,6 +507,27 @@ describe("circuit pile anchor presentation", () => {
     expect(Math.abs(east!.x - center!.x)).toBeGreaterThan(80);
   });
 
+  it("uses a second spatial band for high-fanout discharge stages", () => {
+    const presentation = buildCircuitPresentation(multiBandFanoutGraph);
+    const directOutputNodes = presentation.nodes
+      .filter((node) => node.stageIndex === 1)
+      .sort((left, right) => left.x - right.x);
+    const yValues = directOutputNodes.map((node) => node.y);
+    const zValues = directOutputNodes.map((node) => node.z);
+
+    expect(directOutputNodes).toHaveLength(6);
+    expect(directOutputNodes.map((node) => node.id)).toEqual([
+      "vbelt_out_01",
+      "vbelt_out_02",
+      "vbelt_out_03",
+      "vbelt_out_04",
+      "vbelt_out_05",
+      "vbelt_out_06",
+    ]);
+    expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(36);
+    expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(2.2);
+  });
+
   it("keeps node centers contained inside the computed stage frames", () => {
     const presentation = buildCircuitPresentation(branchFanoutGraph);
 
@@ -415,6 +537,12 @@ describe("circuit pile anchor presentation", () => {
       expect(stage).toBeDefined();
       expect(node.x - node.width / 2).toBeGreaterThan(stage!.x);
       expect(node.x + node.width / 2).toBeLessThan(stage!.x + stage!.width);
+      expect(node.y - node.height / 2).toBeGreaterThan(
+        presentation.stageFrameTop,
+      );
+      expect(node.y + node.height / 2).toBeLessThan(
+        presentation.stageFrameTop + presentation.stageFrameHeight,
+      );
     });
   });
 });

@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.048`
-- Active tracked version: `0.01.049`
+- Closed release baseline: `0.01.049`
+- Active tracked version: `0.01.050`
 
 ## Release History
+
+### 0.01.050
+
+- Added a second branch-separation axis to the circuit presentation so high-fanout stages stop reading as one compact single row and instead occupy clearer parallel bands in `2D` and `3D`.
+- Preserved downstream branch ordering by assigning stage-local slots monotonically from flow hints, which keeps multi-output pile routes stable from left to right instead of scrambling sibling outputs.
+- Fed the shared circuit presentation back into diagram-mode node offsets so the abstract graph stops ignoring the same fanout/spatial logic used by the illustrative modes.
 
 ### 0.01.049
 

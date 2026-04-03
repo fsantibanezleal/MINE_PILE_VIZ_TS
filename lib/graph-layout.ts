@@ -1,5 +1,6 @@
 import dagre from "dagre";
 import { Position, type Edge, type Node } from "@xyflow/react";
+import { buildCircuitPresentation } from "@/lib/circuit-presentation";
 import type { CircuitEdge, CircuitGraph, CircuitNode } from "@/types/app-data";
 
 const NODE_WIDTH = 260;
@@ -7,6 +8,8 @@ const NODE_HEIGHT = 132;
 const STAGE_PADDING_X = 28;
 const STAGE_PADDING_TOP = 54;
 const STAGE_PADDING_BOTTOM = 26;
+const STAGE_LOCAL_X_OFFSET_SCALE = 0.32;
+const STAGE_LOCAL_Y_OFFSET_SCALE = 0.42;
 
 export interface CircuitNodeData extends Record<string, unknown> {
   label: string;
@@ -36,12 +39,19 @@ export function layoutCircuitGraph(
   nodes: Node<CircuitNodeData, "circuit">[];
   edges: Edge[];
 } {
+  const presentation = buildCircuitPresentation({ stages, nodes, edges });
+  const presentationNodeMap = new Map(
+    presentation.nodes.map((node) => [node.id, node]),
+  );
+  const presentationStageMap = new Map(
+    presentation.stages.map((stage) => [stage.index, stage]),
+  );
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
   graph.setGraph({
     rankdir: "LR",
-    ranksep: 120,
-    nodesep: 48,
+    ranksep: 140,
+    nodesep: 72,
     marginx: 40,
     marginy: 40,
   });
@@ -58,13 +68,24 @@ export function layoutCircuitGraph(
 
   const laidOutNodes = nodes.map((node) => {
     const position = graph.node(node.id);
+    const presentationNode = presentationNodeMap.get(node.id);
+    const presentationStage = presentationStageMap.get(node.stageIndex);
+    const stageCenterX = presentationStage
+      ? presentationStage.x + presentationStage.width / 2
+      : presentationNode?.x ?? 0;
+    const localXOffset = presentationNode
+      ? (presentationNode.x - stageCenterX) * STAGE_LOCAL_X_OFFSET_SCALE
+      : 0;
+    const localYOffset = presentationNode
+      ? (presentationNode.y - presentation.height / 2) * STAGE_LOCAL_Y_OFFSET_SCALE
+      : 0;
 
     return {
       id: node.id,
       type: "circuit",
       position: {
-        x: position.x - NODE_WIDTH / 2,
-        y: position.y - NODE_HEIGHT / 2,
+        x: position.x - NODE_WIDTH / 2 + localXOffset,
+        y: position.y - NODE_HEIGHT / 2 + localYOffset,
       },
       data: {
         label: node.label,
