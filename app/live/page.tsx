@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { LiveWorkspace } from "@/components/live/live-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
 import {
   appDataExists,
   assertManifestCapability,
@@ -128,13 +129,23 @@ export default async function LivePage() {
               ),
             },
             {
-              label: "Latest UTC",
+              label: "Tracked objects",
+              value: String(state.summaries.length),
+            },
+            {
+              label: "Time basis",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
           ]}
         />
       }
     >
+      <RouteIntentPanel
+        primaryQuestion="What is moving through the tracked transport objects right now?"
+        uniqueEvidence="Current dense belt snapshots, ordered block strips, and mass-weighted current-property distributions for instantaneous transport state."
+        useWhen="You want the current content on belts or a current summary of tracked objects without stepping through history."
+        switchWhen="Use Stockpiles for internal pile geometry, Profiler for historical summary playback, Circuit for topology, or Simulator for pile-centric discharge organization."
+      />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <LiveWorkspace
           graph={state.graph}

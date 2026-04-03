@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { StockpileWorkspace } from "@/components/stockpiles/stockpile-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
 import {
   appDataExists,
   assertManifestCapability,
@@ -12,7 +13,6 @@ import {
   getQualityDefinitions,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
-import { formatTimestamp } from "@/lib/format";
 
 async function loadStockpilePageState() {
   try {
@@ -114,13 +114,23 @@ export default async function StockpilesPage() {
             { label: "Dataset", value: state.manifest.datasetLabel },
             { label: "Pile objects", value: String(state.pileEntries.length) },
             {
-              label: "Latest UTC",
-              value: formatTimestamp(state.manifest.latestTimestamp),
+              label: "Supported forms",
+              value: "1D, 2D, 3D",
+            },
+            {
+              label: "View focus",
+              value: "Current dense inventory",
             },
           ]}
         />
       }
     >
+      <RouteIntentPanel
+        primaryQuestion="What does the inside of one current pile look like when it is read as cells, columns, heatmaps, or voxels?"
+        uniqueEvidence="Current dense pile content with property-driven coloring across 1D, 2D, and 3D representations plus pile-specific feed and reclaim context."
+        useWhen="You need to inspect one pile internally and compare how the selected property is distributed through its current occupied structure."
+        switchWhen="Use Live for belts, Profiler for historical summary snapshots, Circuit for overall topology, or Simulator for downstream discharge-route context."
+      />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <StockpileWorkspace
           pileEntries={state.pileEntries}
