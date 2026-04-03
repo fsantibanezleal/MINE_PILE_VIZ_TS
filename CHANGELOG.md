@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.061`
-- Active tracked version: `0.01.062`
+- Closed release baseline: `0.01.062`
+- Active tracked version: `0.01.063`
 
 ## Release History
+
+### 0.01.063
+
+- Reworked the shared circuit stage-sizing pass so slot budgets now seed themselves from real anchor-driven flow and band hints instead of only from generic default lane assumptions.
+- Strengthened branch-cluster spacing in the common presentation model so multi-output stages reserve more width, padding, vertical spread, and `3D` depth before the three circuit views are projected.
+- Propagated the richer placement into `Diagram`, and tightened layout coverage so high-fanout stages must keep distinct downstream branch separation instead of letting sibling routes collapse onto the same projected slot.
 
 ### 0.01.062
 

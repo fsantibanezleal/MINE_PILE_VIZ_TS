@@ -8,6 +8,8 @@ const NODE_HEIGHT = 132;
 const STAGE_LOCAL_X_OFFSET_SCALE = 0.32;
 const STAGE_LOCAL_Y_OFFSET_SCALE = 0.42;
 const MIN_STAGE_FRAME_WIDTH_SCALE = 0.94;
+const BASE_PRESENTATION_STAGE_WIDTH = 360;
+const BASE_PRESENTATION_STAGE_DEPTH = 18.8;
 
 export interface CircuitNodeData extends Record<string, unknown> {
   label: string;
@@ -71,11 +73,24 @@ export function layoutCircuitGraph(
     const stageCenterX = presentationStage
       ? presentationStage.x + presentationStage.width / 2
       : presentationNode?.x ?? 0;
+    const stageWidthExpansion = presentationStage
+      ? Math.max(0, presentationStage.width - BASE_PRESENTATION_STAGE_WIDTH)
+      : 0;
+    const stageDepthExpansion = presentationStage
+      ? Math.max(0, presentationStage.depth - BASE_PRESENTATION_STAGE_DEPTH)
+      : 0;
+    const localXScale =
+      STAGE_LOCAL_X_OFFSET_SCALE +
+      Math.min(0.18, stageWidthExpansion / 1800);
+    const localYScale =
+      STAGE_LOCAL_Y_OFFSET_SCALE +
+      Math.min(0.14, stageDepthExpansion / 48) +
+      Math.min(0.06, stageWidthExpansion / 2400);
     const localXOffset = presentationNode
-      ? (presentationNode.x - stageCenterX) * STAGE_LOCAL_X_OFFSET_SCALE
+      ? (presentationNode.x - stageCenterX) * localXScale
       : 0;
     const localYOffset = presentationNode
-      ? (presentationNode.y - presentation.height / 2) * STAGE_LOCAL_Y_OFFSET_SCALE
+      ? (presentationNode.y - presentation.height / 2) * localYScale
       : 0;
 
     return {

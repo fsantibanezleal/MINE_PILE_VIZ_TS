@@ -159,8 +159,8 @@ describe("layoutCircuitGraph", () => {
     expect(east).toBeDefined();
     expect(west!.position.x).toBeLessThan(center!.position.x);
     expect(center!.position.x).toBeLessThan(east!.position.x);
-    expect(Math.abs(center!.position.x - west!.position.x)).toBeGreaterThan(30);
-    expect(Math.abs(east!.position.x - center!.position.x)).toBeGreaterThan(30);
+    expect(Math.abs(center!.position.x - west!.position.x)).toBeGreaterThan(120);
+    expect(Math.abs(east!.position.x - center!.position.x)).toBeGreaterThan(110);
   });
 
   it("expands the downstream stage frame beyond raw node bounds for high-fanout layouts", () => {
@@ -179,6 +179,7 @@ describe("layoutCircuitGraph", () => {
     const frameWidth = Number(stageFrame?.style?.width ?? 0);
 
     expect(stageFrame).toBeDefined();
-    expect(frameWidth - rawWidth).toBeGreaterThan(78);
+    expect(frameWidth).toBeGreaterThan(1000);
+    expect(frameWidth - rawWidth).toBeGreaterThan(110);
   });
 });
