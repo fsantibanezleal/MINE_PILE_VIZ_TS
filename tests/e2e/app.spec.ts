@@ -40,7 +40,7 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
 
   await page.getByRole("link", { name: "Profiler", exact: true }).click();
   await expect(page.getByRole("heading", { name: "History explorer" })).toBeVisible();
-  await expect(page.getByText("Playback")).toBeVisible();
+  await expect(page.getByText("Playback", { exact: true })).toBeVisible();
   expect(reactFlowContainerWarnings).toEqual([]);
 });
 

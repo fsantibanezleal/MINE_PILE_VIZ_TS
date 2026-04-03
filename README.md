@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.044` |
+| Release-synced version | `0.01.045` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.043` |
-| Active tracked version | `0.01.044` |
+| Closed baseline | `0.01.044` |
+| Active tracked version | `0.01.045` |
 
 ## Current Frontend Views
 
@@ -255,6 +255,7 @@ types/
 ## Documentation Index
 
 - [App Data Contract](docs/app-data-contract.md)
+- [Development Guidelines](docs/development-guidelines.md)
 - [Local Runtime Guide](docs/local-runtime-guide.md)
 - [Changelog](CHANGELOG.md)
 

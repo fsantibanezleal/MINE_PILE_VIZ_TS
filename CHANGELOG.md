@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.043`
-- Active tracked version: `0.01.044`
+- Closed release baseline: `0.01.044`
+- Active tracked version: `0.01.045`
 
 ## Release History
+
+### 0.01.045
+
+- Extracted a shared `Cell Focus` inspector so stockpile, profiler, and simulator routes stop duplicating hovered-cell rendering and selected-property formatting.
+- Reused the shared quality-display formatter inside that inspector so mapped categorical labels and numerical formatting stay aligned across pile-centric workspaces.
+- Added lightweight tracked development guidelines to document reuse, docstring, and testing expectations for future slices.
 
 ### 0.01.044
 
