@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.059`
-- Active tracked version: `0.01.060`
+- Closed release baseline: `0.01.060`
+- Active tracked version: `0.01.061`
 
 ## Release History
+
+### 0.01.061
+
+- Reframed the simulator sidebar around active discharge-route context instead of repeating a generic pile summary, which makes the route read more clearly as discharge interpretation rather than a second stockpile workspace.
+- Removed duplicated central-pile property summary emphasis from the simulator inspector while keeping the central pile only as route anchor and hover context.
+- Advanced `#94` by tightening the semantic boundary between the `Simulator` and `Stockpiles` routes.
 
 ### 0.01.060
 

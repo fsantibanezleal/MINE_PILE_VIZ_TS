@@ -19,9 +19,7 @@ import {
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
-import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { MetricGrid } from "@/components/ui/metric-grid";
-import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RelationshipPanel } from "@/components/ui/relationship-panel";
@@ -32,7 +30,6 @@ import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
-import { buildMassDistribution } from "@/lib/mass-distribution";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
@@ -824,15 +821,6 @@ export function SimulatorWorkspace({
             getMaterialTimeValue(cell, selectedTimeMode, centralData?.timestamp),
     [centralData?.timestamp, selectedTimeMode],
   );
-  const centralDistribution = useMemo(
-    () =>
-      centralData && inspectionQuality
-        ? buildMassDistribution(centralData.cells, inspectionQuality, {
-            valueAccessor: centralInspectionValueAccessor,
-          })
-        : null,
-    [centralData, centralInspectionValueAccessor, inspectionQuality],
-  );
   const visibleCellCount =
     centralData?.dimension === 3
       ? viewMode === "surface"
@@ -1372,7 +1360,7 @@ export function SimulatorWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Central object detail</div>
+        <div className="section-label">Discharge reading context</div>
         <h3>{centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}</h3>
         <MetricGrid
           metrics={[
@@ -1396,9 +1384,56 @@ export function SimulatorWorkspace({
                   : centralData?.source === "current-stockpile"
                     ? "Current state"
                     : "Pending",
+            },
+          ]}
+        />
+        {activeLane ? (
+          <RelationshipPanel
+            title="Active route context"
+            summary="The simulator route is centered on one pile, but the main operator reading here is the selected discharge path and its downstream transport context."
+            metrics={[
+              { label: "Output", value: activeLane.output.label },
+              {
+                label: "Direct belts",
+                value: String(activeLane.directBelts.length),
+              },
+              {
+                label: "Merge nodes",
+                value: String(activeLane.mergeNodes.length),
+              },
+              {
+                label: "Downstream belts",
+                value: String(activeLane.downstreamBelts.length),
+              },
+              {
+                label: "Loaded belts",
+                value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
+              },
+              {
+                label: "Time alignment",
+                value: activeLaneSnapshot
+                  ? activeLaneSnapshot.timestampsAligned
+                    ? "Aligned"
+                    : "Mixed live timestamps"
+                  : "Pending",
+              },
+            ]}
+            groups={[
+              {
+                label: "Direct reclaim belts",
+                items: activeLane.directBelts.map((belt) => belt.label),
+              },
+              {
+                label: "Virtual merge nodes",
+                items: activeLane.mergeNodes.map((node) => node.label),
+              },
+              {
+                label: "Downstream conveyors",
+                items: activeLane.downstreamBelts.map((belt) => belt.label),
               },
             ]}
           />
+        ) : null}
         <RouteBasisPanel
           source={
             centralData?.source === "profiler-snapshot"
@@ -1452,25 +1487,6 @@ export function SimulatorWorkspace({
             },
           ]}
         />
-        {centralDistribution && selectedQuality ? (
-          <div className="inspector-stack">
-            <div className="section-label">Mass distribution</div>
-            <MassDistributionChart
-              distribution={centralDistribution}
-              quality={selectedQuality}
-              subjectLabel={centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}
-              recordLabel="cells"
-            />
-          </div>
-        ) : null}
-        {centralData ? (
-          <ProfiledPropertiesPanel
-            qualities={availableQualities}
-            values={centralData.qualityAverages}
-            records={centralData.cells}
-            totalMassTon={totalMassTon}
-          />
-        ) : null}
         <CellFocusPanel
           hoveredCell={activeHoveredCell}
           qualities={availableQualities}
