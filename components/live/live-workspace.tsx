@@ -201,9 +201,16 @@ export function LiveWorkspace({
         />
         <MetricGrid
           metrics={[
-            { label: "Blocks", value: String(currentBelt.blockCount) },
-            { label: "Mass", value: formatMassTon(currentBelt.totalMassTon) },
-            { label: "Timestamp", value: formatTimestamp(currentBelt.timestamp) },
+            { label: "Live belts", value: String(beltEntries.length) },
+            { label: "Tracked objects", value: String(registry.length) },
+            {
+              label: "Focus role",
+              value: selectedNode?.objectRole ?? "Unknown",
+            },
+            {
+              label: "Quality kind",
+              value: selectedQuality?.kind ?? "Pending",
+            },
           ]}
         />
       </aside>

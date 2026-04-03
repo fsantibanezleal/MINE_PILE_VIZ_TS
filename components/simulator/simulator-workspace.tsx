@@ -1275,7 +1275,7 @@ export function SimulatorWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Selected route state</div>
+        <div className="section-label">Central object detail</div>
         <h3>{centralData?.displayName ?? selectedNode?.label ?? "Selected pile"}</h3>
         <MetricGrid
           metrics={[
@@ -1333,20 +1333,25 @@ export function SimulatorWorkspace({
         <MetricGrid
           metrics={[
             {
-              label: "Active output",
-              value: activeLane?.output.label ?? "None",
+              label: "View mode",
+              value:
+                centralData?.dimension === 3
+                  ? viewMode
+                  : centralData
+                    ? `${centralData.dimension}D fixed`
+                    : "Pending",
             },
             {
-              label: "Loaded belts",
-              value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
-            },
-            {
-              label: "Route mass",
-              value: activeLane ? formatMassTon(activeLaneMassTon) : "Pending",
-            },
-            {
-              label: "Rendered cells",
+              label: "Visible cells",
               value: String(visibleCellCount),
+            },
+            {
+              label: "Occupied cells",
+              value: centralData ? String(centralData.occupiedCellCount) : "Pending",
+            },
+            {
+              label: "Surface cells",
+              value: centralData ? String(centralData.surfaceCellCount) : "Pending",
             },
           ]}
         />

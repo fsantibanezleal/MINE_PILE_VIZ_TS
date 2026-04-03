@@ -378,6 +378,7 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
     expect(screen.getByText("Active lane summary")).toBeInTheDocument();
+    expect(screen.getByText("Central object detail")).toBeInTheDocument();
     expect(screen.getByText("Route semantics")).toBeInTheDocument();
     expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
