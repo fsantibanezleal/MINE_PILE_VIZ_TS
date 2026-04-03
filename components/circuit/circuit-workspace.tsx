@@ -144,6 +144,7 @@ export function CircuitWorkspace({ graph, summaries }: CircuitWorkspaceProps) {
       )}
 
       <CircuitInspector
+        graph={graph}
         node={selectedNode}
         summary={selectedSummary}
         relatedObjectLabels={relatedObjectLabels}

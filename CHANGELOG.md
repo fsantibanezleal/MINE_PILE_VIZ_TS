@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.053`
-- Active tracked version: `0.01.054`
+- Closed release baseline: `0.01.054`
+- Active tracked version: `0.01.055`
 
 ## Release History
+
+### 0.01.055
+
+- Added a shared flow-semantics layer that derives operator-facing transport roles directly from the circuit graph instead of repeating route-specific ad hoc text.
+- Reused that semantics in the circuit inspector, live-state sidebar, and simulator sidebar so virtual discharge contributors, measured transport, and merge accumulation nodes now read consistently across routes.
+- Added grouped discharge-route semantics in the simulator so one selected output can explicitly read as part of a larger grouped reclaim structure when multiple outputs converge on the same merge or downstream conveyor context.
 
 ### 0.01.054
 

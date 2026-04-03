@@ -1,10 +1,13 @@
 "use client";
 
-import type { GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
+import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatNumber, formatTimestamp } from "@/lib/format";
+import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
+import type { CircuitGraph, GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
 
 interface CircuitInspectorProps {
+  graph: CircuitGraph;
   node?: CircuitNode;
   summary?: ObjectSummary;
   relatedObjectLabels?: Record<string, string>;
@@ -42,6 +45,7 @@ function AnchorInventory({
 }
 
 export function CircuitInspector({
+  graph,
   node,
   summary,
   relatedObjectLabels,
@@ -57,6 +61,8 @@ export function CircuitInspector({
       </aside>
     );
   }
+
+  const semantics = deriveTransportNodeSemantics(graph, node.id);
 
   return (
     <aside className="panel panel--inspector">
@@ -123,6 +129,7 @@ export function CircuitInspector({
           No current runtime summary is available for this object in the loaded cache.
         </p>
       )}
+      {semantics ? <TransportSemanticsPanel semantics={semantics} /> : null}
       <AnchorInventory
         title={`Feed anchors (${node.inputs.length})`}
         anchors={node.inputs}

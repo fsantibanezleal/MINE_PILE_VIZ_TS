@@ -38,7 +38,7 @@ export function CircuitFlow({
           onSelect?.(nextObjectId);
         }}
       />
-      <CircuitInspector node={selectedNode} summary={selectedSummary} />
+      <CircuitInspector graph={graph} node={selectedNode} summary={selectedSummary} />
     </div>
   );
 }
