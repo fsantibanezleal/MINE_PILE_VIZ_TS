@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.054`
-- Active tracked version: `0.01.055`
+- Closed release baseline: `0.01.055`
+- Active tracked version: `0.01.056`
 
 ## Release History
+
+### 0.01.056
+
+- Reframed the circuit route back toward structural reading by removing detailed quality-value blocks from the circuit inspector.
+- Added anchor-count and structural-reference emphasis in the circuit inspector so the route now prioritizes stage placement, modeled anchors, and flow roles over live-state inspection.
+- Tightened circuit-route copy to make it explicit that detailed material content belongs to the live, stockpile, profiler, and simulator routes.
 
 ### 0.01.055
 
