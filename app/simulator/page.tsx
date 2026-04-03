@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { SimulatorWorkspace } from "@/components/simulator/simulator-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
 import {
   appDataExists,
   assertManifestCapability,
@@ -13,7 +14,6 @@ import {
   getQualityDefinitions,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
-import { formatTimestamp } from "@/lib/format";
 
 async function loadSimulatorPageState() {
   try {
@@ -92,13 +92,23 @@ export default async function SimulatorPage() {
               ),
             },
             {
-              label: "Latest UTC",
-              value: formatTimestamp(state.manifest.latestTimestamp),
+              label: "Route focus",
+              value: "Pile-centered discharge",
+            },
+            {
+              label: "Time basis",
+              value: "Central history + current routes",
             },
           ]}
         />
       }
     >
+      <RouteIntentPanel
+        primaryQuestion="If one pile is the center of attention, how do its configured outputs organize downstream route content?"
+        uniqueEvidence="Pile-centric discharge structure that keeps one pile at the center, splits outputs by configured reclaim route, and shows downstream route context side by side."
+        useWhen="You want to reason about pile discharge structure, grouped reclaim routes, and downstream transport context from the perspective of one central pile."
+        switchWhen="Use Live for pure current-belt reading, Stockpiles for isolated internal pile structure, Profiler for historical summaries, or Circuit for the full staged topology."
+      />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <SimulatorWorkspace
           graph={state.graph}

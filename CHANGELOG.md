@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.057`
-- Active tracked version: `0.01.058`
+- Closed release baseline: `0.01.058`
+- Active tracked version: `0.01.059`
 
 ## Release History
+
+### 0.01.059
+
+- Added a shared route-intent panel so every routed workspace now states its primary operator question, unique evidence, appropriate usage context, and route-switch boundary explicitly.
+- Reworked route hero metrics so the circuit, live, stockpile, profiler, and simulator pages stop repeating the same headline context and instead emphasize route-specific reading purpose.
+- Strengthened `#94` by making route semantics visible in the product itself instead of leaving the differentiation only in README copy.
 
 ### 0.01.058
 

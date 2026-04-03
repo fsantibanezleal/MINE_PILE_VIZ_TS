@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { ProfilerWorkspace } from "@/components/profiler/profiler-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
 import {
   appDataExists,
   assertManifestCapability,
@@ -13,7 +14,6 @@ import {
   getQualityDefinitions,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
-import { formatTimestamp } from "@/lib/format";
 
 async function loadProfilerPageState() {
   try {
@@ -87,13 +87,23 @@ export default async function ProfilerPage() {
             { label: "Dataset", value: state.manifest.datasetLabel },
             { label: "Profiled objects", value: String(state.index.objects.length) },
             {
-              label: "Latest UTC",
-              value: formatTimestamp(state.manifest.latestTimestamp),
+              label: "Reading basis",
+              value: "Historical summaries",
+            },
+            {
+              label: "View modes",
+              value: "Circuit + detail",
             },
           ]}
         />
       }
     >
+      <RouteIntentPanel
+        primaryQuestion="How does summarized content change through time across the circuit or within one profiled object?"
+        uniqueEvidence="Historical profiler summaries that trade dense current resolution for time navigation, timestamp selection, and summarized detail playback."
+        useWhen="You need time-series reading, summarized snapshots, or comparison between timestamps rather than the latest dense state."
+        switchWhen="Use Live for current transport detail, Stockpiles for current dense pile internals, Circuit for topology, or Simulator for discharge-centric route reading."
+      />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <ProfilerWorkspace
           graph={state.graph}

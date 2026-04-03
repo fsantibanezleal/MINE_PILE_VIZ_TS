@@ -4,6 +4,7 @@ import { CircuitWorkspace } from "@/components/circuit/circuit-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
 import {
   appDataExists,
   assertManifestCapability,
@@ -13,7 +14,6 @@ import {
   getLiveObjectSummaries,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
-import { formatTimestamp } from "@/lib/format";
 import type { ObjectSummary } from "@/types/app-data";
 
 async function loadCircuitPageState() {
@@ -98,16 +98,23 @@ export default async function CircuitPage() {
             { label: "Dataset", value: state.manifest.datasetLabel },
             { label: "Stages", value: String(state.graph.stages.length) },
             {
-              label: "Latest UTC",
-              value: formatTimestamp(state.manifest.latestTimestamp),
+              label: "Modeled objects",
+              value: String(state.graph.nodes.length),
             },
-            { label: "Source", value: "Configured topology" },
-            { label: "Resolution", value: "Stages and graph" },
-            { label: "Time basis", value: "Static graph context" },
+            {
+              label: "Profiled objects",
+              value: String(state.graph.nodes.filter((node) => node.isProfiled).length),
+            },
           ]}
         />
       }
     >
+      <RouteIntentPanel
+        primaryQuestion="How is the modeled circuit organized from stage to stage before looking at material content?"
+        uniqueEvidence="Illustrated 2D and 3D circuit placement, stage grouping, object relationships, and configured pile anchor structure."
+        useWhen="You need spatial and structural process context, or you want to understand how objects connect through the staged sequence."
+        switchWhen="Change to Live for current belt content, Stockpiles for current internal pile structure, Profiler for historical summaries, or Simulator for pile-centric discharge reading."
+      />
       {state.summariesIssue ? (
         <InlineNotice tone="warning" title={state.summariesIssue.title}>
           {state.summariesIssue.description}
