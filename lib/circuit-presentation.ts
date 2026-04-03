@@ -13,6 +13,9 @@ export interface CircuitPresentationStage {
   width: number;
   z: number;
   depth: number;
+  framePaddingX: number;
+  framePaddingTop: number;
+  framePaddingBottom: number;
 }
 
 export interface CircuitPresentationStageFootprint3d {
@@ -81,6 +84,12 @@ interface StageDraft {
   slotCount: number;
   slotHints: number[];
   slotCenters: number[];
+  clusterCount: number;
+  sidePaddingX: number;
+  slotGap: number;
+  framePaddingX: number;
+  framePaddingTop: number;
+  framePaddingBottom: number;
 }
 
 interface StageClusterEntry {
@@ -544,13 +553,14 @@ function getStageSlotCenters(
   stageWidth: number,
   slotCount: number,
   maxNodeWidth: number,
+  sidePaddingX: number,
 ) {
   if (slotCount <= 1) {
     return [stageX + stageWidth / 2];
   }
 
-  const left = stageX + STAGE_SIDE_PADDING_X + maxNodeWidth / 2;
-  const right = stageX + stageWidth - STAGE_SIDE_PADDING_X - maxNodeWidth / 2;
+  const left = stageX + sidePaddingX + maxNodeWidth / 2;
+  const right = stageX + stageWidth - sidePaddingX - maxNodeWidth / 2;
 
   return Array.from({ length: slotCount }, (_, index) => {
     return left + ((right - left) * index) / (slotCount - 1);
@@ -833,6 +843,79 @@ function getStageSlotCount(
   );
 }
 
+function getStageSidePaddingX(
+  stageNodes: CircuitNode[],
+  slotCount: number,
+  clusterCount: number,
+) {
+  const hasPhysicalPile = stageNodes.some(
+    (node) => getNodeVisualKind(node) === "physical-pile",
+  );
+  const hasVirtualObjects = stageNodes.some(
+    (node) => node.objectRole === "virtual",
+  );
+
+  return (
+    STAGE_SIDE_PADDING_X +
+    Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 10 +
+    Math.max(0, clusterCount - 1) * 12 +
+    (hasPhysicalPile ? 14 : 0) +
+    (hasVirtualObjects ? 6 : 0)
+  );
+}
+
+function getStageSlotGap(slotCount: number, clusterCount: number) {
+  return (
+    STAGE_SLOT_GAP +
+    Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 8 +
+    Math.max(0, clusterCount - 1) * 6
+  );
+}
+
+function getStageFramePadding(
+  stageNodes: CircuitNode[],
+  slotCount: number,
+  clusterCount: number,
+) {
+  const hasPhysicalPile = stageNodes.some(
+    (node) => getNodeVisualKind(node) === "physical-pile",
+  );
+  const hasVirtualObjects = stageNodes.some(
+    (node) => node.objectRole === "virtual",
+  );
+
+  return {
+    x:
+      28 +
+      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 8 +
+      Math.max(0, clusterCount - 1) * 6,
+    top:
+      54 +
+      Math.max(0, clusterCount - 1) * 4 +
+      (hasPhysicalPile ? 8 : 0),
+    bottom:
+      26 +
+      Math.max(0, slotCount - STAGE_MIN_SLOT_COUNT) * 4 +
+      (hasVirtualObjects ? 6 : 0),
+  };
+}
+
+function getStageDepthPadding(stageDraft: Pick<StageDraft, "slotCount" | "clusterCount">) {
+  return (
+    5.6 +
+    Math.max(0, stageDraft.slotCount - STAGE_MIN_SLOT_COUNT) * 0.85 +
+    Math.max(0, stageDraft.clusterCount - 1) * 0.9
+  );
+}
+
+function getStageMinimumDepth(stageDraft: Pick<StageDraft, "slotCount" | "clusterCount">) {
+  return (
+    18.8 +
+    Math.max(0, stageDraft.slotCount - STAGE_MIN_SLOT_COUNT) * 0.75 +
+    Math.max(0, stageDraft.clusterCount - 1) * 0.65
+  );
+}
+
 function getNodeFlowHint(
   node: CircuitNode,
   incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
@@ -913,6 +996,18 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
   let currentStageX = STAGE_PADDING_X;
   const stageDrafts: StageDraft[] = graph.stages.map((stage) => {
     const stageNodes = nodesByStage.get(stage.index) ?? [];
+    const widthClusterPlan = buildStageClusterPlan(
+      stageNodes.map((node) => ({
+        node,
+        xHint: DEFAULT_FLOW_HINT[getNodeVisualKind(node)],
+        crossAxisHint: 0,
+        clusterKey: getNodeBranchGroupKey(
+          node,
+          incomingByNodeId,
+          outgoingByNodeId,
+        ),
+      })),
+    );
     const slotCount = getStageSlotCount(
       stageNodes,
       incomingByNodeId,
@@ -921,9 +1016,21 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     const maxNodeWidth = stageNodes.reduce((maxWidth, node) => {
       return Math.max(maxWidth, getNodeSize(node).width);
     }, 140);
+    const clusterCount = Math.max(1, widthClusterPlan.clusters.length);
+    const sidePaddingX = getStageSidePaddingX(
+      stageNodes,
+      slotCount,
+      clusterCount,
+    );
+    const slotGap = getStageSlotGap(slotCount, clusterCount);
+    const framePadding = getStageFramePadding(
+      stageNodes,
+      slotCount,
+      clusterCount,
+    );
     const width = Math.max(
       BASE_STAGE_WIDTH,
-      STAGE_SIDE_PADDING_X * 2 + maxNodeWidth + (slotCount - 1) * STAGE_SLOT_GAP,
+      sidePaddingX * 2 + maxNodeWidth + (slotCount - 1) * slotGap,
     );
     const draft = {
       index: stage.index,
@@ -937,7 +1044,14 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
         width,
         slotCount,
         maxNodeWidth,
+        sidePaddingX,
       ),
+      clusterCount,
+      sidePaddingX,
+      slotGap,
+      framePaddingX: framePadding.x,
+      framePaddingTop: framePadding.top,
+      framePaddingBottom: framePadding.bottom,
     } satisfies StageDraft;
 
     currentStageX += width + BASE_STAGE_GAP;
@@ -1095,9 +1209,13 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
 
   graph.stages.forEach((stage) => {
     const memberNodes = nodes.filter((node) => node.stageIndex === stage.index);
+    const stageDraft = stageMap.get(stage.index);
 
     if (memberNodes.length === 0) {
-      stageDepthByIndex.set(stage.index, { z: 3.6, depth: 18.8 });
+      stageDepthByIndex.set(stage.index, {
+        z: 3.6,
+        depth: stageDraft ? getStageMinimumDepth(stageDraft) : 18.8,
+      });
       return;
     }
 
@@ -1110,7 +1228,10 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
 
     stageDepthByIndex.set(stage.index, {
       z: (minZ + maxZ) / 2,
-      depth: Math.max(18.8, maxZ - minZ + 5.6),
+      depth: Math.max(
+        stageDraft ? getStageMinimumDepth(stageDraft) : 18.8,
+        maxZ - minZ + getStageDepthPadding(stageDraft ?? { slotCount: 3, clusterCount: 1 }),
+      ),
     });
   });
 
@@ -1121,6 +1242,9 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
     width: stage.width,
     z: stageDepthByIndex.get(stage.index)?.z ?? 3.6,
     depth: stageDepthByIndex.get(stage.index)?.depth ?? 18.8,
+    framePaddingX: stage.framePaddingX,
+    framePaddingTop: stage.framePaddingTop,
+    framePaddingBottom: stage.framePaddingBottom,
   }));
 
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
