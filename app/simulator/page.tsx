@@ -95,9 +95,6 @@ export default async function SimulatorPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
-            { label: "Source", value: "Pile snapshot + live routes" },
-            { label: "Resolution", value: "Mixed pile detail / live belts" },
-            { label: "Time basis", value: "Selected pile step" },
           ]}
         />
       }

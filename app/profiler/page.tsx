@@ -90,9 +90,6 @@ export default async function ProfilerPage() {
               label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
-            { label: "Source", value: "Profiler snapshots" },
-            { label: "Resolution", value: "Reduced summary rows" },
-            { label: "Time basis", value: "Historical playback" },
           ]}
         />
       }

@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.044`
-- Active tracked version: `0.01.045`
+- Closed release baseline: `0.01.045`
+- Active tracked version: `0.01.046`
 
 ## Release History
+
+### 0.01.046
+
+- Removed duplicated `Source`, `Resolution`, and `Time basis` metrics from the `live`, `stockpiles`, `profiler`, and `simulator` page heroes when the same semantics were already explained again inside the workspace inspector.
+- Kept route-entry hero metrics focused on dataset-level context while leaving route interpretation guidance in the reusable `RouteBasisPanel`.
+- Narrowed one concrete overlap pattern identified under the broader page-differentiation and intra-page duplication review issues.
 
 ### 0.01.045
 
