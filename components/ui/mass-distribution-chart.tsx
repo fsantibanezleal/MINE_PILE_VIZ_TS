@@ -16,6 +16,15 @@ interface MassDistributionChartProps {
   recordLabel: string;
 }
 
+const NUMERICAL_HISTOGRAM_WIDTH = 760;
+const NUMERICAL_HISTOGRAM_HEIGHT = 296;
+const NUMERICAL_HISTOGRAM_MARGIN = {
+  top: 16,
+  right: 14,
+  bottom: 64,
+  left: 68,
+};
+
 function SummaryItem({
   label,
   value,
@@ -47,6 +56,19 @@ function buildConicGradient(
       return `${stop.color} ${start}% ${end}%`;
     })
     .join(", ");
+}
+
+function buildNumericalBinLabel(
+  start: number,
+  end: number,
+  center: number,
+  isSingleBin: boolean,
+) {
+  if (isSingleBin) {
+    return formatNumber(center);
+  }
+
+  return `${formatNumber(start)}-${formatNumber(end)}`;
 }
 
 export function MassDistributionChart({
@@ -153,6 +175,19 @@ export function MassDistributionChart({
     );
   }
 
+  const plotWidth =
+    NUMERICAL_HISTOGRAM_WIDTH -
+    NUMERICAL_HISTOGRAM_MARGIN.left -
+    NUMERICAL_HISTOGRAM_MARGIN.right;
+  const plotHeight =
+    NUMERICAL_HISTOGRAM_HEIGHT -
+    NUMERICAL_HISTOGRAM_MARGIN.top -
+    NUMERICAL_HISTOGRAM_MARGIN.bottom;
+  const barSlotWidth = plotWidth / Math.max(distribution.bins.length, 1);
+  const barWidth = Math.max(barSlotWidth * 0.72, 14);
+  const labelStep = Math.max(1, Math.ceil(distribution.bins.length / 6));
+  const yTickRatios = [0, 0.25, 0.5, 0.75, 1];
+
   return (
     <div
       className="belt-histogram"
@@ -178,34 +213,116 @@ export function MassDistributionChart({
         Mass distribution of {qualityLabel}. Each bar accumulates the represented mass
         whose property value falls inside that interval.
       </p>
-      <div className="belt-histogram__chart">
-        {distribution.bins.map((bin, index) => {
-          const height = distribution.maxBinMassTon
-            ? (bin.massTon / distribution.maxBinMassTon) * 100
-            : 0;
-          const label =
-            distribution.bins.length === 1
-              ? formatNumber(bin.center)
-              : `${formatNumber(bin.start)} to ${formatNumber(bin.end)}`;
+      <div className="belt-histogram__svg-frame">
+        <svg
+          className="belt-histogram__svg"
+          viewBox={`0 0 ${NUMERICAL_HISTOGRAM_WIDTH} ${NUMERICAL_HISTOGRAM_HEIGHT}`}
+          aria-hidden="true"
+        >
+          {yTickRatios.map((ratio) => {
+            const y =
+              NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight - plotHeight * ratio;
+            const tickMassTon = distribution.maxBinMassTon * ratio;
 
-          return (
-            <div
-              key={`${quality?.id ?? "quality"}-${index}`}
-              className="belt-histogram__column"
-              title={`${label}: ${formatMassTon(bin.massTon)} across ${bin.recordCount} ${recordLabel}`}
-            >
-              <div className="belt-histogram__bar-frame">
-                <div
-                  className="belt-histogram__bar"
-                  style={{
-                    height: `${height}%`,
-                    backgroundColor: getQualityColor(quality, bin.center),
-                  }}
+            return (
+              <g key={`tick-${ratio}`}>
+                <line
+                  className="belt-histogram__grid-line"
+                  x1={NUMERICAL_HISTOGRAM_MARGIN.left}
+                  x2={NUMERICAL_HISTOGRAM_MARGIN.left + plotWidth}
+                  y1={y}
+                  y2={y}
                 />
-              </div>
-            </div>
-          );
-        })}
+                <text
+                  className="belt-histogram__tick"
+                  x={NUMERICAL_HISTOGRAM_MARGIN.left - 12}
+                  y={y + 4}
+                  textAnchor="end"
+                >
+                  {formatMassTon(tickMassTon)}
+                </text>
+              </g>
+            );
+          })}
+          <line
+            className="belt-histogram__axis-line"
+            x1={NUMERICAL_HISTOGRAM_MARGIN.left}
+            x2={NUMERICAL_HISTOGRAM_MARGIN.left}
+            y1={NUMERICAL_HISTOGRAM_MARGIN.top}
+            y2={NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight}
+          />
+          <line
+            className="belt-histogram__axis-line"
+            x1={NUMERICAL_HISTOGRAM_MARGIN.left}
+            x2={NUMERICAL_HISTOGRAM_MARGIN.left + plotWidth}
+            y1={NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight}
+            y2={NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight}
+          />
+          {distribution.bins.map((bin, index) => {
+            const barHeight =
+              distribution.maxBinMassTon > 0
+                ? (bin.massTon / distribution.maxBinMassTon) * plotHeight
+                : 0;
+            const x =
+              NUMERICAL_HISTOGRAM_MARGIN.left +
+              index * barSlotWidth +
+              (barSlotWidth - barWidth) / 2;
+            const y =
+              NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight - barHeight;
+            const label = buildNumericalBinLabel(
+              bin.start,
+              bin.end,
+              bin.center,
+              distribution.bins.length === 1,
+            );
+
+            return (
+              <g key={`${quality?.id ?? "quality"}-${index}`}>
+                <rect
+                  className="belt-histogram__svg-bar"
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(barHeight, 2)}
+                  rx={6}
+                  ry={6}
+                  fill={getQualityColor(quality, bin.center)}
+                >
+                  <title>
+                    {`${label}: ${formatMassTon(bin.massTon)} across ${bin.recordCount} ${recordLabel}`}
+                  </title>
+                </rect>
+                {index % labelStep === 0 || index === distribution.bins.length - 1 ? (
+                  <text
+                    className="belt-histogram__tick belt-histogram__tick--x"
+                    x={x + barWidth / 2}
+                    y={NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight + 22}
+                    textAnchor="middle"
+                  >
+                    {label}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
+          <text
+            className="belt-histogram__axis-title"
+            x={NUMERICAL_HISTOGRAM_MARGIN.left + plotWidth / 2}
+            y={NUMERICAL_HISTOGRAM_HEIGHT - 14}
+            textAnchor="middle"
+          >
+            {qualityLabel} value bins
+          </text>
+          <text
+            className="belt-histogram__axis-title"
+            x={22}
+            y={NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight / 2}
+            textAnchor="middle"
+            transform={`rotate(-90 22 ${NUMERICAL_HISTOGRAM_MARGIN.top + plotHeight / 2})`}
+          >
+            Represented mass per bin
+          </text>
+        </svg>
       </div>
       <div className="belt-histogram__axis">
         <span>{formatNumber(distribution.domain.min)}</span>

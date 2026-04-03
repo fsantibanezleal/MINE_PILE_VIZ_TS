@@ -1201,6 +1201,46 @@ code {
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
 }
 
+.belt-histogram__svg-frame {
+  width: 100%;
+  padding: 6px 0 0;
+  border: 1px solid rgba(124, 164, 201, 0.12);
+  border-radius: 16px;
+  background: rgba(7, 16, 27, 0.16);
+}
+
+.belt-histogram__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.belt-histogram__grid-line {
+  stroke: rgba(124, 164, 201, 0.14);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.belt-histogram__axis-line {
+  stroke: rgba(124, 164, 201, 0.34);
+  stroke-width: 1.4;
+  shape-rendering: crispEdges;
+}
+
+.belt-histogram__svg-bar {
+  shape-rendering: geometricPrecision;
+}
+
+.belt-histogram__tick,
+.belt-histogram__axis-title {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+.belt-histogram__tick--x {
+  font-size: 10px;
+}
+
 .belt-histogram__pie-layout {
   display: grid;
   grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);

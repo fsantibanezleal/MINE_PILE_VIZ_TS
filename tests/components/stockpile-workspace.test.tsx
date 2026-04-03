@@ -356,7 +356,7 @@ describe("StockpileWorkspace", () => {
 
     expect(screen.getByText("Cell Focus")).toBeInTheDocument();
     expect(screen.getByText("0, 0, 0")).toBeInTheDocument();
-    expect(screen.getByText("10 t")).toBeInTheDocument();
+    expect(screen.getAllByText("10 t").length).toBeGreaterThan(0);
   });
 
   it("switches the pile inspection to material time mode", async () => {
