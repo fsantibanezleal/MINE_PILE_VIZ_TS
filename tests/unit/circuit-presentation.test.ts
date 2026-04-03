@@ -348,6 +348,11 @@ const multiBandFanoutGraph: CircuitGraph = {
         "vbelt_out_06",
       ],
     },
+    {
+      index: 2,
+      label: "Merged routes",
+      nodeIds: ["vpile_out_cv301", "vpile_out_cv302", "vpile_out_cv303"],
+    },
   ],
   nodes: [
     {
@@ -425,13 +430,215 @@ const multiBandFanoutGraph: CircuitGraph = {
       inputs: [],
       outputs: [],
     })),
+    {
+      id: "vpile_out_cv301",
+      objectId: "vpile_out_cv301",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Route 301",
+      stageIndex: 2,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Merged route 301",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vpile_out_cv302",
+      objectId: "vpile_out_cv302",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Route 302",
+      stageIndex: 2,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Merged route 302",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vpile_out_cv303",
+      objectId: "vpile_out_cv303",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Route 303",
+      stageIndex: 2,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Merged route 303",
+      inputs: [],
+      outputs: [],
+    },
   ],
-  edges: Array.from({ length: 6 }, (_, index) => ({
-    id: `edge-${index + 1}`,
-    source: "pile_stockpile",
-    target: `vbelt_out_0${index + 1}`,
-    label: `route-${index + 1}`,
-  })),
+  edges: [
+    ...Array.from({ length: 6 }, (_, index) => ({
+      id: `edge-${index + 1}`,
+      source: "pile_stockpile",
+      target: `vbelt_out_0${index + 1}`,
+      label: `route-${index + 1}`,
+    })),
+    {
+      id: "merge-01",
+      source: "vbelt_out_01",
+      target: "vpile_out_cv301",
+      label: "merge-01",
+    },
+    {
+      id: "merge-02",
+      source: "vbelt_out_02",
+      target: "vpile_out_cv301",
+      label: "merge-02",
+    },
+    {
+      id: "merge-03",
+      source: "vbelt_out_03",
+      target: "vpile_out_cv302",
+      label: "merge-03",
+    },
+    {
+      id: "merge-04",
+      source: "vbelt_out_04",
+      target: "vpile_out_cv302",
+      label: "merge-04",
+    },
+    {
+      id: "merge-05",
+      source: "vbelt_out_05",
+      target: "vpile_out_cv303",
+      label: "merge-05",
+    },
+    {
+      id: "merge-06",
+      source: "vbelt_out_06",
+      target: "vpile_out_cv303",
+      label: "merge-06",
+    },
+  ],
+};
+
+const depthContinuityGraph: CircuitGraph = {
+  stages: [
+    { index: 0, label: "Pile", nodeIds: ["pile_stockpile"] },
+    { index: 1, label: "Direct outputs", nodeIds: ["vbelt_out_01", "vbelt_out_02"] },
+    { index: 2, label: "Merge", nodeIds: ["vpile_out_cv301"] },
+    { index: 3, label: "Conveyor", nodeIds: ["belt_cv301"] },
+  ],
+  nodes: [
+    {
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Plant Stockpile",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Stockpile",
+      inputs: [],
+      outputs: [
+        {
+          id: "out-01",
+          label: "Out 01",
+          kind: "output",
+          x: 0.25,
+          y: 0.4,
+          relatedObjectId: "vbelt_out_01",
+        },
+        {
+          id: "out-02",
+          label: "Out 02",
+          kind: "output",
+          x: 0.75,
+          y: 0.6,
+          relatedObjectId: "vbelt_out_02",
+        },
+      ],
+    },
+    {
+      id: "vbelt_out_01",
+      objectId: "vbelt_out_01",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Out 01",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual belt",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vbelt_out_02",
+      objectId: "vbelt_out_02",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Out 02",
+      stageIndex: 1,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual belt",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vpile_out_cv301",
+      objectId: "vpile_out_cv301",
+      objectType: "pile",
+      objectRole: "virtual",
+      label: "Merge buffer",
+      stageIndex: 2,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Virtual merge pile",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "belt_cv301",
+      objectId: "belt_cv301",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "CV301",
+      stageIndex: 3,
+      dimension: 1,
+      isProfiled: true,
+      shortDescription: "Physical discharge conveyor",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [
+    {
+      id: "edge-pile-out-01",
+      source: "pile_stockpile",
+      target: "vbelt_out_01",
+      label: "out-01",
+    },
+    {
+      id: "edge-pile-out-02",
+      source: "pile_stockpile",
+      target: "vbelt_out_02",
+      label: "out-02",
+    },
+    {
+      id: "edge-vbelt-01-merge",
+      source: "vbelt_out_01",
+      target: "vpile_out_cv301",
+      label: "merge-01",
+    },
+    {
+      id: "edge-vbelt-02-merge",
+      source: "vbelt_out_02",
+      target: "vpile_out_cv301",
+      label: "merge-02",
+    },
+    {
+      id: "edge-merge-belt",
+      source: "vpile_out_cv301",
+      target: "belt_cv301",
+      label: "discharge",
+    },
+  ],
 };
 
 describe("circuit pile anchor presentation", () => {
@@ -526,6 +733,33 @@ describe("circuit pile anchor presentation", () => {
     ]);
     expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(36);
     expect(Math.max(...zValues) - Math.min(...zValues)).toBeGreaterThan(2.2);
+  });
+
+  it("keeps grouped discharge pairs farther apart than the members inside each pair", () => {
+    const presentation = buildCircuitPresentation(multiBandFanoutGraph);
+    const directOutputNodes = presentation.nodes
+      .filter((node) => node.stageIndex === 1)
+      .sort((left, right) => left.x - right.x);
+    const gaps = directOutputNodes
+      .slice(1)
+      .map((node, index) => node.x - directOutputNodes[index]!.x);
+
+    expect(gaps[1]!).toBeGreaterThan(gaps[0]! * 1.5);
+    expect(gaps[3]!).toBeGreaterThan(gaps[2]! * 1.5);
+  });
+
+  it("keeps downstream physical discharge transport inside the same 3D route zone", () => {
+    const presentation = buildCircuitPresentation(depthContinuityGraph);
+    const mergeStage = presentation.stages.find((stage) => stage.index === 2);
+    const conveyorStage = presentation.stages.find((stage) => stage.index === 3);
+    const conveyor = presentation.nodes.find((node) => node.id === "belt_cv301");
+
+    expect(mergeStage).toBeDefined();
+    expect(conveyorStage).toBeDefined();
+    expect(conveyor).toBeDefined();
+    expect(conveyorStage!.z).toBeGreaterThan(0);
+    expect(conveyor!.z).toBeGreaterThan(0);
+    expect(Math.abs(conveyorStage!.z - mergeStage!.z)).toBeLessThan(8.5);
   });
 
   it("keeps node centers contained inside the computed stage frames", () => {
