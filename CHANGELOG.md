@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.068`
-- Active tracked version: `0.01.069`
+- Closed release baseline: `0.01.069`
+- Active tracked version: `0.01.070`
 
 ## Release History
+
+### 0.01.070
+
+- Added a stockpile-only structure profile panel that summarizes fill ratio, footprint use, axis coverage, mass center, and mass-by-layer profile from the current dense pile cells instead of repeating generic route metadata.
+- Reframed the stockpile route around current internal structure more explicitly in both page-level copy and the workspace sidebar, which pushes `#94` further by separating `Stockpiles` from the simulator and profiler reading surfaces.
+- Added shared structural-summary logic and regression coverage so current pile structure remains a reusable route capability rather than one-off UI text.
 
 ### 0.01.069
 

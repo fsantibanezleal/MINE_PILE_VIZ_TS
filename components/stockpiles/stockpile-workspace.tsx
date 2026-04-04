@@ -18,6 +18,7 @@ import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
+import { PileStructurePanel } from "@/components/ui/pile-structure-panel";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
@@ -567,7 +568,7 @@ export function StockpileWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Dense current pile state</div>
+        <div className="section-label">Current structure reading</div>
         <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
         <MetricGrid
           metrics={[
@@ -577,6 +578,7 @@ export function StockpileWorkspace({
             { label: "Rendered cells", value: String(visibleCellCount) },
           ]}
         />
+        {dataset ? <PileStructurePanel dataset={dataset} /> : null}
         <RouteBasisPanel
           source={dataset ? "Current pile dataset" : "Pending"}
           resolution={
