@@ -107,19 +107,19 @@ export default async function StockpilesPage() {
     <AppShell
       eyebrow="Stockpiles"
       title="Internal stockpile views"
-      description="The stockpile route reads current dense pile inventories. Choose a pile and property, then move between column, heatmap, surface, shell, full voxel, and slice representations depending on dimensionality."
+      description="The stockpile route reads current dense pile inventories as internal structure. Choose a pile and property, then move between column, heatmap, surface, shell, full voxel, and slice representations while keeping the focus on current spatial occupancy and mass distribution."
       actions={
         <MetricGrid
           metrics={[
             { label: "Dataset", value: state.manifest.datasetLabel },
             { label: "Pile objects", value: String(state.pileEntries.length) },
             {
-              label: "Supported forms",
+              label: "Structure forms",
               value: "1D, 2D, 3D",
             },
             {
               label: "View focus",
-              value: "Current dense inventory",
+              value: "Current internal structure",
             },
           ]}
         />
@@ -127,7 +127,7 @@ export default async function StockpilesPage() {
     >
       <RouteIntentPanel
         primaryQuestion="What does the inside of one current pile look like when it is read as cells, columns, heatmaps, or voxels?"
-        uniqueEvidence="Current dense pile content with property-driven coloring across 1D, 2D, and 3D representations plus pile-specific feed and reclaim context."
+        uniqueEvidence="Current dense pile content with property-driven coloring, structure profile metrics, and pile-specific feed and reclaim context across 1D, 2D, and 3D views."
         useWhen="You need to inspect one pile internally and compare how the selected property is distributed through its current occupied structure."
         switchWhen="Use Live for belts, Profiler for historical summary snapshots, Circuit for overall topology, or Simulator for downstream discharge-route context."
       />

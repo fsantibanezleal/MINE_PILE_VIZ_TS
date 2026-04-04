@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.069` |
+| Release-synced version | `0.01.070` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.066` |
-| Active tracked version | `0.01.069` |
+| Closed baseline | `0.01.069` |
+| Active tracked version | `0.01.070` |
 
 ## Current Frontend Views
 
@@ -116,7 +116,7 @@ The simulator workspace now uses piles and virtual piles as its central object m
 
 ### Stockpile Workspace
 
-The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render, and the route now states explicitly that it is reading current dense pile inventories rather than historical snapshots. The pile visual keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. The same selector can now switch the pile from tracked-property coloring into oldest-age, newest-age, or represented-span coloring, which makes material residence patterns visible directly inside the dense cell or voxel view. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The `3D` voxel renderer now uses an explicit shader-based instance-color path so visible voxels keep the selected property color instead of collapsing into black silhouettes under the dense stockpile load path. The sidebar separates quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
+The stockpile workspace exposes internal structure for accumulation objects. It supports property selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render, and the route now states explicitly that it is reading current dense pile inventories rather than historical snapshots. The pile visual keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. The same selector can now switch the pile from tracked-property coloring into oldest-age, newest-age, or represented-span coloring, which makes material residence patterns visible directly inside the dense cell or voxel view. Numerical pile properties also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when properties are tightly clustered. The `3D` voxel renderer now uses an explicit shader-based instance-color path so visible voxels keep the selected property color instead of collapsing into black silhouettes under the dense stockpile load path. The sidebar now includes a stockpile-specific structure profile with fill ratio, footprint use, mass center, axis coverage, and mass-by-layer profile, which makes the route read more clearly as internal pile interpretation instead of another generic inspector. The remaining sidebar panels still separate quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
 
 ### Profiler Workspace
 
@@ -261,7 +261,7 @@ types/
 
 ## Current Version
 
-`0.01.069`
+`0.01.070`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

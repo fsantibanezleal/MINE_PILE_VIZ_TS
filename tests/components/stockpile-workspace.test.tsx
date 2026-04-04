@@ -312,6 +312,8 @@ describe("StockpileWorkspace", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_a");
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
+    expect(screen.getByText("Structure profile")).toBeInTheDocument();
+    expect(screen.getByText("Mass by x axis")).toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
 
