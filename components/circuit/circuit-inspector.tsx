@@ -4,7 +4,12 @@ import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-pan
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
-import type { CircuitGraph, GraphAnchor, CircuitNode, ObjectSummary } from "@/types/app-data";
+import type {
+  CircuitGraph,
+  GraphAnchor,
+  CircuitNode,
+  ObjectSummary,
+} from "@/types/app-data";
 
 interface CircuitInspectorProps {
   graph: CircuitGraph;
@@ -95,37 +100,39 @@ export function CircuitInspector({
           <strong>{node.outputs.length}</strong>
         </div>
       </div>
-      {summary ? (
-        <div className="inspector-stack">
-          <div className="section-label">Current runtime reference</div>
+      <details className="inspector-stack inspector-stack--collapsed-context">
+        <summary className="section-label">Cross-route context</summary>
+        {summary ? (
+          <>
+            <p className="muted-text">
+              Runtime values stay secondary here. They are shown only as reference for the
+              selected object and do not drive the default structural reading.
+            </p>
+            <div className="metric-grid">
+              <div className="metric-card">
+                <span>Runtime mass</span>
+                <strong>{formatMassTon(summary.massTon)}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Summary status</span>
+                <strong>{summary.status}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Latest live UTC</span>
+                <strong>{formatTimestamp(summary.timestamp)}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Profiled</span>
+                <strong>{node.isProfiled ? "Yes" : "No"}</strong>
+              </div>
+            </div>
+          </>
+        ) : (
           <p className="muted-text">
-            This route stays structural. Runtime values are shown only as cross-route
-            context for the selected object.
+            No current runtime reference is available for this object in the loaded cache.
           </p>
-          <div className="metric-grid">
-            <div className="metric-card">
-              <span>Runtime mass</span>
-              <strong>{formatMassTon(summary.massTon)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Summary status</span>
-              <strong>{summary.status}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Latest live UTC</span>
-              <strong>{formatTimestamp(summary.timestamp)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Profiled</span>
-              <strong>{node.isProfiled ? "Yes" : "No"}</strong>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <p className="muted-text">
-          No current runtime reference is available for this object in the loaded cache.
-        </p>
-      )}
+        )}
+      </details>
       {semantics ? <TransportSemanticsPanel semantics={semantics} /> : null}
       <AnchorInventory
         title={`Feed anchors (${node.inputs.length})`}

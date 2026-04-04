@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.070`
-- Active tracked version: `0.01.071`
+- Closed release baseline: `0.01.071`
+- Active tracked version: `0.01.072`
 
 ## Release History
+
+### 0.01.072
+
+- Reframed the circuit inspector around structural reading by moving live-summary values behind a collapsed cross-route context disclosure instead of making them part of the default object reading.
+- Kept the circuit route focused on stage role, transport semantics, configured anchors, and route switching, which advances `#94` by separating `Circuit` more clearly from the runtime inspection routes.
+- Added regression coverage so the circuit inspector keeps the new structural-first reading while still exposing optional cross-route runtime reference when available.
 
 ### 0.01.071
 
