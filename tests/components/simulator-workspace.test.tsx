@@ -381,6 +381,7 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByText("Discharge reading context")).toBeInTheDocument();
     expect(screen.getByText("Active route context")).toBeInTheDocument();
     expect(screen.getByText("Route semantics")).toBeInTheDocument();
+    expect(screen.getByText("Inspect central pile")).toBeInTheDocument();
     expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
     expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
@@ -406,5 +407,7 @@ describe("SimulatorWorkspace", () => {
     });
 
     expect(screen.getByRole("button", { name: /To CV301/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Inspect central pile"));
+    expect(screen.getByText("Central object material time")).toBeInTheDocument();
   });
 });

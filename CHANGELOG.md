@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.073`
-- Active tracked version: `0.01.074`
+- Closed release baseline: `0.01.074`
+- Active tracked version: `0.01.075`
 
 ## Release History
+
+### 0.01.075
+
+- Reframed the simulator sidebar around discharge-route reading by moving central-pile internals, material-time reading, visible-cell counts, hovered-cell inspection, and route jumps into a dedicated secondary inspection section.
+- Kept the active output route, route semantics, direct/merge/downstream hierarchy, and route basis as the default simulator reading so the route behaves more like discharge-decision support than another stockpile inspector.
+- Extended simulator regression coverage to preserve the new route-first hierarchy while keeping central pile inspection available on demand.
 
 ### 0.01.074
 

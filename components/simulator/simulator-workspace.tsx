@@ -1454,50 +1454,58 @@ export function SimulatorWorkspace({
           }
           note="The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
         />
-        {centralTransportSemantics ? (
-          <TransportSemanticsPanel semantics={centralTransportSemantics} />
-        ) : null}
-        <MaterialTimePanel
-          summary={centralMaterialTimeSummary}
-          title="Central object material time"
-          emptyMessage="No valid represented-material timestamps are available for the central object."
-        />
-        <MetricGrid
-          metrics={[
-            {
-              label: "View mode",
-              value:
-                centralData?.dimension === 3
-                  ? viewMode
-                  : centralData
-                    ? `${centralData.dimension}D fixed`
-                    : "Pending",
-            },
-            {
-              label: "Visible cells",
-              value: String(visibleCellCount),
-            },
-            {
-              label: "Occupied cells",
-              value: centralData ? String(centralData.occupiedCellCount) : "Pending",
-            },
-            {
-              label: "Surface cells",
-              value: centralData ? String(centralData.surfaceCellCount) : "Pending",
-            },
-          ]}
-        />
-        <CellFocusPanel
-          hoveredCell={activeHoveredCell}
-          qualities={availableQualities}
-          selectedQuality={selectedQuality}
-          emptyMessage="Hover a cell, voxel, or cross-section cell in the central pile view to inspect coordinates, mass, and property values."
-        />
-        <WorkspaceJumpLinks
-          objectId={selectedObjectId}
-          objectType="pile"
-          isProfiled={hasProfilerHistory}
-        />
+        <details className="inspector-stack inspector-stack--collapsed-context">
+          <summary className="section-label">Inspect central pile</summary>
+          <p className="muted-text">
+            The simulator stays route-first. Open this section when you need the central
+            pile internals, material-time summary, visible-cell counts, or hovered-cell
+            detail behind the active discharge route.
+          </p>
+          {centralTransportSemantics ? (
+            <TransportSemanticsPanel semantics={centralTransportSemantics} />
+          ) : null}
+          <MaterialTimePanel
+            summary={centralMaterialTimeSummary}
+            title="Central object material time"
+            emptyMessage="No valid represented-material timestamps are available for the central object."
+          />
+          <MetricGrid
+            metrics={[
+              {
+                label: "View mode",
+                value:
+                  centralData?.dimension === 3
+                    ? viewMode
+                    : centralData
+                      ? `${centralData.dimension}D fixed`
+                      : "Pending",
+              },
+              {
+                label: "Visible cells",
+                value: String(visibleCellCount),
+              },
+              {
+                label: "Occupied cells",
+                value: centralData ? String(centralData.occupiedCellCount) : "Pending",
+              },
+              {
+                label: "Surface cells",
+                value: centralData ? String(centralData.surfaceCellCount) : "Pending",
+              },
+            ]}
+          />
+          <CellFocusPanel
+            hoveredCell={activeHoveredCell}
+            qualities={availableQualities}
+            selectedQuality={selectedQuality}
+            emptyMessage="Hover a cell, voxel, or cross-section cell in the central pile view to inspect coordinates, mass, and property values."
+          />
+          <WorkspaceJumpLinks
+            objectId={selectedObjectId}
+            objectType="pile"
+            isProfiled={hasProfilerHistory}
+          />
+        </details>
       </aside>
     </div>
   );
