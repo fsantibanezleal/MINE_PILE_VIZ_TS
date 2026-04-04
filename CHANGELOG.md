@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.069`
-- Active tracked version: `0.01.070`
+- Closed release baseline: `0.01.070`
+- Active tracked version: `0.01.071`
 
 ## Release History
+
+### 0.01.071
+
+- Added an explicit historical-delta panel to the profiler route so the selected snapshot can be compared against the previous stored step and against the beginning of available history instead of reading only as one isolated summary state.
+- Added shared profiler-delta logic for numerical and categorical profiled values, including mapped categorical change states and snapshot-interval tracking, which pushes `#94` further by making `Profiler` more clearly historical and comparative than `Stockpiles`.
+- Extended profiler regression coverage so the route keeps its new snapshot-to-snapshot comparison surface alongside the existing timeline and summarized detail views.
 
 ### 0.01.070
 

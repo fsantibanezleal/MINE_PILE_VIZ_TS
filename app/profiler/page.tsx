@@ -80,7 +80,7 @@ export default async function ProfilerPage() {
     <AppShell
       eyebrow="Profiler"
       title="History explorer"
-      description="Use circuit mode to compare reduced historical summary rows at a selected timestamp, then switch to detail mode to inspect one object's summarized rows, bands, or cells through time. This route is historical summary, not dense live state."
+      description="Use circuit mode to compare reduced historical summary rows at a selected timestamp, then switch to detail mode to inspect one object's summarized rows, bands, or cells through time. The route is historical summary, not dense live state, and now keeps snapshot-to-snapshot change explicit."
       actions={
         <MetricGrid
           metrics={[
@@ -100,7 +100,7 @@ export default async function ProfilerPage() {
     >
       <RouteIntentPanel
         primaryQuestion="How does summarized content change through time across the circuit or within one profiled object?"
-        uniqueEvidence="Historical profiler summaries that trade dense current resolution for time navigation, timestamp selection, and summarized detail playback."
+        uniqueEvidence="Historical profiler summaries that trade dense current resolution for time navigation, timestamp selection, summarized detail playback, and explicit snapshot-to-snapshot change reading."
         useWhen="You need time-series reading, summarized snapshots, or comparison between timestamps rather than the latest dense state."
         switchWhen="Use Live for current transport detail, Stockpiles for current dense pile internals, Circuit for topology, or Simulator for discharge-centric route reading."
       />

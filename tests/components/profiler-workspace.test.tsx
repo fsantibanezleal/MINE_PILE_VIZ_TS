@@ -278,6 +278,8 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Historical circuit reading")).toBeInTheDocument();
     expect(screen.getByText("History coverage")).toBeInTheDocument();
     expect(screen.getByText("Timeline context")).toBeInTheDocument();
+    expect(screen.getByText("Historical delta")).toBeInTheDocument();
+    expect(screen.getByText("Mass vs previous")).toBeInTheDocument();
     expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
   });
 
@@ -341,6 +343,9 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Reduced pile summary bands")).toBeInTheDocument();
     expect(screen.getByText("Band basis")).toBeInTheDocument();
     expect(screen.getByText("Timeline context")).toBeInTheDocument();
+    expect(screen.getByText("Historical delta")).toBeInTheDocument();
+    expect(screen.getByText("Fe change")).toBeInTheDocument();
+    expect(screen.getByText("+0.1")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values.",

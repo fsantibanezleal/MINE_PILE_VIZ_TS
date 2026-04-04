@@ -33,6 +33,7 @@ import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
+import { ProfilerDeltaPanel } from "@/components/ui/profiler-delta-panel";
 import { ProfilerHistoryPanel } from "@/components/ui/profiler-history-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
@@ -618,6 +619,11 @@ export function ProfilerWorkspace({
           selectedSnapshotId={effectiveSnapshotId}
           mode={mode}
           onSelectSnapshot={handleSelectSnapshot}
+        />
+        <ProfilerDeltaPanel
+          rows={selectedObjectRows}
+          selectedSnapshotId={effectiveSnapshotId}
+          quality={selectedTimeMode === "property" ? selectedQuality : undefined}
         />
         <MetricGrid
           metrics={[

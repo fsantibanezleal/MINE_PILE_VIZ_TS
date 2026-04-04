@@ -1400,6 +1400,43 @@ code {
   gap: 10px;
 }
 
+.profiler-delta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profiler-delta__cards,
+.profiler-delta__comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profiler-delta__card,
+.profiler-delta__comparison-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+.profiler-delta__card span,
+.profiler-delta__card small,
+.profiler-delta__comparison-card span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.profiler-delta__card strong,
+.profiler-delta__comparison-card strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
 .pile-structure {
   display: grid;
   gap: 0.9rem;
@@ -1956,7 +1993,9 @@ code {
   }
 
   .profiler-history__metrics,
-  .profiler-history__focus {
+  .profiler-history__focus,
+  .profiler-delta__cards,
+  .profiler-delta__comparison {
     grid-template-columns: 1fr;
   }
 
