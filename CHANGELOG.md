@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.071`
-- Active tracked version: `0.01.072`
+- Closed release baseline: `0.01.072`
+- Active tracked version: `0.01.073`
 
 ## Release History
+
+### 0.01.073
+
+- Reworked stage-local ordering so same-stage branches now keep connection-specific sort hints instead of relying only on generic node defaults, which preserves left-to-right fanout intent better when a stage contains deeper dependency columns.
+- Switched stage placement from per-column vertical centering to a shared stage-wide band ordering, so downstream descendants keep a more stable top-to-bottom reading as the circuit grows across columns inside one stage.
+- Added regression coverage for same-stage branch descendants in both the presentation model and the diagram layout, advancing `#101` beyond simple containment into clearer intra-stage flow ordering.
 
 ### 0.01.072
 

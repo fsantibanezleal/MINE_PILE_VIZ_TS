@@ -619,7 +619,6 @@ function buildStageNodePlacements(
   const frameCenterY = STAGE_FRAME_TOP + (PRESENTATION_HEIGHT - STAGE_FRAME_TOP - STAGE_FRAME_BOTTOM_PADDING) / 2;
   const draftNodes: StageLayoutNodeDraft[] = [];
   const resolvedSortHints = new Map<string, number>();
-  const placementMap = new Map<string, StageNodePlacement>();
 
   stageNodes.forEach((node) => {
     const size = getNodeSize(node);
@@ -646,6 +645,7 @@ function buildStageNodePlacements(
             if (predecessorHint !== undefined) {
               hints.push(predecessorHint);
             }
+            hints.push(getConnectionSortHint(context, "source"));
             return;
           }
 
@@ -660,7 +660,9 @@ function buildStageNodePlacements(
           hints.push(getConnectionSortHint(context, "source"));
         });
 
-        hints.push(getNodeAnchorSortHint(draftNode.node));
+        if (hints.length === 0) {
+          hints.push(getNodeAnchorSortHint(draftNode.node));
+        }
 
         return {
           ...draftNode,
@@ -676,40 +678,56 @@ function buildStageNodePlacements(
 
         return left.node.label.localeCompare(right.node.label);
       });
-    const centers = distributeCenters(
-      stageBounds.top,
-      stageBounds.bottom,
-      levelNodes.map((draftNode) => draftNode.height),
-    );
 
-    levelNodes.forEach((draftNode, index) => {
-      const centerX =
-        stageX +
-        STAGE_SIDE_PADDING_X +
-        maxNodeWidth / 2 +
-        level * columnStride;
+    levelNodes.forEach((draftNode) => {
       resolvedSortHints.set(draftNode.node.id, draftNode.sortHint);
-      placementMap.set(draftNode.node.id, {
-        ...draftNode,
-        x: centerX,
-        y: centers[index]!,
-        z: (centers[index]! - frameCenterY) / PRESENTATION_3D_Z_SCALE,
-      });
     });
   }
 
-  return draftNodes.map((draftNode) => {
-    const placement = placementMap.get(draftNode.node.id);
+  const orderedDraftNodes = draftNodes
+    .map((draftNode) => ({
+      ...draftNode,
+      sortHint:
+        resolvedSortHints.get(draftNode.node.id) ?? getNodeAnchorSortHint(draftNode.node),
+    }))
+    .sort((left, right) => {
+      const sortDifference = left.sortHint - right.sortHint;
 
-    if (placement) {
-      return placement;
-    }
+      if (Math.abs(sortDifference) > 1e-6) {
+        return sortDifference;
+      }
+
+      if (left.level !== right.level) {
+        return left.level - right.level;
+      }
+
+      return left.node.label.localeCompare(right.node.label);
+    });
+  const globalCenters = distributeCenters(
+    stageBounds.top,
+    stageBounds.bottom,
+    orderedDraftNodes.map((draftNode) => draftNode.height),
+  );
+  const centerByNodeId = new Map(
+    orderedDraftNodes.map((draftNode, index) => [
+      draftNode.node.id,
+      globalCenters[index]!,
+    ]),
+  );
+
+  return orderedDraftNodes.map((draftNode) => {
+    const centerX =
+      stageX +
+      STAGE_SIDE_PADDING_X +
+      maxNodeWidth / 2 +
+      draftNode.level * columnStride;
+    const centerY = centerByNodeId.get(draftNode.node.id) ?? frameCenterY;
 
     return {
       ...draftNode,
-      x: stageX + STAGE_SIDE_PADDING_X + maxNodeWidth / 2,
-      y: (stageBounds.top + stageBounds.bottom) / 2,
-      z: 0,
+      x: centerX,
+      y: centerY,
+      z: (centerY - frameCenterY) / PRESENTATION_3D_Z_SCALE,
     } satisfies StageNodePlacement;
   });
 }

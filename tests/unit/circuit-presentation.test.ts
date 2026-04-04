@@ -296,6 +296,106 @@ const branchFanoutGraph: CircuitGraph = {
   ],
 };
 
+const sameStageBranchGraph: CircuitGraph = {
+  stages: [
+    {
+      index: 0,
+      label: "Discharge board",
+      nodeIds: ["pile_source", "vbelt_west", "vbelt_east", "lane_west", "lane_east"],
+    },
+  ],
+  nodes: [
+    {
+      id: "pile_source",
+      objectId: "pile_source",
+      objectType: "pile",
+      objectRole: "physical",
+      label: "Pile source",
+      stageIndex: 0,
+      dimension: 3,
+      isProfiled: true,
+      shortDescription: "Pile source",
+      inputs: [],
+      outputs: [
+        {
+          id: "pile-out-west",
+          label: "West",
+          kind: "output",
+          x: 0.18,
+          y: 0.9,
+          relatedObjectId: "vbelt_west",
+        },
+        {
+          id: "pile-out-east",
+          label: "East",
+          kind: "output",
+          x: 0.82,
+          y: 0.9,
+          relatedObjectId: "vbelt_east",
+        },
+      ],
+    },
+    {
+      id: "vbelt_west",
+      objectId: "vbelt_west",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Virtual west",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "West branch",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "vbelt_east",
+      objectId: "vbelt_east",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Virtual east",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "East branch",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_west",
+      objectId: "lane_west",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane west",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "West lane",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_east",
+      objectId: "lane_east",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane east",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "East lane",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [
+    { id: "source-west", source: "pile_source", target: "vbelt_west", label: "west" },
+    { id: "source-east", source: "pile_source", target: "vbelt_east", label: "east" },
+    { id: "west-lane", source: "vbelt_west", target: "lane_west", label: "west lane" },
+    { id: "east-lane", source: "vbelt_east", target: "lane_east", label: "east lane" },
+  ],
+};
+
 describe("buildCircuitPresentation", () => {
   it("stacks disconnected objects vertically inside the same stage column", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -346,6 +446,23 @@ describe("buildCircuitPresentation", () => {
     expect(west!.y).toBeLessThan(center!.y);
     expect(center!.y).toBeLessThan(east!.y);
     expect(center!.y - west!.y).toBeGreaterThan(120);
+  });
+
+  it("keeps same-stage branch descendants ordered in the same vertical flow direction", () => {
+    const presentation = buildCircuitPresentation(sameStageBranchGraph);
+    const west = presentation.nodes.find((node) => node.id === "vbelt_west");
+    const east = presentation.nodes.find((node) => node.id === "vbelt_east");
+    const laneWest = presentation.nodes.find((node) => node.id === "lane_west");
+    const laneEast = presentation.nodes.find((node) => node.id === "lane_east");
+
+    expect(west).toBeDefined();
+    expect(east).toBeDefined();
+    expect(laneWest).toBeDefined();
+    expect(laneEast).toBeDefined();
+    expect(west!.x).toBeLessThan(laneWest!.x);
+    expect(east!.x).toBeLessThan(laneEast!.x);
+    expect(west!.y).toBeLessThan(east!.y);
+    expect(laneWest!.y).toBeLessThan(laneEast!.y);
   });
 
   it("maps 3D stage footprints as a shared top-down board", () => {
