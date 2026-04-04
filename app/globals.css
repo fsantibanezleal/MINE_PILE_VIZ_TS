@@ -816,6 +816,26 @@ code {
   gap: 10px;
 }
 
+.inspector-stack--collapsed-context {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.inspector-stack--collapsed-context > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.inspector-stack--collapsed-context > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inspector-stack--collapsed-context[open] > summary {
+  margin-bottom: 6px;
+}
+
 .profiled-properties,
 .profiled-properties__proportions {
   display: flex;

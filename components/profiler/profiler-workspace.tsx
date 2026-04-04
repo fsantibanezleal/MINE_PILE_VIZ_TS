@@ -663,54 +663,59 @@ export function ProfilerWorkspace({
             ]}
           />
         ) : null}
-        {mode === "detail" ? (
-          <MaterialTimePanel
-            summary={materialTimeSummary}
-            emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
-          />
-        ) : (
+        {mode !== "detail" ? (
           <InlineNotice tone="info" title="Detail-only inspection panels">
             Switch to detail mode when you need summarized rows, bands, or cells, plus
             material-time inspection and mass distributions for one profiled object.
           </InlineNotice>
-        )}
-        {mode === "detail" && detailDistribution && inspectionQuality ? (
-          <div className="inspector-stack">
-            <div className="section-label">Mass distribution</div>
-            <MassDistributionChart
-              distribution={detailDistribution}
-              quality={inspectionQuality}
-              subjectLabel={
-                selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"
-              }
-              recordLabel={semanticFrame.recordLabel}
+        ) : (
+          <details className="inspector-stack inspector-stack--collapsed-context">
+            <summary className="section-label">Detailed snapshot inspection</summary>
+            <p className="muted-text">
+              This route stays history-first. Open this section when you need to drill into
+              one summarized historical snapshot through material-time reading, mass
+              distribution, profiled properties, or hovered summary cells.
+            </p>
+            <MaterialTimePanel
+              summary={materialTimeSummary}
+              emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
             />
-          </div>
-        ) : null}
-        {mode === "detail" && selectedSummaryRow ? (
-          <ProfiledPropertiesPanel
-            qualities={availableQualities}
-            values={selectedSummaryRow.qualityValues}
-            records={detailSnapshot?.rows ?? null}
-            totalMassTon={selectedSummaryRow.massTon}
-          />
-        ) : null}
-        <CellFocusPanel
-          hoveredCell={activeHoveredCell}
-          qualities={availableQualities}
-          selectedQuality={selectedQuality}
-          inactiveMessage={
-            mode !== "detail"
-              ? "Switch to detail mode to inspect hovered summary cells, bands, or rows from the current profiler snapshot."
-              : undefined
-          }
-          emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values."
-        />
-        <WorkspaceJumpLinks
-          objectId={selectedObjectId}
-          objectType={selectedIndexEntry?.objectType}
-          isProfiled
-        />
+            {detailDistribution && inspectionQuality ? (
+              <div className="inspector-stack">
+                <div className="section-label">Mass distribution</div>
+                <MassDistributionChart
+                  distribution={detailDistribution}
+                  quality={inspectionQuality}
+                  subjectLabel={
+                    selectedSummaryRow?.displayName ??
+                    detailSnapshot?.displayName ??
+                    "Selected object"
+                  }
+                  recordLabel={semanticFrame.recordLabel}
+                />
+              </div>
+            ) : null}
+            {selectedSummaryRow ? (
+              <ProfiledPropertiesPanel
+                qualities={availableQualities}
+                values={selectedSummaryRow.qualityValues}
+                records={detailSnapshot?.rows ?? null}
+                totalMassTon={selectedSummaryRow.massTon}
+              />
+            ) : null}
+            <CellFocusPanel
+              hoveredCell={activeHoveredCell}
+              qualities={availableQualities}
+              selectedQuality={selectedQuality}
+              emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values."
+            />
+            <WorkspaceJumpLinks
+              objectId={selectedObjectId}
+              objectType={selectedIndexEntry?.objectType}
+              isProfiled
+            />
+          </details>
+        )}
       </aside>
     </div>
   );

@@ -309,6 +309,7 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Detailed snapshot inspection"));
 
     fireEvent.mouseEnter(screen.getByLabelText("Pile cell 0,0,0"));
 
@@ -340,6 +341,7 @@ describe("ProfilerWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Detail" }));
 
     await screen.findByText("Historical summary only");
+    expect(screen.getByText("Detailed snapshot inspection")).toBeInTheDocument();
     expect(screen.getByText("Reduced pile summary bands")).toBeInTheDocument();
     expect(screen.getByText("Band basis")).toBeInTheDocument();
     expect(screen.getByText("Timeline context")).toBeInTheDocument();

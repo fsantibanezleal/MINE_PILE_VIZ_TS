@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.072`
-- Active tracked version: `0.01.073`
+- Closed release baseline: `0.01.073`
+- Active tracked version: `0.01.074`
 
 ## Release History
+
+### 0.01.074
+
+- Reframed profiler detail mode so the primary sidebar stays historical and comparative, while material-time reading, mass distribution, profiled properties, hovered-cell inspection, and route jumps move into an explicit secondary snapshot-inspection section.
+- Kept the dense summarized snapshot view available without removing capability, but made the route read more clearly as historical summary analysis instead of another stockpile-detail workspace.
+- Added disclosure styling and updated profiler regression coverage to preserve the new history-first hierarchy.
 
 ### 0.01.073
 
