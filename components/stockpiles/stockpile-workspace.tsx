@@ -452,7 +452,7 @@ export function StockpileWorkspace({
           </select>
         </label>
         <QualitySelector
-          label="Property"
+          label="Quality"
           qualities={availableQualities}
           value={effectiveQualityId}
           onChange={handleSelectQuality}
@@ -550,7 +550,7 @@ export function StockpileWorkspace({
         {selectedTimeMode !== "property" ? (
           <InlineNotice tone="info" title="Material time mode active">
             The pile colors and distribution are using represented material timestamps relative
-            to the current pile snapshot instead of a tracked property.
+            to the current pile snapshot instead of a tracked quality.
           </InlineNotice>
         ) : null}
         <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
@@ -626,7 +626,7 @@ export function StockpileWorkspace({
           hoveredCell={activeHoveredCell}
           qualities={availableQualities}
           selectedQuality={selectedQuality}
-          emptyMessage="Hover a cell or voxel in the current pile view to inspect its coordinates, mass, and property values."
+          emptyMessage="Hover a cell or voxel in the current pile view to inspect its coordinates, mass, and quality values."
         />
         <WorkspaceJumpLinks
           objectId={selectedPileId}

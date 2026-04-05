@@ -3,6 +3,7 @@ export type ObjectType = "belt" | "pile";
 export type ObjectRole = "physical" | "virtual";
 export type StockpileViewMode = "surface" | "shell" | "full" | "slice";
 export type QualityValue = string | number | null;
+export type AnchorPositionMode = "fixed" | "assumed-center";
 
 export interface QualityCategory {
   value: string | number;
@@ -70,6 +71,9 @@ export interface GraphAnchor {
   kind: "input" | "output";
   x: number;
   y: number;
+  spanX?: number;
+  spanY?: number;
+  positionMode?: AnchorPositionMode;
   relatedObjectId: string;
 }
 

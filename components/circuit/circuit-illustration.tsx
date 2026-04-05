@@ -9,11 +9,13 @@ import { getThemeCanvasPalette } from "@/lib/theme";
 import type { CircuitGraph } from "@/types/app-data";
 import {
   buildCircuitPresentation,
+  getPresentationAnchorFootprint2d,
+  getPresentationAnchorFootprint3d,
   getPresentationStageFootprint3d,
   type CircuitPresentationStage,
   type CircuitPresentationNode,
   getPresentationAnchorPoint,
-  getPresentationAnchorPoint3d,
+  getPresentationNode3dSize,
 } from "@/lib/circuit-presentation";
 
 type CircuitViewMode = "illustration-2d" | "illustration-3d";
@@ -56,6 +58,79 @@ function getNodeClassName(
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function renderPileAnchorFootprints2d(node: CircuitPresentationNode) {
+  return (
+    <>
+      {node.inputs.map((anchor) => {
+        const point = getPresentationAnchorPoint(node, anchor, "input");
+        const footprint = getPresentationAnchorFootprint2d(node, anchor, "input");
+
+        return (
+          <g key={anchor.id}>
+            <line
+              x1={point.x}
+              y1={point.y}
+              x2={point.x}
+              y2={node.y - node.height / 2 - 4}
+              className="circuit-illustration__feed"
+            />
+            {footprint ? (
+              <rect
+                x={footprint.x}
+                y={footprint.y}
+                width={footprint.width}
+                height={footprint.height}
+                rx={footprint.height / 2}
+                className="circuit-illustration__feed-footprint"
+              />
+            ) : null}
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={7}
+              className="circuit-illustration__feed-marker"
+            />
+          </g>
+        );
+      })}
+      {node.outputs.map((anchor) => {
+        const point = getPresentationAnchorPoint(node, anchor, "output");
+        const footprint = getPresentationAnchorFootprint2d(node, anchor, "output");
+
+        return (
+          <g key={anchor.id}>
+            <line
+              x1={point.x}
+              y1={node.y + node.height / 2 + 4}
+              x2={point.x}
+              y2={point.y}
+              className="circuit-illustration__discharge"
+            />
+            {footprint ? (
+              <rect
+                x={footprint.x}
+                y={footprint.y}
+                width={footprint.width}
+                height={footprint.height}
+                rx={4}
+                className="circuit-illustration__discharge-footprint"
+              />
+            ) : null}
+            <rect
+              x={point.x - 12}
+              y={point.y - 6}
+              width={24}
+              height={12}
+              rx={4}
+              className="circuit-illustration__discharge-marker"
+            />
+          </g>
+        );
+      })}
+    </>
+  );
 }
 
 function renderNodeShape(node: CircuitPresentationNode) {
@@ -108,50 +183,23 @@ function renderNodeShape(node: CircuitPresentationNode) {
           points={`${leftX},${bottomY} ${node.x},${topY} ${rightX},${bottomY}`}
           className="circuit-illustration__pile"
         />
-        {node.inputs.map((anchor) => {
-          const point = getPresentationAnchorPoint(node, anchor, "input");
+        {renderPileAnchorFootprints2d(node)}
+      </>
+    );
+  }
 
-          return (
-            <g key={anchor.id}>
-              <line
-                x1={point.x}
-                y1={point.y}
-                x2={point.x}
-                y2={topY - 4}
-                className="circuit-illustration__feed"
-              />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={7}
-                className="circuit-illustration__feed-marker"
-              />
-            </g>
-          );
-        })}
-        {node.outputs.map((anchor) => {
-          const point = getPresentationAnchorPoint(node, anchor, "output");
-
-          return (
-            <g key={anchor.id}>
-              <line
-                x1={point.x}
-                y1={bottomY + 4}
-                x2={point.x}
-                y2={point.y}
-                className="circuit-illustration__discharge"
-              />
-              <rect
-                x={point.x - 12}
-                y={point.y - 6}
-                width={24}
-                height={12}
-                rx={4}
-                className="circuit-illustration__discharge-marker"
-              />
-            </g>
-          );
-        })}
+  if (node.visualKind === "virtual-pile") {
+    return (
+      <>
+        <rect
+          x={node.x - node.width / 2}
+          y={node.y - node.height / 2}
+          width={node.width}
+          height={node.height}
+          rx={18}
+          className="circuit-illustration__virtual-pile"
+        />
+        {renderPileAnchorFootprints2d(node)}
       </>
     );
   }
@@ -265,11 +313,13 @@ function Illustration2D({
                 textAnchor="middle"
                 className="circuit-illustration__node-meta"
               >
-                {node.objectRole === "virtual"
-                  ? "Virtual stage"
-                  : node.objectType === "belt"
-                    ? "Physical conveyor"
-                    : "Physical stockpile"}
+                {node.visualKind === "virtual-pile"
+                  ? "Virtual stockpile"
+                  : node.objectRole === "virtual"
+                    ? "Virtual transport"
+                    : node.objectType === "belt"
+                      ? "Physical conveyor"
+                      : "Physical stockpile"}
               </text>
             </g>
           ))}
@@ -298,11 +348,12 @@ function Belt3D({
   const x = node.x / 26;
   const z = node.z;
   const opacity = inSequence ? 1 : 0.26;
+  const size = getPresentationNode3dSize(node);
 
   return (
     <group position={[x, 0.72, z]} onClick={() => onSelect?.(node.id)}>
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[6.6, 0.9, 1.8]} />
+        <boxGeometry args={[size.width, size.height, size.depth]} />
         <meshStandardMaterial
           color={selected ? "#59ddff" : "#2b8cff"}
           metalness={0.14}
@@ -312,7 +363,7 @@ function Belt3D({
         />
       </mesh>
       <mesh position={[0, 0.28, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5.9, 0.28, 1.12]} />
+        <boxGeometry args={[size.width - 0.7, 0.28, size.depth - 0.68]} />
         <meshStandardMaterial
           color={selected ? "#c6f7ff" : "#b9d3ee"}
           metalness={0.04}
@@ -325,6 +376,63 @@ function Belt3D({
         <strong>{node.label}</strong>
       </Html>
     </group>
+  );
+}
+
+function PileAnchorFootprints3D({
+  node,
+  opacity,
+}: {
+  node: CircuitPresentationNode;
+  opacity: number;
+}) {
+  return (
+    <>
+      {node.inputs.map((anchor) => {
+        const footprint = getPresentationAnchorFootprint3d(node, anchor, "input");
+
+        if (!footprint) {
+          return null;
+        }
+
+        return (
+          <group key={anchor.id} position={[footprint.x - node.x / 26, footprint.y, footprint.z - node.z]}>
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[footprint.width, footprint.height, footprint.depth]} />
+              <meshStandardMaterial
+                color="#59ddff"
+                transparent
+                opacity={opacity}
+                emissive="#1d526d"
+                emissiveIntensity={0.24}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+      {node.outputs.map((anchor) => {
+        const footprint = getPresentationAnchorFootprint3d(node, anchor, "output");
+
+        if (!footprint) {
+          return null;
+        }
+
+        return (
+          <group key={anchor.id} position={[footprint.x - node.x / 26, footprint.y, footprint.z - node.z]}>
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[footprint.width, footprint.height, footprint.depth]} />
+              <meshStandardMaterial
+                color="#94abc4"
+                transparent
+                opacity={opacity}
+                emissive="#3a4d62"
+                emissiveIntensity={0.18}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
   );
 }
 
@@ -342,11 +450,17 @@ function Pile3D({
   const x = node.x / 26;
   const z = node.z;
   const opacity = inSequence ? 1 : 0.26;
+  const size = getPresentationNode3dSize(node);
 
   return (
     <group position={[x, 0, z]} onClick={() => onSelect?.(node.id)}>
-      <mesh position={[0, 2.9, 0]} castShadow receiveShadow rotation={[0, Math.PI / 4, 0]}>
-        <coneGeometry args={[3.3, 5.8, 4]} />
+      <mesh
+        position={[0, size.height / 2, 0]}
+        castShadow
+        receiveShadow
+        rotation={[0, Math.PI / 4, 0]}
+      >
+        <coneGeometry args={[size.width / 2, size.height, 4]} />
         <meshStandardMaterial
           color={selected ? "#59ddff" : "#f4bc63"}
           metalness={0.04}
@@ -355,7 +469,7 @@ function Pile3D({
           opacity={opacity}
         />
       </mesh>
-      <mesh position={[0, 6.4, 0]} castShadow receiveShadow>
+      <mesh position={[0, size.height + 0.6, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[0.18, 0.18, 1.2, 10]} />
         <meshStandardMaterial color="#59ddff" transparent opacity={opacity} />
       </mesh>
@@ -363,35 +477,48 @@ function Pile3D({
         <boxGeometry args={[0.9, 0.72, 1.2]} />
         <meshStandardMaterial color="#94abc4" transparent opacity={opacity} />
       </mesh>
-      {node.inputs.map((anchor) => {
-        const point = getPresentationAnchorPoint3d(node, anchor, "input");
+      <PileAnchorFootprints3D node={node} opacity={opacity} />
+      <Html center position={[0, size.height + 1.5, 0]} className="circuit-3d__label">
+        <strong>{node.label}</strong>
+      </Html>
+    </group>
+  );
+}
 
-        return (
-          <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
-            <mesh castShadow receiveShadow>
-              <cylinderGeometry args={[0.18, 0.18, 1.2, 10]} />
-              <meshStandardMaterial color="#59ddff" transparent opacity={opacity} />
-            </mesh>
-            <mesh position={[0, 0.7, 0]} castShadow receiveShadow>
-              <sphereGeometry args={[0.24, 12, 12]} />
-              <meshStandardMaterial color="#c6f7ff" transparent opacity={opacity} />
-            </mesh>
-          </group>
-        );
-      })}
-      {node.outputs.map((anchor) => {
-        const point = getPresentationAnchorPoint3d(node, anchor, "output");
+function VirtualPile3D({
+  node,
+  selected,
+  inSequence,
+  onSelect,
+}: {
+  node: CircuitPresentationNode;
+  selected: boolean;
+  inSequence: boolean;
+  onSelect?: (objectId: string) => void;
+}) {
+  const x = node.x / 26;
+  const z = node.z;
+  const opacity = inSequence ? 0.9 : 0.22;
+  const size = getPresentationNode3dSize(node);
 
-        return (
-          <group key={anchor.id} position={[point.x - x, point.y, point.z - z]}>
-            <mesh castShadow receiveShadow>
-              <boxGeometry args={[0.72, 0.36, 0.96]} />
-              <meshStandardMaterial color="#94abc4" transparent opacity={opacity} />
-            </mesh>
-          </group>
-        );
-      })}
-      <Html center position={[0, 7.4, 0]} className="circuit-3d__label">
+  return (
+    <group position={[x, 0, z]} onClick={() => onSelect?.(node.id)}>
+      <mesh position={[0, size.height / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[size.width, size.height, size.depth]} />
+        <meshStandardMaterial
+          color={selected ? "#59ddff" : "#6f849f"}
+          transparent
+          opacity={opacity}
+          metalness={0.03}
+          roughness={0.7}
+        />
+      </mesh>
+      <mesh position={[0, size.height + 0.18, 0]} castShadow receiveShadow>
+        <boxGeometry args={[size.width - 0.6, 0.22, size.depth - 0.4]} />
+        <meshStandardMaterial color="#94abc4" transparent opacity={opacity * 0.78} />
+      </mesh>
+      <PileAnchorFootprints3D node={node} opacity={opacity} />
+      <Html center position={[0, size.height + 1.2, 0]} className="circuit-3d__label circuit-3d__label--virtual">
         <strong>{node.label}</strong>
       </Html>
     </group>
@@ -647,9 +774,21 @@ function Illustration3D({
               );
             }
 
-            if (node.visualKind === "physical-pile") {
+          if (node.visualKind === "physical-pile") {
               return (
                 <Pile3D
+                  key={node.id}
+                  node={node}
+                  selected={selected}
+                  inSequence={inSequence}
+                  onSelect={onSelect}
+                />
+              );
+            }
+
+            if (node.visualKind === "virtual-pile") {
+              return (
+                <VirtualPile3D
                   key={node.id}
                   node={node}
                   selected={selected}

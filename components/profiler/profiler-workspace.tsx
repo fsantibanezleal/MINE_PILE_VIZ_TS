@@ -505,7 +505,7 @@ export function ProfilerWorkspace({
           </select>
         </label>
         <QualitySelector
-          label="Property"
+          label="Quality"
           qualities={availableQualities}
           value={selectedQuality?.id ?? ""}
           onChange={handleSelectQuality}
@@ -561,7 +561,7 @@ export function ProfilerWorkspace({
         {mode === "detail" && selectedTimeMode !== "property" ? (
           <InlineNotice tone="info" title="Material time mode active">
             The profiler detail colors and histogram are using represented material timestamps
-            relative to the selected historical snapshot instead of a tracked property.
+            relative to the selected historical snapshot instead of a tracked quality.
           </InlineNotice>
         ) : null}
         {mode === "detail" ? (
@@ -707,7 +707,7 @@ export function ProfilerWorkspace({
               hoveredCell={activeHoveredCell}
               qualities={availableQualities}
               selectedQuality={selectedQuality}
-              emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values."
+              emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and quality values."
             />
             <WorkspaceJumpLinks
               objectId={selectedObjectId}

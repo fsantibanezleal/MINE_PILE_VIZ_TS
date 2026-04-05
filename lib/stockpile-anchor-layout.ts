@@ -3,6 +3,9 @@ import type { GraphAnchor } from "@/types/app-data";
 export interface StockpileAnchorPlacement {
   anchor: GraphAnchor;
   normalizedX: number;
+  normalizedStartX: number;
+  normalizedEndX: number;
+  normalizedDepth: number;
 }
 
 const MIN_X = 0.12;
@@ -14,6 +17,20 @@ function clamp(value: number, min: number, max: number) {
 
 function getAnchorX(anchor: GraphAnchor) {
   return clamp(anchor.x ?? 0.5, 0, 1);
+}
+
+function getAnchorDepth(anchor: GraphAnchor) {
+  return clamp(anchor.y ?? 0.5, 0, 1);
+}
+
+function getAnchorSpan(anchor: GraphAnchor, axis: "x" | "y") {
+  const span = axis === "x" ? anchor.spanX : anchor.spanY;
+
+  if (typeof span !== "number" || Number.isNaN(span) || span <= 0) {
+    return 0.12;
+  }
+
+  return clamp(span, 0.04, 1);
 }
 
 export function getStockpileAnchorPlacements(
@@ -76,5 +93,16 @@ export function getStockpileAnchorPlacements(
   return ordered.map((entry, index) => ({
     anchor: entry.anchor,
     normalizedX: positions[index]!,
+    normalizedStartX: clamp(
+      positions[index]! - (getAnchorSpan(entry.anchor, "x") * (MAX_X - MIN_X)) / 2,
+      MIN_X,
+      MAX_X,
+    ),
+    normalizedEndX: clamp(
+      positions[index]! + (getAnchorSpan(entry.anchor, "x") * (MAX_X - MIN_X)) / 2,
+      MIN_X,
+      MAX_X,
+    ),
+    normalizedDepth: getAnchorDepth(entry.anchor),
   }));
 }

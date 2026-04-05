@@ -246,7 +246,7 @@ export function LiveWorkspace({
           </select>
         </label>
         <QualitySelector
-          label="Color by"
+          label="Color by quality"
           qualities={qualities}
           value={selectedQualityId}
           onChange={handleSelectQuality}
@@ -297,7 +297,7 @@ export function LiveWorkspace({
           {selectedTimeMode !== "property" ? (
             <InlineNotice tone="info" title="Material time mode active">
               The block strip and histogram are using represented material timestamps
-              relative to the current belt snapshot instead of a tracked property.
+              relative to the current belt snapshot instead of a tracked quality.
             </InlineNotice>
           ) : null}
           <BeltBlockStrip

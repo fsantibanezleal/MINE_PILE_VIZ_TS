@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  getPresentationAnchorFootprint2d,
+  getPresentationAnchorFootprint3d,
   buildCircuitPresentation,
   getPresentationAnchorPoint,
   getPresentationAnchorPoint3d,
@@ -25,6 +27,8 @@ const pileNode: CircuitPresentationNode = {
       kind: "input",
       x: 0.24,
       y: 0.15,
+      spanX: 0.3,
+      spanY: 0.3,
       relatedObjectId: "belt_cv200",
     },
     {
@@ -33,6 +37,8 @@ const pileNode: CircuitPresentationNode = {
       kind: "input",
       x: 0.78,
       y: 0.15,
+      spanX: 0.3,
+      spanY: 0.3,
       relatedObjectId: "belt_cv200",
     },
   ],
@@ -43,6 +49,8 @@ const pileNode: CircuitPresentationNode = {
       kind: "output",
       x: 0.26,
       y: 0.9,
+      spanX: 0.15,
+      spanY: 0.15,
       relatedObjectId: "vpile_out_cv301",
     },
     {
@@ -51,6 +59,8 @@ const pileNode: CircuitPresentationNode = {
       kind: "output",
       x: 0.74,
       y: 0.9,
+      spanX: 0.15,
+      spanY: 0.15,
       relatedObjectId: "vpile_out_cv301",
     },
   ],
@@ -498,6 +508,7 @@ describe("buildCircuitPresentation", () => {
     expect(c!.x).toBeGreaterThan(a!.x);
     expect(Math.abs(b!.x - c!.x)).toBeLessThan(1);
     expect(Math.abs(b!.y - c!.y)).toBeGreaterThan(110);
+    expect(c!.height).toBeGreaterThan(b!.height * 3.5);
   });
 
   it("keeps disconnected downstream branches in the same stage column and separated vertically", () => {
@@ -583,7 +594,26 @@ describe("buildCircuitPresentation", () => {
 
     expect(points[0]!.x).toBeLessThan(points[1]!.x);
     expect(points[0]!.z).toBeLessThan(points[1]!.z);
-    expect(points.every((point) => point.y === 0.52)).toBe(true);
+    expect(points.every((point) => point.y === 0.36)).toBe(true);
+  });
+
+  it("derives 2D and 3D pile anchor footprints from relative spans", () => {
+    const footprint2d = getPresentationAnchorFootprint2d(
+      pileNode,
+      pileNode.inputs[0]!,
+      "input",
+    );
+    const footprint3d = getPresentationAnchorFootprint3d(
+      pileNode,
+      pileNode.outputs[0]!,
+      "output",
+    );
+
+    expect(footprint2d).not.toBeNull();
+    expect(footprint3d).not.toBeNull();
+    expect(footprint2d!.width).toBeGreaterThan(30);
+    expect(footprint3d!.width).toBeGreaterThan(0.7);
+    expect(footprint3d!.depth).toBeGreaterThan(0.4);
   });
 
   it("keeps nodes contained inside their stage frames", () => {

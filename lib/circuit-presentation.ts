@@ -56,6 +56,28 @@ export interface CircuitPresentationEdge {
   isVirtualLink: boolean;
 }
 
+export interface CircuitPresentationAnchorFootprint2d {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CircuitPresentationAnchorFootprint3d {
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
+}
+
+export interface CircuitPresentationNode3dSize {
+  width: number;
+  height: number;
+  depth: number;
+}
+
 export interface CircuitPresentation {
   width: number;
   height: number;
@@ -114,6 +136,8 @@ const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
 const PILE_ANCHOR_MIN_X = 0.18;
 const PILE_ANCHOR_MAX_X = 0.82;
 const PILE_ANCHOR_DEPTH_STEP = 0.55;
+const BELT_2D_HEIGHT = 48;
+const VIRTUAL_PILE_2D_HEIGHT = BELT_2D_HEIGHT * 4;
 
 const DEFAULT_SORT_HINT: Record<CircuitPresentationVisualKind, number> = {
   "physical-belt": 0.22,
@@ -154,13 +178,15 @@ function getNodeSize(node: CircuitNode) {
       return { width: 188, height: 48 };
     case "physical-pile":
       return { width: 138, height: 120 };
+    case "virtual-pile":
+      return { width: 164, height: VIRTUAL_PILE_2D_HEIGHT };
     default:
       return { width: 148, height: 48 };
   }
 }
 
 export function getPresentationInputAnchor(node: CircuitPresentationNode) {
-  if (node.visualKind === "physical-pile") {
+  if (node.objectType === "pile") {
     return { x: node.x, y: node.y - node.height / 2 };
   }
 
@@ -168,7 +194,7 @@ export function getPresentationInputAnchor(node: CircuitPresentationNode) {
 }
 
 export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
-  if (node.visualKind === "physical-pile") {
+  if (node.objectType === "pile") {
     return { x: node.x, y: node.y + node.height / 2 };
   }
 
@@ -178,6 +204,35 @@ export function getPresentationOutputAnchor(node: CircuitPresentationNode) {
 function getNormalizedPileAnchorX(anchor: GraphAnchor | undefined) {
   const anchorX = clamp(anchor?.x ?? 0.5, 0, 1);
   return PILE_ANCHOR_MIN_X + anchorX * (PILE_ANCHOR_MAX_X - PILE_ANCHOR_MIN_X);
+}
+
+function getNormalizedPileAnchorDepth(anchor: GraphAnchor | undefined) {
+  return clamp(anchor?.y ?? 0.5, 0, 1);
+}
+
+function getAnchorSpan(anchor: GraphAnchor | undefined, axis: "x" | "y") {
+  const span = axis === "x" ? anchor?.spanX : anchor?.spanY;
+
+  if (typeof span !== "number" || Number.isNaN(span) || span <= 0) {
+    return 0.12;
+  }
+
+  return clamp(span, 0.04, 1);
+}
+
+export function getPresentationNode3dSize(
+  node: CircuitPresentationNode,
+): CircuitPresentationNode3dSize {
+  switch (node.visualKind) {
+    case "physical-belt":
+      return { width: 6.6, height: 0.9, depth: 1.8 };
+    case "physical-pile":
+      return { width: 5.4, height: 5.8, depth: 3.6 };
+    case "virtual-pile":
+      return { width: 5.2, height: 3.6, depth: 2.6 };
+    default:
+      return { width: 4.8, height: 0.48, depth: 1.6 };
+  }
 }
 
 function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
@@ -255,9 +310,10 @@ function getDistributedPileAnchorPlacements(anchors: GraphAnchor[]) {
       {
         normalizedX: positions[index]!,
         depthOffset: clamp(
-          (index - (orderedAnchors.length - 1) / 2) * PILE_ANCHOR_DEPTH_STEP,
-          -1.1,
-          1.1,
+          (getNormalizedPileAnchorDepth(entry.anchor) - 0.5) * 2.6 +
+            (index - (orderedAnchors.length - 1) / 2) * PILE_ANCHOR_DEPTH_STEP * 0.18,
+          -1.2,
+          1.2,
         ),
       },
     ]),
@@ -291,7 +347,7 @@ export function getPresentationAnchorPoint(
   anchor: GraphAnchor | undefined,
   kind: "input" | "output",
 ) {
-  if (node.visualKind === "physical-pile") {
+  if (node.objectType === "pile") {
     const { normalizedX } = getPileAnchorPlacement(node, anchor, kind);
     const x = node.x - node.width / 2 + normalizedX * node.width;
     const y =
@@ -325,14 +381,15 @@ export function getPresentationAnchorPoint3d(
 ) {
   const centerX = node.x / PRESENTATION_3D_X_SCALE;
   const centerZ = node.z;
+  const node3dSize = getPresentationNode3dSize(node);
 
-  if (node.visualKind === "physical-pile") {
+  if (node.objectType === "pile") {
     const { normalizedX, depthOffset } = getPileAnchorPlacement(node, anchor, kind);
-    const localX = (normalizedX - 0.5) * 4.8;
+    const localX = (normalizedX - 0.5) * node3dSize.width;
 
     return {
       x: centerX + localX,
-      y: kind === "input" ? 6.6 : 0.52,
+      y: kind === "input" ? node3dSize.height + 0.9 : 0.36,
       z: centerZ + depthOffset,
     };
   }
@@ -346,18 +403,61 @@ export function getPresentationAnchorPoint3d(
   };
 }
 
+export function getPresentationAnchorFootprint2d(
+  node: CircuitPresentationNode,
+  anchor: GraphAnchor,
+  kind: "input" | "output",
+): CircuitPresentationAnchorFootprint2d | null {
+  if (node.objectType !== "pile") {
+    return null;
+  }
+
+  const point = getPresentationAnchorPoint(node, anchor, kind);
+  const width = Math.max(node.width * getAnchorSpan(anchor, "x"), 18);
+  const height = kind === "input" ? 10 : 12;
+
+  return {
+    x: point.x - width / 2,
+    y: point.y - height / 2,
+    width,
+    height,
+  };
+}
+
+export function getPresentationAnchorFootprint3d(
+  node: CircuitPresentationNode,
+  anchor: GraphAnchor,
+  kind: "input" | "output",
+): CircuitPresentationAnchorFootprint3d | null {
+  if (node.objectType !== "pile") {
+    return null;
+  }
+
+  const point = getPresentationAnchorPoint3d(node, anchor, kind);
+  const node3dSize = getPresentationNode3dSize(node);
+
+  return {
+    x: point.x,
+    y: point.y,
+    z: point.z,
+    width: Math.max(node3dSize.width * getAnchorSpan(anchor, "x"), 0.6),
+    height: kind === "input" ? 0.28 : 0.22,
+    depth: Math.max(node3dSize.depth * getAnchorSpan(anchor, "y"), 0.34),
+  };
+}
+
 function buildEdgePath(
   source: CircuitPresentationNode,
   target: CircuitPresentationNode,
   from: { x: number; y: number },
   to: { x: number; y: number },
 ) {
-  if (target.visualKind === "physical-pile") {
+  if (target.objectType === "pile") {
     const controlY = Math.min(from.y, to.y) - 52;
     return `M ${from.x} ${from.y} C ${from.x + 48} ${from.y}, ${to.x} ${controlY}, ${to.x} ${to.y}`;
   }
 
-  if (source.visualKind === "physical-pile") {
+  if (source.objectType === "pile") {
     const controlY = Math.max(from.y, to.y) + 52;
     return `M ${from.x} ${from.y} C ${from.x} ${controlY}, ${to.x - 48} ${to.y}, ${to.x} ${to.y}`;
   }
@@ -374,7 +474,7 @@ function buildEdgePoints3d(
 ) {
   const midX = (from.x + to.x) / 2;
 
-  if (target.visualKind === "physical-pile") {
+  if (target.objectType === "pile") {
     return [
       [from.x, from.y, from.z],
       [midX, from.y + 0.8, (from.z + to.z) / 2],
@@ -383,7 +483,7 @@ function buildEdgePoints3d(
     ] as Array<[number, number, number]>;
   }
 
-  if (source.visualKind === "physical-pile") {
+  if (source.objectType === "pile") {
     return [
       [from.x, from.y, from.z],
       [from.x, from.y - 1.2, from.z],

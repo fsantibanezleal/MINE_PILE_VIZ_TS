@@ -22,7 +22,7 @@ function PileAnchorTrack({
   return (
     <div className={`pile-anchor-track pile-anchor-track--${kind}`}>
       <div className="pile-anchor-track__title">{title}</div>
-      {placements.map(({ anchor, normalizedX }) => (
+      {placements.map(({ anchor, normalizedX, normalizedStartX, normalizedEndX }) => (
         <div
           key={anchor.id}
           className={`pile-anchor pile-anchor--${kind} ${
@@ -32,6 +32,15 @@ function PileAnchorTrack({
           aria-label={anchor.label}
           title={anchor.label}
         >
+          <span
+            className="pile-anchor__footprint"
+            style={{
+              width: `calc(${Math.max(
+                4,
+                (normalizedEndX - normalizedStartX) * 100,
+              ).toFixed(2)}% + 14px)`,
+            }}
+          />
           <span className="pile-anchor__label">{anchor.label}</span>
           <span className="pile-anchor__line" />
           <span className="pile-anchor__marker" />
@@ -73,7 +82,8 @@ function PileInFigureAnchorLayer({
       data-testid={`pile-anchor-overlay-${kind}`}
       aria-hidden="true"
     >
-      {placements.map(({ anchor, normalizedX }, index) => (
+      {placements.map(
+        ({ anchor, normalizedX, normalizedStartX, normalizedEndX }, index) => (
         <div
           key={anchor.id}
           className={`pile-anchor-overlay__item pile-anchor-overlay__item--${kind} ${
@@ -82,13 +92,23 @@ function PileInFigureAnchorLayer({
           style={{ left: `${normalizedX * 100}%` }}
           title={anchor.label}
         >
+          <span
+            className="pile-anchor-overlay__footprint"
+            style={{
+              width: `calc(${Math.max(
+                4,
+                (normalizedEndX - normalizedStartX) * 100,
+              ).toFixed(2)}% + 18px)`,
+            }}
+          />
           <span className="pile-anchor-overlay__line" />
           <span className="pile-anchor-overlay__marker">
             {token}
             {index + 1}
           </span>
         </div>
-      ))}
+        ),
+      )}
     </div>
   );
 }

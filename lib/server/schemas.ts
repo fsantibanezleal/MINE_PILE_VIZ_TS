@@ -54,6 +54,9 @@ export const graphAnchorSchema = z.object({
   kind: z.enum(["input", "output"]),
   x: z.number(),
   y: z.number(),
+  spanX: z.number().optional(),
+  spanY: z.number().optional(),
+  positionMode: z.enum(["fixed", "assumed-center"]).optional(),
   relatedObjectId: z.string(),
 });
 

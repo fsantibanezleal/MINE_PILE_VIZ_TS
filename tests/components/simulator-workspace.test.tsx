@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SimulatorWorkspace } from "@/components/simulator/simulator-workspace";
 import type {
-  BeltSnapshot,
   CircuitGraph,
   PileDataset,
   ProfilerIndex,
@@ -144,6 +143,13 @@ const index: ProfilerIndex = {
       dimension: 1,
       manifestRef: "profiler/objects/belt_b/manifest.json",
     },
+    {
+      objectId: "vpile_mix",
+      displayName: "Virtual Mixer",
+      objectType: "pile",
+      dimension: 1,
+      manifestRef: "profiler/objects/vpile_mix/manifest.json",
+    },
   ],
 };
 
@@ -167,6 +173,16 @@ const summaryRows: ProfilerSummaryRow[] = [
     dimension: 3,
     massTon: 104,
     qualityValues: { q_num_fe: 1.14 },
+  },
+  {
+    snapshotId: "20250319011500",
+    timestamp: "2025-03-19T01:15:00Z",
+    objectId: "vpile_mix",
+    objectType: "pile",
+    displayName: "Virtual Mixer",
+    dimension: 1,
+    massTon: 54,
+    qualityValues: { q_num_fe: 1.22 },
   },
 ];
 
@@ -269,31 +285,6 @@ const currentVirtualPile: PileDataset = {
   shellCells: [],
 };
 
-const virtualBelt: BeltSnapshot = {
-  objectId: "vbelt_lane",
-  displayName: "Virtual Lane",
-  timestamp: "2025-03-19T01:15:00Z",
-  totalMassTon: 36,
-  blockCount: 2,
-  qualityAverages: { q_num_fe: 1.18 },
-  blocks: [
-    {
-      position: 0,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.16 },
-    },
-    {
-      position: 1,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.2 },
-    },
-  ],
-};
-
 const profiledPhysicalBelt: ProfilerSnapshot = {
   objectId: "belt_b",
   displayName: "Belt B",
@@ -332,6 +323,16 @@ const profiledPhysicalBelt: ProfilerSnapshot = {
   ],
 };
 
+const virtualPileProfilerSnapshot: ProfilerSnapshot = {
+  objectId: "vpile_mix",
+  displayName: "Virtual Mixer",
+  objectType: "pile",
+  snapshotId: "20250319011500",
+  timestamp: "2025-03-19T01:15:00Z",
+  dimension: 1,
+  rows: currentVirtualPile.cells,
+};
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -354,12 +355,8 @@ describe("SimulatorWorkspace", () => {
         return jsonResponse(profilerSnapshot);
       }
 
-      if (url.endsWith("/api/stockpiles/vpile_mix")) {
-        return jsonResponse(currentVirtualPile);
-      }
-
-      if (url.endsWith("/api/live/belts/vbelt_lane")) {
-        return jsonResponse(virtualBelt);
+      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
+        return jsonResponse(virtualPileProfilerSnapshot);
       }
 
       if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
@@ -386,7 +383,7 @@ describe("SimulatorWorkspace", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/profiler/objects/belt_b/snapshots/20250319011500",
     );
-    expect(fetchMock).toHaveBeenCalledWith("/api/live/belts/vbelt_lane");
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/vbelt_lane");
     expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/belt_b");
 
     expect(screen.getByRole("button", { name: /West reclaim/i })).toBeInTheDocument();
@@ -403,17 +400,14 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByText("Inspect central pile")).toBeInTheDocument();
     expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
-    expect(screen.getAllByText("Hybrid profiler + live").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Profiler-aligned").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Snapshot UTC").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Current UTC").length).toBeGreaterThan(0);
+    expect(screen.getByText("Structural transport only")).toBeInTheDocument();
     expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("West reclaim numerical mass distribution for Fe"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Virtual Lane block strip")).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Virtual Lane numerical mass distribution for Fe"),
-    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Virtual Lane block strip")).not.toBeInTheDocument();
     expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Central pile"), {
@@ -421,7 +415,9 @@ describe("SimulatorWorkspace", () => {
     });
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/vpile_mix");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/vpile_mix/snapshots/20250319011500",
+      );
     });
 
     await waitFor(() => {

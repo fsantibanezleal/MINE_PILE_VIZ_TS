@@ -7,7 +7,7 @@ import type {
   QualityDefinition,
 } from "@/types/app-data";
 
-export type SimulatorBeltSnapshotSource = "live" | "profiler-snapshot";
+export type SimulatorBeltSnapshotSource = "profiler-snapshot";
 
 type BeltAxis = "ix" | "iy" | "iz";
 

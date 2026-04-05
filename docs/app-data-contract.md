@@ -157,9 +157,21 @@ Each anchor under `inputs[]` or `outputs[]` must include:
 - `kind`
 - `x`
 - `y`
+- `spanX` (recommended)
+- `spanY` (recommended)
+- `positionMode` (recommended)
 - `relatedObjectId`
 
 Coordinates are normalized in `[0, 1]`.
+
+Anchor semantics:
+
+- `x` and `y` are relative coordinates in the local pile footprint.
+- Numeric values must stay in `[0, 1]`.
+- When the upstream configuration provides a non-numeric dynamic token, the current UI contract assumes `0.5` for that axis and should emit `positionMode: "assumed-center"`.
+- `spanX` and `spanY` are relative footprint sizes in `[0, 1]` for the anchor area, not absolute block counts.
+- For physical stockpiles, feed and discharge neighborhood fractions from configuration are appropriate source values for `spanX` and `spanY`.
+- For simplified virtual piles where explicit footprint widths are not configured, the exporter may emit reasonable relative defaults so the UI can still draw representative feed/discharge areas instead of point markers.
 
 ### `live/object-summaries.json`
 

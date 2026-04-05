@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.074`
-- Active tracked version: `0.01.077`
+- Closed release baseline: `0.01.077`
+- Active tracked version: `0.01.078`
 
 ## Release History
+
+### 0.01.078
+
+- Extended the shared anchor contract so pile and virtual-pile inputs and outputs now carry relative footprint spans and anchor position-mode metadata, which lets the circuit and stockpile renderers use the geometry already present in `data/conf` instead of collapsing everything into point markers.
+- Corrected the app-ready cache conversion flow so profiled pile dimensionality now follows reporting/config reality, including `vpile_ch1` as `2D`, configured XY extents for empty live piles, and anchor spans derived from configured feed/discharge neighborhoods or pile-relative defaults when the configuration stays simple.
+- Reworked the circuit illustration layer so virtual piles render as taller accumulation objects in both `2D` and `3D`, pile anchors render as real feed/discharge footprints, and the simulator now stays profiler-only for historical playback instead of mixing downstream live fallbacks into selected profiler timesteps.
 
 ### 0.01.077
 

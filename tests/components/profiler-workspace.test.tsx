@@ -350,7 +350,7 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("+0.1")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and property values.",
+        "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and quality values.",
       ),
     ).toBeInTheDocument();
   });

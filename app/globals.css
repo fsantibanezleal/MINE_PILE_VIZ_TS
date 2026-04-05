@@ -634,11 +634,30 @@ code {
   stroke-width: 2;
 }
 
+.circuit-illustration__virtual-pile {
+  fill: rgba(111, 132, 159, 0.78);
+  stroke: rgba(148, 171, 196, 0.54);
+  stroke-width: 2;
+  stroke-dasharray: 10 8;
+}
+
 .circuit-illustration__feed,
 .circuit-illustration__discharge {
   stroke: rgba(89, 221, 255, 0.78);
   stroke-width: 4;
   stroke-linecap: round;
+}
+
+.circuit-illustration__feed-footprint {
+  fill: rgba(89, 221, 255, 0.36);
+  stroke: rgba(89, 221, 255, 0.88);
+  stroke-width: 1.5;
+}
+
+.circuit-illustration__discharge-footprint {
+  fill: rgba(148, 171, 196, 0.56);
+  stroke: rgba(148, 171, 196, 0.94);
+  stroke-width: 1.5;
 }
 
 .circuit-illustration__feed-marker {
@@ -1825,6 +1844,14 @@ code {
   background: rgba(89, 221, 255, 0.72);
 }
 
+.pile-anchor__footprint {
+  display: inline-flex;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(89, 221, 255, 0.54);
+  background: rgba(89, 221, 255, 0.18);
+}
+
 .pile-anchor__marker {
   display: inline-flex;
   width: 12px;
@@ -1845,6 +1872,11 @@ code {
 .pile-anchor--output .pile-anchor__marker {
   border-radius: 3px;
   background: rgba(148, 171, 196, 0.94);
+}
+
+.pile-anchor--output .pile-anchor__footprint {
+  border-color: rgba(148, 171, 196, 0.56);
+  background: rgba(148, 171, 196, 0.24);
 }
 
 .pile-anchor-overlay {
@@ -1887,8 +1919,21 @@ code {
   background: linear-gradient(180deg, rgba(89, 221, 255, 0.82), rgba(89, 221, 255, 0.1));
 }
 
+.pile-anchor-overlay__footprint {
+  display: inline-flex;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(89, 221, 255, 0.42);
+  background: rgba(89, 221, 255, 0.2);
+}
+
 .pile-anchor-overlay__item--output .pile-anchor-overlay__line {
   background: linear-gradient(180deg, rgba(148, 171, 196, 0.1), rgba(148, 171, 196, 0.88));
+}
+
+.pile-anchor-overlay__item--output .pile-anchor-overlay__footprint {
+  border-color: rgba(148, 171, 196, 0.46);
+  background: rgba(148, 171, 196, 0.24);
 }
 
 .pile-anchor-overlay__marker {
@@ -1920,6 +1965,12 @@ code {
   border-color: rgba(244, 188, 99, 0.48);
   background: rgba(244, 188, 99, 0.14);
   color: var(--accent-amber);
+}
+
+.pile-anchor-overlay__item--active .pile-anchor-overlay__footprint,
+.pile-anchor--active .pile-anchor__footprint {
+  border-color: rgba(244, 188, 99, 0.52);
+  background: rgba(244, 188, 99, 0.18);
 }
 
 .notice-card,

@@ -142,7 +142,7 @@ export default async function LivePage() {
     >
       <RouteIntentPanel
         primaryQuestion="What is moving on the currently inspected transport belt right now?"
-        uniqueEvidence="Current dense belt snapshots, ordered block strips, and mass-weighted current-property distributions tied to one inspected live belt at a time."
+        uniqueEvidence="Current dense belt snapshots, ordered block strips, and mass-weighted current quality distributions tied to one inspected live belt at a time."
         useWhen="You want block-level evidence for the current content on a real transport path and only need the surrounding circuit as context."
         switchWhen="Use Stockpiles for internal pile geometry, Profiler for historical summary playback, Circuit for topology, or Simulator for pile-centric discharge organization."
       />
