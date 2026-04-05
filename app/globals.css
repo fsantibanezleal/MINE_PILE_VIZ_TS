@@ -770,9 +770,9 @@ code {
 }
 
 .circuit-node {
-  width: 260px;
-  padding: 14px;
-  border-radius: 18px;
+  width: 236px;
+  padding: 10px 12px;
+  border-radius: 16px;
   border: 1px solid var(--border);
   background: var(--surface-node);
   box-shadow: 0 18px 38px rgba(4, 12, 24, 0.38);
@@ -796,29 +796,23 @@ code {
 .circuit-node__footer {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   color: var(--text-muted);
-  font-size: 0.73rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .circuit-node strong {
   display: block;
-  margin-top: 10px;
-  margin-bottom: 8px;
-  font-size: 1rem;
-}
-
-.circuit-node p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.88rem;
-  line-height: 1.45;
+  margin-top: 6px;
+  margin-bottom: 6px;
+  font-size: 0.94rem;
+  line-height: 1.2;
 }
 
 .circuit-node__footer {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .circuit-node__handle {

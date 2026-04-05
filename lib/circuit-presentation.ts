@@ -129,15 +129,16 @@ const STAGE_FRAME_PADDING_X = 20;
 const STAGE_FRAME_PADDING_TOP = 44;
 const STAGE_FRAME_PADDING_BOTTOM = 26;
 const MIN_VERTICAL_GAP = 28;
-const STAGE_COMPONENT_GAP = 64;
+const STAGE_COMPONENT_GAP = 68;
 const PRESENTATION_3D_X_SCALE = 28;
 const PRESENTATION_3D_Z_SCALE = 30;
 const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
 const PILE_ANCHOR_MIN_X = 0.18;
 const PILE_ANCHOR_MAX_X = 0.82;
 const PILE_ANCHOR_DEPTH_STEP = 0.55;
-const BELT_2D_HEIGHT = 48;
-const VIRTUAL_PILE_2D_HEIGHT = BELT_2D_HEIGHT * 4;
+const PHYSICAL_BELT_2D_HEIGHT = 40;
+const VIRTUAL_BELT_2D_HEIGHT = 36;
+const VIRTUAL_PILE_2D_HEIGHT = VIRTUAL_BELT_2D_HEIGHT * 4;
 
 const DEFAULT_SORT_HINT: Record<CircuitPresentationVisualKind, number> = {
   "physical-belt": 0.22,
@@ -158,6 +159,23 @@ function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function mapNormalizedHintToCenterY(
+  normalizedHint: number,
+  top: number,
+  bottom: number,
+  height = 0,
+) {
+  const clampedHint = clamp(normalizedHint, 0, 1);
+  const minCenter = top + height / 2;
+  const maxCenter = bottom - height / 2;
+
+  if (maxCenter <= minCenter) {
+    return (top + bottom) / 2;
+  }
+
+  return minCenter + clampedHint * (maxCenter - minCenter);
+}
+
 function getNodeVisualKind(node: CircuitNode): CircuitPresentationVisualKind {
   if (node.objectRole === "physical" && node.objectType === "belt") {
     return "physical-belt";
@@ -175,13 +193,13 @@ function getNodeSize(node: CircuitNode) {
 
   switch (visualKind) {
     case "physical-belt":
-      return { width: 188, height: 48 };
+      return { width: 188, height: PHYSICAL_BELT_2D_HEIGHT };
     case "physical-pile":
       return { width: 138, height: 120 };
     case "virtual-pile":
       return { width: 164, height: VIRTUAL_PILE_2D_HEIGHT };
     default:
-      return { width: 148, height: 48 };
+      return { width: 148, height: VIRTUAL_BELT_2D_HEIGHT };
   }
 }
 
@@ -229,7 +247,7 @@ export function getPresentationNode3dSize(
     case "physical-pile":
       return { width: 5.4, height: 5.8, depth: 3.6 };
     case "virtual-pile":
-      return { width: 5.2, height: 3.6, depth: 2.6 };
+      return { width: 5.2, height: 1.92, depth: 2.6 };
     default:
       return { width: 4.8, height: 0.48, depth: 1.6 };
   }
@@ -701,36 +719,64 @@ function distributeCenters(
   return centers;
 }
 
-function distributeComponentCenters(
+function packPreferredCenters(
   top: number,
   bottom: number,
   heights: number[],
+  preferredCenters: number[],
+  gap = MIN_VERTICAL_GAP,
 ) {
   if (heights.length === 0) {
     return [];
   }
 
-  if (heights.length === 1) {
-    return [(top + bottom) / 2];
+  const centers = heights.map((height, index) =>
+    clamp(
+      preferredCenters[index] ?? (top + bottom) / 2,
+      top + height / 2,
+      bottom - height / 2,
+    ),
+  );
+
+  for (let index = 1; index < centers.length; index += 1) {
+    const minimumCenter =
+      centers[index - 1]! +
+      heights[index - 1]! / 2 +
+      gap +
+      heights[index]! / 2;
+    centers[index] = Math.max(centers[index]!, minimumCenter);
   }
 
-  const availableHeight = bottom - top;
-  const contentHeight =
-    heights.reduce((sum, height) => sum + height, 0) +
-    STAGE_COMPONENT_GAP * (heights.length - 1);
-  const extraHeight = Math.max(0, availableHeight - contentHeight);
-  const gap = STAGE_COMPONENT_GAP + extraHeight / (heights.length - 1);
-  const centers: number[] = [];
-  let cursor = top;
+  const lastIndex = centers.length - 1;
+  const lastMaximum = bottom - heights[lastIndex]! / 2;
 
-  heights.forEach((height, index) => {
-    cursor += height / 2;
-    centers.push(cursor);
+  if (centers[lastIndex]! > lastMaximum) {
+    centers[lastIndex] = lastMaximum;
 
-    if (index < heights.length - 1) {
-      cursor += height / 2 + gap;
+    for (let index = lastIndex - 1; index >= 0; index -= 1) {
+      const maximumCenter =
+        centers[index + 1]! -
+        heights[index + 1]! / 2 -
+        gap -
+        heights[index]! / 2;
+      centers[index] = Math.min(centers[index]!, maximumCenter);
     }
-  });
+
+    const firstMinimum = top + heights[0]! / 2;
+
+    if (centers[0]! < firstMinimum) {
+      centers[0] = firstMinimum;
+
+      for (let index = 1; index < centers.length; index += 1) {
+        const minimumCenter =
+          centers[index - 1]! +
+          heights[index - 1]! / 2 +
+          gap +
+          heights[index]! / 2;
+        centers[index] = Math.max(centers[index]!, minimumCenter);
+      }
+    }
+  }
 
   return centers;
 }
@@ -789,6 +835,7 @@ function buildStageNodePlacements(
   edgeContexts: CircuitPresentationEdgeContext[],
   incomingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
   outgoingByNodeId: Map<string, CircuitPresentationEdgeContext[]>,
+  placedByNodeId: Map<string, StageNodePlacement>,
 ) {
   const levelMap = buildStageLevelMap(stageNodes, edgeContexts);
   const columnCount =
@@ -928,6 +975,67 @@ function buildStageNodePlacements(
     });
   const centerByNodeId = new Map<string, number>();
 
+  function getComponentPreferredCenter(componentDraftNodes: StageLayoutNodeDraft[]) {
+    const candidates: number[] = [];
+
+    componentDraftNodes.forEach((draftNode) => {
+      const incomingContexts = incomingByNodeId.get(draftNode.node.id) ?? [];
+
+      incomingContexts.forEach((context) => {
+        if (context.source.stageIndex === draftNode.node.stageIndex) {
+          return;
+        }
+
+        const sourcePlacement = placedByNodeId.get(context.source.id);
+
+        if (
+          context.source.objectType === "pile" &&
+          context.source.outputs.length > 1 &&
+          context.sourceAnchor
+        ) {
+          candidates.push(
+            mapNormalizedHintToCenterY(
+              context.sourceAnchor.x,
+              stageBounds.top,
+              stageBounds.bottom,
+              draftNode.height,
+            ),
+          );
+          return;
+        }
+
+        if (sourcePlacement) {
+          candidates.push(sourcePlacement.y);
+          return;
+        }
+
+        candidates.push(
+          mapNormalizedHintToCenterY(
+            draftNode.sortHint,
+            stageBounds.top,
+            stageBounds.bottom,
+            draftNode.height,
+          ),
+        );
+      });
+    });
+
+    if (candidates.length === 0) {
+      return average(
+        componentDraftNodes.map((draftNode) =>
+          mapNormalizedHintToCenterY(
+            draftNode.sortHint,
+            stageBounds.top,
+            stageBounds.bottom,
+            draftNode.height,
+          ),
+        ),
+      );
+    }
+
+    return average(candidates);
+  }
+
   if (orderedComponents.length <= 1) {
     const globalCenters = distributeCenters(
       stageBounds.top,
@@ -944,14 +1052,47 @@ function buildStageNodePlacements(
         componentDraftNodes.reduce((sum, draftNode) => sum + draftNode.height, 0) +
         Math.max(0, componentDraftNodes.length - 1) * MIN_VERTICAL_GAP,
     );
-    const componentCenters = distributeComponentCenters(
+    const orderedComponentData = orderedComponents
+      .map((componentDraftNodes, index) => ({
+        componentDraftNodes,
+        height: componentHeights[index] ?? 0,
+        preferredCenter: getComponentPreferredCenter(componentDraftNodes),
+      }))
+      .sort((left, right) => {
+        const sortDifference = left.preferredCenter - right.preferredCenter;
+
+        if (Math.abs(sortDifference) > 1e-6) {
+          return sortDifference;
+        }
+
+        const leftLevel = Math.min(
+          ...left.componentDraftNodes.map((draftNode) => draftNode.level),
+        );
+        const rightLevel = Math.min(
+          ...right.componentDraftNodes.map((draftNode) => draftNode.level),
+        );
+
+        if (leftLevel !== rightLevel) {
+          return leftLevel - rightLevel;
+        }
+
+        return (
+          left.componentDraftNodes[0]?.node.label.localeCompare(
+            right.componentDraftNodes[0]?.node.label ?? "",
+          ) ?? 0
+        );
+      });
+    const componentCenters = packPreferredCenters(
       stageBounds.top,
       stageBounds.bottom,
-      componentHeights,
+      orderedComponentData.map((entry) => entry.height),
+      orderedComponentData.map((entry) => entry.preferredCenter),
+      STAGE_COMPONENT_GAP,
     );
 
-    orderedComponents.forEach((componentDraftNodes, index) => {
-      const componentHeight = componentHeights[index] ?? 0;
+    orderedComponentData.forEach((entry, index) => {
+      const componentDraftNodes = entry.componentDraftNodes;
+      const componentHeight = entry.height;
       const componentCenter = componentCenters[index] ?? frameCenterY;
       const componentTop = componentCenter - componentHeight / 2;
       const localCenters = distributeCenters(
@@ -1069,6 +1210,7 @@ export function buildCircuitPresentation(graph: CircuitGraph): CircuitPresentati
       stageEdgeContexts,
       incomingByNodeId,
       outgoingByNodeId,
+      stagePlacementsByNodeId,
     );
 
     placements.forEach((placement) => {

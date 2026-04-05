@@ -88,21 +88,21 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.081` |
+| Release-synced version | `0.01.082` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.080` |
-| Active tracked version | `0.01.081` |
+| Closed baseline | `0.01.081` |
+| Active tracked version | `0.01.082` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are now treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. This makes the `Diagram`, `2D`, and `3D` views read as the same process board instead of three unrelated spatial guesses, and prevents independent same-stage branches from collapsing into one mixed vertical ordering. The `3D` view now also starts from a centered top-down camera so the opening read matches the `2D` board before the operator begins orbiting. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. The latest layout pass also pulls disconnected downstream groups toward the feeder positions that drive them, so grouped reclaim outputs read closer to the vertical center of their upstream belts instead of floating at one generic height. The `Diagram` view now inherits that same vertical ordering while using more compact cards, which makes `Diagram`, `2D`, and `3D` read as the same process board instead of three unrelated spatial guesses. The `3D` view now also starts from a centered top-down camera so the opening read matches the `2D` board before the operator begins orbiting. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
 
 ### Live Workspace
 
@@ -110,7 +110,7 @@ The live workspace now reads as the dense current-state route from `06_models`, 
 
 ### Simulator Workspace
 
-The simulator workspace now uses piles and virtual piles as its central object model. A selected pile stays at the center of the route, profiler time controls remain available when that pile has history, and the lower section now treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The route framing now stays profiler-only: downstream conveyors follow the same selected profiler timestep when a historical snapshot exists locally, and otherwise remain structural context instead of falling back to dense live strips. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Both the central pile and downstream belt histograms can now switch into represented-material time modes, which makes age and represented-span patterns readable in the same simulator context used for discharge interpretation. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport. The simulator sidebar itself is now framed around active-route context instead of generic pile quality summary, which keeps the route semantically separate from the stockpile workspace.
+The simulator workspace now uses piles and virtual piles as route anchors rather than as another stockpile-detail workspace. One selected pile stays in view only as the reclaim anchor, profiler time controls remain available when that anchor has history, and the lower section treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The route framing now stays profiler-only: downstream conveyors follow the same selected profiler timestep when a historical snapshot exists locally, and otherwise remain structural context instead of falling back to dense live strips. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Both the route anchor and downstream belt histograms can now switch into represented-material time modes, which makes age and represented-span patterns readable in the same simulator context used for discharge interpretation. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport. The simulator sidebar itself stays framed around active-route context, while route-anchor internals remain available only as a secondary disclosure when needed.
 
 ### Stockpile Workspace
 
@@ -260,7 +260,7 @@ types/
 
 ## Current Version
 
-`0.01.081`
+`0.01.082`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

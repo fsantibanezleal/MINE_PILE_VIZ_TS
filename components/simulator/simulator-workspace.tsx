@@ -1072,7 +1072,7 @@ export function SimulatorWorkspace({
       <aside className="panel">
         <div className="section-label">Scenario</div>
         <label className="field">
-          <span>Central pile</span>
+          <span>Route anchor</span>
           <select
             value={selectedObjectId}
             onChange={(event) => handleSelectObject(event.target.value)}
@@ -1124,9 +1124,10 @@ export function SimulatorWorkspace({
             </button>
           </>
         ) : (
-          <InlineNotice tone="info" title="Current-state object">
-            This object does not expose profiler history in the current app-ready cache, so
-            the simulator uses its current stockpile state.
+          <InlineNotice tone="warning" title="No profiler history">
+            This object does not expose stored profiler history in the current reporting
+            cache, so the simulator can only keep its configured discharge structure as
+            route context.
           </InlineNotice>
         )}
         {centralData?.dimension === 3 ? (
@@ -1176,7 +1177,7 @@ export function SimulatorWorkspace({
             { label: "Object role", value: selectedNode?.objectRole ?? "Unknown" },
             {
               label: "Time mode",
-              value: hasProfilerHistory ? "Profiler" : "Current",
+              value: hasProfilerHistory ? "Profiler history" : "No stored history",
             },
             {
               label: "Outputs",
@@ -1197,12 +1198,12 @@ export function SimulatorWorkspace({
           </InlineNotice>
         ) : null}
         {centralError ? (
-          <InlineNotice tone="error" title="Central pile unavailable">
+          <InlineNotice tone="error" title="Route anchor unavailable">
             {centralError}
           </InlineNotice>
         ) : null}
         {loadingSummary ? <div className="loading-banner">Loading simulator history...</div> : null}
-        {loadingCentral ? <div className="loading-banner">Loading central pile...</div> : null}
+        {loadingCentral ? <div className="loading-banner">Loading route anchor...</div> : null}
         {hasProfilerHistory && activeLaneBelts.length > 0 ? (
           <InlineNotice tone="info" title="Profiler-aligned downstream route">
             The simulator follows the selected profiler timestep only. Profiled downstream
@@ -1232,11 +1233,12 @@ export function SimulatorWorkspace({
         {centralData ? (
           <>
             <div>
-              <div className="section-label">Central object</div>
+              <div className="section-label">Selected route anchor</div>
               <h3>{centralData.displayName}</h3>
               <p className="muted-text">
-                The simulator anchors the selected pile or virtual pile at the center and
-                organizes downstream discharge content by configured output route.
+                The simulator keeps one selected pile or virtual pile in view only as the
+                route anchor. The operator reading stays on the active reclaim route and
+                its downstream profiled transport context.
               </p>
             </div>
             <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
@@ -1254,7 +1256,7 @@ export function SimulatorWorkspace({
         )}
         {activeLane ? (
           <div className="simulator-route-summary">
-            <div className="section-label">Active lane summary</div>
+            <div className="section-label">Active route evidence</div>
             <MetricGrid
               metrics={[
                 { label: "Output", value: activeLane.output.label },
@@ -1532,7 +1534,9 @@ export function SimulatorWorkspace({
                 : "Pending"
           }
           resolution={
-            centralData ? `${centralData.dimension}D pile detail + dense belt blocks` : "Pending"
+            centralData
+              ? `${centralData.dimension}D profiler pile summary + profiled belt blocks`
+              : "Pending"
           }
           timeBasis={
             centralData?.source === "profiler-snapshot"
@@ -1548,11 +1552,11 @@ export function SimulatorWorkspace({
           }
         />
         <details className="inspector-stack inspector-stack--collapsed-context">
-          <summary className="section-label">Inspect central pile</summary>
+          <summary className="section-label">Inspect route anchor</summary>
           <p className="muted-text">
-            The simulator stays route-first. Open this section when you need the central
-            pile internals, material-time summary, visible-cell counts, or hovered-cell
-            detail behind the active discharge route.
+            The simulator stays route-first. Open this section only when you need the
+            route anchor internals, material-time summary, visible-cell counts, or
+            hovered-cell detail behind the active discharge route.
           </p>
           {centralTransportSemantics ? (
             <TransportSemanticsPanel semantics={centralTransportSemantics} />

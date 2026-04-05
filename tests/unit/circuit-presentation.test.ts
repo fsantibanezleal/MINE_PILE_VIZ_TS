@@ -474,6 +474,49 @@ const disconnectedClustersGraph: CircuitGraph = {
   ],
 };
 
+const groupedOutputsGraph: CircuitGraph = {
+  stages: [
+    { index: 0, label: "Reclaim", nodeIds: ["f01", "f02", "f03", "f04", "f05", "f06"] },
+    { index: 1, label: "Grouped belts", nodeIds: ["cv301", "cv302", "cv303"] },
+  ],
+  nodes: [
+    ...["f01", "f02", "f03", "f04", "f05", "f06"].map((id, index) => ({
+      id,
+      objectId: id,
+      objectType: "belt" as const,
+      objectRole: "virtual" as const,
+      label: `Feeder ${index + 1}`,
+      stageIndex: 0,
+      dimension: 1 as const,
+      isProfiled: false,
+      shortDescription: "Feeder",
+      inputs: [],
+      outputs: [],
+    })),
+    ...["cv301", "cv302", "cv303"].map((id, index) => ({
+      id,
+      objectId: id,
+      objectType: "pile" as const,
+      objectRole: "virtual" as const,
+      label: `Grouped ${index + 1}`,
+      stageIndex: 1,
+      dimension: 1 as const,
+      isProfiled: true,
+      shortDescription: "Grouped discharge",
+      inputs: [],
+      outputs: [],
+    })),
+  ],
+  edges: [
+    { id: "f01-cv301", source: "f01", target: "cv301", label: "f01-cv301" },
+    { id: "f02-cv301", source: "f02", target: "cv301", label: "f02-cv301" },
+    { id: "f03-cv302", source: "f03", target: "cv302", label: "f03-cv302" },
+    { id: "f04-cv302", source: "f04", target: "cv302", label: "f04-cv302" },
+    { id: "f05-cv303", source: "f05", target: "cv303", label: "f05-cv303" },
+    { id: "f06-cv303", source: "f06", target: "cv303", label: "f06-cv303" },
+  ],
+};
+
 describe("buildCircuitPresentation", () => {
   it("stacks disconnected objects vertically inside the same stage column", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -561,6 +604,39 @@ describe("buildCircuitPresentation", () => {
     expect(Math.abs(sourceB!.y - laneB!.y)).toBeLessThan(90);
     expect(Math.abs(sourceA!.y - sourceB!.y)).toBeGreaterThan(170);
     expect(Math.abs(laneA!.y - laneB!.y)).toBeGreaterThan(170);
+  });
+
+  it("aligns grouped downstream nodes to the vertical center of their upstream feeder pairs", () => {
+    const presentation = buildCircuitPresentation(groupedOutputsGraph);
+    const feeder1 = presentation.nodes.find((node) => node.id === "f01");
+    const feeder2 = presentation.nodes.find((node) => node.id === "f02");
+    const feeder3 = presentation.nodes.find((node) => node.id === "f03");
+    const feeder4 = presentation.nodes.find((node) => node.id === "f04");
+    const feeder5 = presentation.nodes.find((node) => node.id === "f05");
+    const feeder6 = presentation.nodes.find((node) => node.id === "f06");
+    const grouped1 = presentation.nodes.find((node) => node.id === "cv301");
+    const grouped2 = presentation.nodes.find((node) => node.id === "cv302");
+    const grouped3 = presentation.nodes.find((node) => node.id === "cv303");
+
+    expect(feeder1).toBeDefined();
+    expect(feeder2).toBeDefined();
+    expect(feeder3).toBeDefined();
+    expect(feeder4).toBeDefined();
+    expect(feeder5).toBeDefined();
+    expect(feeder6).toBeDefined();
+    expect(grouped1).toBeDefined();
+    expect(grouped2).toBeDefined();
+    expect(grouped3).toBeDefined();
+
+    const pair1Center = (feeder1!.y + feeder2!.y) / 2;
+    const pair2Center = (feeder3!.y + feeder4!.y) / 2;
+    const pair3Center = (feeder5!.y + feeder6!.y) / 2;
+
+    expect(Math.abs(grouped1!.y - pair1Center)).toBeLessThan(50);
+    expect(Math.abs(grouped2!.y - pair2Center)).toBeLessThan(50);
+    expect(Math.abs(grouped3!.y - pair3Center)).toBeLessThan(50);
+    expect(grouped1!.y).toBeLessThan(grouped2!.y);
+    expect(grouped2!.y).toBeLessThan(grouped3!.y);
   });
 
   it("maps 3D stage footprints as a shared top-down board", () => {

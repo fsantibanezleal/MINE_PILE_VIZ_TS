@@ -50,7 +50,7 @@ export default async function SimulatorPage() {
       <AppShell
         eyebrow="Simulator"
         title="Pile discharge simulator"
-        description="Inspect pile-centric scenario states from the local app-ready cache and follow configured discharge routes toward downstream transport objects."
+        description="Inspect one pile-centric discharge scenario from the local app-ready cache and follow its profiled reclaim routes toward downstream transport objects."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -64,7 +64,7 @@ export default async function SimulatorPage() {
       <AppShell
         eyebrow="Simulator"
         title="Pile discharge simulator"
-        description="Inspect pile-centric scenario states from the local app-ready cache and follow configured discharge routes toward downstream transport objects."
+        description="Inspect one pile-centric discharge scenario from the local app-ready cache and follow its profiled reclaim routes toward downstream transport objects."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -80,7 +80,7 @@ export default async function SimulatorPage() {
     <AppShell
       eyebrow="Simulator"
       title="Pile discharge simulator"
-      description="The simulator route keeps a selected pile or virtual pile at the center, follows a profiled timestep when one exists, and organizes downstream route content by configured discharge output. Today the central pile can be historical while downstream conveyors still come from current live belt snapshots."
+      description="The simulator route is profiler-only and route-first. It keeps one selected pile or virtual pile as the route anchor, follows one stored profiler timestep, and organizes downstream discharge content by configured reclaim output."
       actions={
         <MetricGrid
           metrics={[
@@ -97,7 +97,7 @@ export default async function SimulatorPage() {
             },
             {
               label: "Time basis",
-              value: "Central history + current routes",
+              value: "Selected profiler snapshot",
             },
           ]}
         />
@@ -105,8 +105,8 @@ export default async function SimulatorPage() {
     >
       <RouteIntentPanel
         primaryQuestion="If one pile is the center of attention, how do its configured outputs organize downstream route content?"
-        uniqueEvidence="Pile-centric discharge structure that keeps one pile at the center, splits outputs by configured reclaim route, and shows downstream route context side by side."
-        useWhen="You want to reason about pile discharge structure, grouped reclaim routes, and downstream transport context from the perspective of one central pile."
+        uniqueEvidence="Pile-centric discharge structure that keeps one pile as the route anchor, splits outputs by configured reclaim route, and keeps downstream profiled transport context aligned to the selected stored timestep."
+        useWhen="You want to reason about pile discharge structure, grouped reclaim routes, and downstream transport context from the perspective of one selected profiled pile or virtual pile."
         switchWhen="Use Live for pure current-belt reading, Stockpiles for isolated internal pile structure, Profiler for historical summaries, or Circuit for the full staged topology."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>

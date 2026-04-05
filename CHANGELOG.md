@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.080`
-- Active tracked version: `0.01.081`
+- Closed release baseline: `0.01.081`
+- Active tracked version: `0.01.082`
 
 ## Release History
+
+### 0.01.082
+
+- Tightened the simulator around profiler-only route-anchor semantics by removing stale current-state fallback language, renaming the central pile controls and disclosures around one selected route anchor, and making the active reclaim path the primary evidence block.
+- Reworked stage-component packing so disconnected downstream groups are pulled toward upstream feeder positions, which makes grouped reclaim outputs align more naturally with their feeding belts in the shared circuit presentation.
+- Compactified the diagram node cards and rewired diagram vertical placement to inherit the presentation model's y-ordering instead of redistributing every stage column uniformly, making `Diagram`, `2D`, and `3D` read more coherently as one stage board.
 
 ### 0.01.081
 

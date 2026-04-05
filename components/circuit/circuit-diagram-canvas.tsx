@@ -50,7 +50,6 @@ function CircuitNodeCard({ data, selected }: NodeProps<CircuitFlowNode>) {
         <span>Stage {nodeData.stageIndex + 1}</span>
       </div>
       <strong>{nodeData.label}</strong>
-      <p>{nodeData.shortDescription}</p>
       <div className="circuit-node__footer">
         <span>{nodeData.dimension}D</span>
         <span>{nodeData.isProfiled ? "Profiled" : "Runtime only"}</span>

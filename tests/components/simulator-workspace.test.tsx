@@ -393,11 +393,11 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getAllByText("Virtual Lane").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
-    expect(screen.getByText("Active lane summary")).toBeInTheDocument();
+    expect(screen.getByText("Active route evidence")).toBeInTheDocument();
     expect(screen.getByText("Discharge reading context")).toBeInTheDocument();
     expect(screen.getByText("Active route context")).toBeInTheDocument();
     expect(screen.getByText("Route semantics")).toBeInTheDocument();
-    expect(screen.getByText("Inspect central pile")).toBeInTheDocument();
+    expect(screen.getByText("Inspect route anchor")).toBeInTheDocument();
     expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
     expect(screen.getAllByText("Profiler-aligned").length).toBeGreaterThan(0);
@@ -410,7 +410,7 @@ describe("SimulatorWorkspace", () => {
     expect(screen.queryByLabelText("Virtual Lane block strip")).not.toBeInTheDocument();
     expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Central pile"), {
+    fireEvent.change(screen.getByLabelText("Route anchor"), {
       target: { value: "vpile_mix" },
     });
 
@@ -425,7 +425,7 @@ describe("SimulatorWorkspace", () => {
     });
 
     expect(screen.getByRole("button", { name: /To CV301/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Inspect central pile"));
+    fireEvent.click(screen.getByText("Inspect route anchor"));
     expect(screen.getByText("Central object material time")).toBeInTheDocument();
   });
 });

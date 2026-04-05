@@ -2,8 +2,8 @@ import { Position, type Edge, type Node } from "@xyflow/react";
 import { buildCircuitPresentation } from "@/lib/circuit-presentation";
 import type { CircuitEdge, CircuitGraph, CircuitNode } from "@/types/app-data";
 
-const NODE_WIDTH = 260;
-const NODE_HEIGHT = 132;
+const NODE_WIDTH = 236;
+const NODE_HEIGHT = 84;
 const STAGE_TOP = 28;
 const STAGE_HEIGHT = 760;
 const STAGE_GAP = 0;
@@ -69,7 +69,7 @@ function distributeNodeTopPositions(nodeCount: number) {
 
   const availableHeight = bottom - top;
   const contentHeight = NODE_HEIGHT * nodeCount;
-  const gap = Math.max(28, (availableHeight - contentHeight) / (nodeCount - 1));
+  const gap = Math.max(16, (availableHeight - contentHeight) / (nodeCount - 1));
   const positions: number[] = [];
   let currentTop = top;
 
@@ -79,6 +79,54 @@ function distributeNodeTopPositions(nodeCount: number) {
   }
 
   return positions;
+}
+
+function mapPresentationCenterToTop(
+  centerY: number,
+  presentationFrameTop: number,
+  presentationFrameHeight: number,
+) {
+  const usableTop = STAGE_TOP + STAGE_TOP_PADDING;
+  const usableBottom = STAGE_TOP + STAGE_HEIGHT - STAGE_BOTTOM_PADDING;
+  const minCenter = usableTop + NODE_HEIGHT / 2;
+  const maxCenter = usableBottom - NODE_HEIGHT / 2;
+  const normalized =
+    presentationFrameHeight > 0
+      ? (centerY - presentationFrameTop) / presentationFrameHeight
+      : 0.5;
+  const center = minCenter + Math.max(0, Math.min(1, normalized)) * (maxCenter - minCenter);
+
+  return center - NODE_HEIGHT / 2;
+}
+
+function packNodeTopPositions(preferredTops: number[]) {
+  if (preferredTops.length === 0) {
+    return [];
+  }
+
+  const top = STAGE_TOP + STAGE_TOP_PADDING;
+  const bottom = STAGE_TOP + STAGE_HEIGHT - STAGE_BOTTOM_PADDING - NODE_HEIGHT;
+  const gap = 16;
+  const packed = preferredTops.map((topPosition) =>
+    Math.max(top, Math.min(bottom, topPosition)),
+  );
+
+  for (let index = 1; index < packed.length; index += 1) {
+    packed[index] = Math.max(packed[index]!, packed[index - 1]! + NODE_HEIGHT + gap);
+  }
+
+  if (packed[packed.length - 1]! > bottom) {
+    packed[packed.length - 1] = bottom;
+
+    for (let index = packed.length - 2; index >= 0; index -= 1) {
+      packed[index] = Math.min(
+        packed[index]!,
+        packed[index + 1]! - NODE_HEIGHT - gap,
+      );
+    }
+  }
+
+  return packed;
 }
 
 export function layoutCircuitGraph(
@@ -127,7 +175,17 @@ export function layoutCircuitGraph(
     );
 
     stageColumns.forEach((column, columnIndex) => {
-      const topPositions = distributeNodeTopPositions(column.length);
+      const topPositions = column.length > 0
+        ? packNodeTopPositions(
+            column.map((columnNode) =>
+              mapPresentationCenterToTop(
+                columnNode.y,
+                presentation.stageFrameTop,
+                presentation.stageFrameHeight,
+              ),
+            ),
+          )
+        : distributeNodeTopPositions(column.length);
 
       column.forEach((columnNode, rowIndex) => {
         const baseNode = nodes.find((candidate) => candidate.id === columnNode.id);
