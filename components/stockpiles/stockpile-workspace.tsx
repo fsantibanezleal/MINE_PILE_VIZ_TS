@@ -46,6 +46,7 @@ interface StockpileWorkspaceProps {
   pileEntries: ObjectRegistryEntry[];
   qualities: QualityDefinition[];
   initialPileId: string;
+  variant?: "stockpiles" | "live";
 }
 
 type SliceAxis = "x" | "y" | "z";
@@ -76,7 +77,9 @@ export function StockpileWorkspace({
   pileEntries,
   qualities,
   initialPileId,
+  variant = "stockpiles",
 }: StockpileWorkspaceProps) {
+  const isLiveVariant = variant === "live";
   const materialTimeModes: MaterialTimeMode[] = [
     "property",
     "oldest-age",
@@ -437,7 +440,9 @@ export function StockpileWorkspace({
   return (
     <div className="workspace-grid workspace-grid--triple">
       <aside className="panel">
-        <div className="section-label">Selection</div>
+        <div className="section-label">
+          {isLiveVariant ? "Current dense pile selection" : "Selection"}
+        </div>
         <label className="field">
           <span>Pile</span>
           <select
@@ -568,7 +573,9 @@ export function StockpileWorkspace({
       </section>
 
       <aside className="panel">
-        <div className="section-label">Current structure reading</div>
+        <div className="section-label">
+          {isLiveVariant ? "Current dense pile reading" : "Current structure reading"}
+        </div>
         <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
         <MetricGrid
           metrics={[
@@ -578,15 +585,26 @@ export function StockpileWorkspace({
             { label: "Rendered cells", value: String(visibleCellCount) },
           ]}
         />
-        {dataset ? <PileStructurePanel dataset={dataset} /> : null}
-        <RouteBasisPanel
-          source={dataset ? "Current pile dataset" : "Pending"}
-          resolution={
-            dataset ? `${dataset.dimension}D dense ${dataset.dimension === 3 ? "cells / voxels" : "cells"}` : "Pending"
-          }
-          timeBasis={dataset ? "Current pile snapshot" : "Pending"}
-          note="Use the profiler route when you need historical summaries instead of the current dense inventory."
-        />
+        {isLiveVariant ? (
+          <p className="muted-text">
+            This subview stays on the current dense pile snapshot from 06_models.
+            Use the stockpile route when you want structure-first interpretation,
+            footprint use, and internal pile profile metrics.
+          </p>
+        ) : null}
+        {dataset && !isLiveVariant ? <PileStructurePanel dataset={dataset} /> : null}
+        {!isLiveVariant ? (
+          <RouteBasisPanel
+            source={dataset ? "Current pile dataset" : "Pending"}
+            resolution={
+              dataset
+                ? `${dataset.dimension}D dense ${dataset.dimension === 3 ? "cells / voxels" : "cells"}`
+                : "Pending"
+            }
+            timeBasis={dataset ? "Current pile snapshot" : "Pending"}
+            note="Use the profiler route when you need historical summaries instead of the current dense inventory."
+          />
+        ) : null}
         <MaterialTimePanel summary={materialTimeSummary} />
         {viewMode === "full" && dataset?.dimension === 3 ? (
           <MetricGrid
@@ -628,11 +646,13 @@ export function StockpileWorkspace({
           selectedQuality={selectedQuality}
           emptyMessage="Hover a cell or voxel in the current pile view to inspect its coordinates, mass, and quality values."
         />
-        <WorkspaceJumpLinks
-          objectId={selectedPileId}
-          objectType={selectedPileEntry?.objectType}
-          isProfiled={selectedPileEntry?.isProfiled}
-        />
+        {!isLiveVariant ? (
+          <WorkspaceJumpLinks
+            objectId={selectedPileId}
+            objectType={selectedPileEntry?.objectType}
+            isProfiled={selectedPileEntry?.isProfiled}
+          />
+        ) : null}
       </aside>
     </div>
   );

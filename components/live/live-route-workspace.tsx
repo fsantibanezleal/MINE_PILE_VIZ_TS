@@ -110,6 +110,7 @@ export function LiveRouteWorkspace({
           pileEntries={pileEntries}
           qualities={qualities}
           initialPileId={initialPileId}
+          variant="live"
         />
       ) : (
         <InlineNotice tone="warning" title="Dense pile snapshots unavailable">

@@ -428,4 +428,35 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("Pile A Feed West")).toBeInTheDocument();
     expect(screen.getByText("Pile A Reclaim East")).toBeInTheDocument();
   });
+
+  it("suppresses structure-first side panels in the live dense pile variant", async () => {
+    const pileA = createPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/live/piles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+        variant="live"
+      />,
+    );
+
+    await screen.findByText("Current dense pile reading");
+    expect(screen.queryByText("Structure profile")).not.toBeInTheDocument();
+    expect(screen.queryByText("Route basis")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/This subview stays on the current dense pile snapshot from 06_models/i),
+    ).toBeInTheDocument();
+  });
 });

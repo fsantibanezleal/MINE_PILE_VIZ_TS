@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.079`
-- Active tracked version: `0.01.080`
+- Closed release baseline: `0.01.080`
+- Active tracked version: `0.01.081`
 
 ## Release History
+
+### 0.01.081
+
+- Separated `Live > Piles / VPiles` from the structure-first `Stockpiles` route while still reusing the same dense pile renderer and dataset loader.
+- Added a live dense pile variant of the pile workspace that removes the stockpile-only structure profile, route basis, and cross-route jump emphasis, leaving the subview focused on current dense pile evidence from `06_models`.
+- Added regression coverage so the live dense pile variant keeps its lighter evidence hierarchy without regressing the stockpile route back toward a duplicated layout.
 
 ### 0.01.080
 

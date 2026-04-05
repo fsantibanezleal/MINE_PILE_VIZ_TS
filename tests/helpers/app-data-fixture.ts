@@ -23,7 +23,7 @@ export async function createSampleAppData(root: string) {
 
   const manifest = {
     schemaVersion: "1.0.0",
-    appVersion: "0.01.080",
+    appVersion: "0.01.081",
     datasetLabel: "Synthetic contract fixture",
     generatedAt: "2026-04-02T12:00:00Z",
     latestTimestamp: "2025-03-19T01:15:00Z",
