@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.083`
-- Active tracked version: `1.00.000`
+- Closed release baseline: `1.00.000`
+- Active tracked version: `1.00.001`
 
 ## Release History
+
+### 1.00.001
+
+- Removed `Stockpiles` as a separate operator workspace because its functionality now lives in `Live State > Piles / VPiles`.
+- Kept `/stockpiles` only as a compatibility alias that redirects into the live pile subview while preserving the selected object and quality context.
+- Removed the dedicated stockpile navigation and cross-route jump target, and updated route copy, browser coverage, and operator documentation to reflect the four active workspaces.
 
 ### 1.00.000
 

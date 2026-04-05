@@ -107,7 +107,7 @@ export default async function SimulatorPage() {
         primaryQuestion="If one pile is the center of attention, how do its configured outputs organize downstream route content?"
         uniqueEvidence="Pile-centric discharge structure that keeps one pile as the route anchor, splits outputs by configured reclaim route, and keeps downstream profiled transport context aligned to the selected stored timestep."
         useWhen="You want to reason about pile discharge structure, grouped reclaim routes, and downstream transport context from the perspective of one selected profiled pile or virtual pile."
-        switchWhen="Use Live for pure current-belt reading, Stockpiles for isolated internal pile structure, Profiler for historical summaries, or Circuit for the full staged topology."
+        switchWhen="Use Live for pure current belt or pile reading, Profiler for historical summaries, or Circuit for the full staged topology."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <SimulatorWorkspace

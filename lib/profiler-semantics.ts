@@ -58,7 +58,7 @@ export function getProfilerSemanticFrame(
     source: "Profiler detail snapshot",
     resolution,
     note:
-      "This detail view shows historical summarized content for one object at the selected timestep. Use live or stockpiles when you need current dense state.",
+      "This detail view shows historical summarized content for one object at the selected timestep. Use live when you need current dense belt or pile state.",
     recordLabel,
     basisLabel:
       recordLabel === "summary bands"

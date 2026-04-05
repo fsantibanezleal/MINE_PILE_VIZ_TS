@@ -91,7 +91,7 @@ export default async function CircuitPage() {
     <AppShell
       eyebrow="Circuit"
       title="Illustrated process overview"
-      description="The landing circuit page is the structural reading of the modeled area. It prioritizes illustrative 2D or 3D process context, stage structure, and object relationships while leaving detailed material content to the live, stockpile, profiler, and simulator routes."
+      description="The landing circuit page is the structural reading of the modeled area. It prioritizes illustrative 2D or 3D process context, stage structure, and object relationships while leaving detailed material content to the live, profiler, and simulator routes."
       actions={
         <MetricGrid
           metrics={[
@@ -113,7 +113,7 @@ export default async function CircuitPage() {
         primaryQuestion="How is the modeled circuit organized from stage to stage before looking at material content?"
         uniqueEvidence="Illustrated 2D and 3D circuit placement, stage grouping, object relationships, and configured pile anchor structure."
         useWhen="You need spatial and structural process context, or you want to understand how objects connect through the staged sequence."
-        switchWhen="Change to Live for current belt content, Stockpiles for current internal pile structure, Profiler for historical summaries, or Simulator for pile-centric discharge reading."
+        switchWhen="Change to Live for current belt or pile content, Profiler for historical summaries, or Simulator for pile-centric discharge reading."
       />
       {state.summariesIssue ? (
         <InlineNotice tone="warning" title={state.summariesIssue.title}>

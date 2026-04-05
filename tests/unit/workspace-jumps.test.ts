@@ -15,12 +15,7 @@ describe("getWorkspaceJumpTargets", () => {
       {
         route: "live",
         label: "Open Live State",
-        href: "/live?quality=q_num_cut&object=pile_stockpile",
-      },
-      {
-        route: "stockpiles",
-        label: "Open Stockpiles",
-        href: "/stockpiles?quality=q_num_cut&object=pile_stockpile",
+        href: "/live?quality=q_num_cut&object=pile_stockpile&view=piles",
       },
       {
         route: "profiler",

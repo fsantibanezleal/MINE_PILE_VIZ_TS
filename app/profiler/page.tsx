@@ -102,7 +102,7 @@ export default async function ProfilerPage() {
         primaryQuestion="How does one profiled object's summarized content change through time?"
         uniqueEvidence="Historical profiler snapshots from 08_reporting, shown as one selected summarized object view plus a time series for the selected quality and explicit snapshot-to-snapshot deltas."
         useWhen="You need historical playback, snapshot comparison, or trend reading for one profiled belt or pile."
-        switchWhen="Use Live for current dense belt content, Stockpiles for current dense pile structure, Circuit for topology, or Simulator for pile-centric discharge organization."
+        switchWhen="Use Live for current dense belt or pile content, Circuit for topology, or Simulator for pile-centric discharge organization."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <ProfilerWorkspace

@@ -31,13 +31,6 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await expect(page.getByText("Current belt content", { exact: true })).toBeVisible();
   await expect(page.getByText("Mass-weighted histogram")).toBeVisible();
 
-  await page.getByRole("link", { name: "Stockpiles", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Internal stockpile views" }),
-  ).toBeVisible();
-  await expect(page.getByText("Selection", { exact: true })).toBeVisible();
-  await expect(page.getByText("Occupied cells", { exact: true }).first()).toBeVisible();
-
   await page.getByRole("link", { name: "Profiler", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Historical object explorer" }),
@@ -73,9 +66,9 @@ test("updates stockpile 3D colors when the selected property changes", async ({
     }
   });
 
-  await page.goto("/stockpiles");
+  await page.goto("/live?view=piles");
   await expect(
-    page.getByRole("heading", { name: "Internal stockpile views" }),
+    page.getByRole("heading", { name: "Current belt and pile state" }),
   ).toBeVisible();
 
   const pileSelect = page.locator('label:has-text("Pile") select').first();
@@ -102,7 +95,7 @@ test("updates stockpile 3D colors when the selected property changes", async ({
 test("preserves object and property context when moving between routed workspaces", async ({
   page,
 }) => {
-  await page.goto("/stockpiles?object=pile_stockpile&quality=q_num_cut");
+  await page.goto("/live?view=piles&object=pile_stockpile&quality=q_num_cut");
   await expect(
     page.locator('label:has-text("Pile") select').first(),
   ).toHaveValue("pile_stockpile");
@@ -111,7 +104,7 @@ test("preserves object and property context when moving between routed workspace
   ).toHaveValue("q_num_cut");
 
   await page.getByRole("link", { name: "Profiler", exact: true }).click();
-  await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut$/);
+  await expect(page).toHaveURL(/\/profiler\?view=piles&object=pile_stockpile&quality=q_num_cut$/);
   await expect(
     page.locator('label:has-text("Object") select').first(),
   ).toHaveValue("pile_stockpile");
@@ -124,16 +117,16 @@ test("opens related workspaces from inspection panels with preserved context", a
   page,
 }) => {
   await page.goto("/circuit?object=pile_stockpile&quality=q_num_cut");
-  await expect(page.getByRole("link", { name: "Open Stockpiles" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Live State" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Open Stockpiles" }).click();
-  await expect(page).toHaveURL(/\/stockpiles\?object=pile_stockpile&quality=q_num_cut$/);
+  await page.getByRole("link", { name: "Open Live State" }).click();
+  await expect(page).toHaveURL(/\/live\?object=pile_stockpile&quality=q_num_cut&view=piles$/);
   await expect(
     page.locator('label:has-text("Pile") select').first(),
   ).toHaveValue("pile_stockpile");
 
   await page.getByRole("link", { name: "Open Profiler" }).click();
-  await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut$/);
+  await expect(page).toHaveURL(/\/profiler\?object=pile_stockpile&quality=q_num_cut&view=piles$|\/profiler\?view=piles&object=pile_stockpile&quality=q_num_cut$/);
   await expect(
     page.locator('label:has-text("Object") select').first(),
   ).toHaveValue("pile_stockpile");
@@ -185,7 +178,7 @@ test("shows configured anchor inventory details for the selected pile in the cir
 test("shows stockpile feed and discharge anchors on the pile view", async ({
   page,
 }) => {
-  await page.goto("/stockpiles?object=pile_stockpile");
+  await page.goto("/live?view=piles&object=pile_stockpile");
 
   await expect(page.getByText("Feeds (2)")).toBeVisible();
   await expect(page.getByText("Feed point west")).toBeVisible();
@@ -198,7 +191,7 @@ test("shows stockpile feed and discharge anchors on the pile view", async ({
 test("shows hovered stockpile cell details in the workspace inspector", async ({
   page,
 }) => {
-  await page.goto("/stockpiles?object=vpile_ch1&quality=q_num_fe");
+  await page.goto("/live?view=piles&object=vpile_ch1&quality=q_num_fe");
   const cellFocusPanel = page.locator(".inspector-stack").filter({
     has: page.getByText("Cell Focus", { exact: true }),
   });
@@ -207,4 +200,17 @@ test("shows hovered stockpile cell details in the workspace inspector", async ({
   await expect(page.getByText("Cell Focus")).toBeVisible();
   await expect(cellFocusPanel.getByText("0, 0, 0")).toBeVisible();
   await expect(cellFocusPanel.getByText("20 t", { exact: true })).toBeVisible();
+});
+
+test("redirects the legacy stockpiles route into the live pile subview", async ({
+  page,
+}) => {
+  await page.goto("/stockpiles?object=pile_stockpile&quality=q_num_cut");
+  await expect(page).toHaveURL(/\/live\?object=pile_stockpile&quality=q_num_cut&view=piles$|\/live\?quality=q_num_cut&object=pile_stockpile&view=piles$/);
+  await expect(
+    page.getByRole("heading", { name: "Current belt and pile state" }),
+  ).toBeVisible();
+  await expect(
+    page.locator('label:has-text("Pile") select').first(),
+  ).toHaveValue("pile_stockpile");
 });

@@ -588,8 +588,8 @@ export function StockpileWorkspace({
         {isLiveVariant ? (
           <p className="muted-text">
             This subview stays on the current dense pile snapshot from 06_models.
-            Use the stockpile route when you want structure-first interpretation,
-            footprint use, and internal pile profile metrics.
+            Use profiler for historical summaries or circuit for topology-first
+            reading without leaving the selected pile context.
           </p>
         ) : (
           <p className="muted-text">
@@ -652,13 +652,11 @@ export function StockpileWorkspace({
           selectedQuality={selectedQuality}
           emptyMessage="Hover a cell or voxel in the current pile view to inspect its coordinates, mass, and quality values."
         />
-        {!isLiveVariant ? (
-          <WorkspaceJumpLinks
-            objectId={selectedPileId}
-            objectType={selectedPileEntry?.objectType}
-            isProfiled={selectedPileEntry?.isProfiled}
-          />
-        ) : null}
+        <WorkspaceJumpLinks
+          objectId={selectedPileId}
+          objectType={selectedPileEntry?.objectType}
+          isProfiled={selectedPileEntry?.isProfiled}
+        />
       </aside>
     </div>
   );
