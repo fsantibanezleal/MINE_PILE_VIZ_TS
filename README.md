@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.083` |
+| Release-synced version | `1.00.000` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.082` |
-| Active tracked version | `0.01.083` |
+| Closed baseline | `0.01.083` |
+| Active tracked version | `1.00.000` |
 
 ## Current Frontend Views
 
@@ -142,7 +142,7 @@ The profiler workspace is now object-and-time first. It does not redraw the circ
 
 ### Current Boundaries
 
-- The current `0.01.x` line is local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- The released `1.00.000` baseline is still local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` stockpiles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -260,7 +260,8 @@ types/
 
 ## Current Version
 
-`0.01.083`
+`1.00.000`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
+This stable baseline corresponds semantically to the `1.0.0` release milestone.
 See [Changelog](CHANGELOG.md) for release-by-release history.

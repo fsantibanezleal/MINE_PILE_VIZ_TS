@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.082`
-- Active tracked version: `0.01.083`
+- Closed release baseline: `0.01.083`
+- Active tracked version: `1.00.000`
 
 ## Release History
+
+### 1.00.000
+
+- Declared the first stable release baseline for the local-first visualizer after closing the outstanding actionable route, layout, and contract-alignment work tracked through the `0.01.x` line.
+- Kept the fixed-width repository versioning scheme by encoding the semantic `1.0.0` release as `1.00.000`, which now becomes the new major baseline for future tracked slices.
+- Revalidated the released tree end-to-end on the final baseline with `pnpm test`, `pnpm lint`, `pnpm build`, and `pnpm test:e2e`.
 
 ### 0.01.083
 
