@@ -28,7 +28,7 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await expect(
     page.getByRole("heading", { name: "Current belt and pile state" }),
   ).toBeVisible();
-  await expect(page.getByText("Block strip", { exact: true })).toBeVisible();
+  await expect(page.getByText("Current belt content", { exact: true })).toBeVisible();
   await expect(page.getByText("Mass-weighted histogram")).toBeVisible();
 
   await page.getByRole("link", { name: "Stockpiles", exact: true }).click();
@@ -39,8 +39,10 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
   await expect(page.getByText("Occupied cells", { exact: true }).first()).toBeVisible();
 
   await page.getByRole("link", { name: "Profiler", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "History explorer" })).toBeVisible();
-  await expect(page.getByText("Playback", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Historical object explorer" }),
+  ).toBeVisible();
+  await expect(page.getByText("Profiled object and time", { exact: true })).toBeVisible();
   expect(reactFlowContainerWarnings).toEqual([]);
 });
 
@@ -77,7 +79,7 @@ test("updates stockpile 3D colors when the selected property changes", async ({
   ).toBeVisible();
 
   const pileSelect = page.locator('label:has-text("Pile") select').first();
-  const propertySelect = page.locator('label:has-text("Property") select').first();
+  const propertySelect = page.locator('label:has-text("Quality") select').first();
   const canvas = page.locator(".pile-canvas canvas").first();
 
   await pileSelect.selectOption("pile_stockpile");
@@ -105,7 +107,7 @@ test("preserves object and property context when moving between routed workspace
     page.locator('label:has-text("Pile") select').first(),
   ).toHaveValue("pile_stockpile");
   await expect(
-    page.locator('label:has-text("Property") select').first(),
+    page.locator('label:has-text("Quality") select').first(),
   ).toHaveValue("q_num_cut");
 
   await page.getByRole("link", { name: "Profiler", exact: true }).click();
@@ -114,7 +116,7 @@ test("preserves object and property context when moving between routed workspace
     page.locator('label:has-text("Object") select').first(),
   ).toHaveValue("pile_stockpile");
   await expect(
-    page.locator('label:has-text("Property") select').first(),
+    page.locator('label:has-text("Quality") select').first(),
   ).toHaveValue("q_num_cut");
 });
 
@@ -136,7 +138,7 @@ test("opens related workspaces from inspection panels with preserved context", a
     page.locator('label:has-text("Object") select').first(),
   ).toHaveValue("pile_stockpile");
   await expect(
-    page.locator('label:has-text("Property") select').first(),
+    page.locator('label:has-text("Quality") select').first(),
   ).toHaveValue("q_num_cut");
 });
 
@@ -197,9 +199,12 @@ test("shows hovered stockpile cell details in the workspace inspector", async ({
   page,
 }) => {
   await page.goto("/stockpiles?object=vpile_ch1&quality=q_num_fe");
+  const cellFocusPanel = page.locator(".inspector-stack").filter({
+    has: page.getByText("Cell Focus", { exact: true }),
+  });
 
   await page.getByLabel("Pile cell 0,0,0").hover();
   await expect(page.getByText("Cell Focus")).toBeVisible();
-  await expect(page.getByText("0, 0, 0")).toBeVisible();
-  await expect(page.getByText("20 t")).toBeVisible();
+  await expect(cellFocusPanel.getByText("0, 0, 0")).toBeVisible();
+  await expect(cellFocusPanel.getByText("20 t", { exact: true })).toBeVisible();
 });

@@ -403,7 +403,7 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getAllByText("Profiler-aligned").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Snapshot UTC").length).toBeGreaterThan(0);
     expect(screen.getByText("Structural transport only")).toBeInTheDocument();
-    expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
+    expect(screen.queryByText("Profiled qualities")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("West reclaim numerical mass distribution for Fe"),
     ).toBeInTheDocument();

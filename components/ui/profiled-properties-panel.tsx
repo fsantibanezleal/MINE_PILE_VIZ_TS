@@ -12,7 +12,7 @@ import {
 } from "@/lib/profiled-properties";
 import type { QualityDefinition, QualityValueMap } from "@/types/app-data";
 
-type PropertyTab = "quantitative" | "dominant" | "proportions";
+type QualityTab = "quantitative" | "dominant" | "proportions";
 
 interface ProfiledPropertiesPanelProps {
   qualities: QualityDefinition[];
@@ -31,7 +31,7 @@ export function ProfiledPropertiesPanel({
     () => splitProfiledQualities(qualities, values, records),
     [qualities, records, values],
   );
-  const [tab, setTab] = useState<PropertyTab>("quantitative");
+  const [tab, setTab] = useState<QualityTab>("quantitative");
   const [selectedCategoricalId, setSelectedCategoricalId] = useState(
     categoricalQualities[0]?.id ?? "",
   );
@@ -85,7 +85,7 @@ export function ProfiledPropertiesPanel({
 
   return (
     <div className="profiled-properties">
-      <div className="section-label">Profiled properties</div>
+      <div className="section-label">Profiled qualities</div>
       <div className="profiled-properties__tabs">
         <button
           type="button"
@@ -135,7 +135,7 @@ export function ProfiledPropertiesPanel({
           </div>
         ) : (
           <p className="muted-text">
-            No quantitative profiled variables are available for the current object.
+            No quantitative profiled qualities are available for the current object.
           </p>
         )
       ) : null}
@@ -171,7 +171,7 @@ export function ProfiledPropertiesPanel({
           </div>
         ) : (
           <p className="muted-text">
-            No categorical profiled variables are available for the current object.
+            No categorical profiled qualities are available for the current object.
           </p>
         )
       ) : null}
@@ -180,7 +180,7 @@ export function ProfiledPropertiesPanel({
         categoricalQualities.length > 0 ? (
           <div className="profiled-properties__proportions">
             <label className="field">
-              <span>Qualitative property</span>
+              <span>Qualitative quality</span>
               <select
                 value={effectiveSelectedCategoricalId}
                 onChange={(event) => setSelectedCategoricalId(event.target.value)}
@@ -223,7 +223,7 @@ export function ProfiledPropertiesPanel({
                 {selectedDistributionGroup?.proportionQualities.length ? (
                   <p className="quality-list__subtext">
                     Derived from {selectedDistributionGroup.proportionQualities.length} explicit
-                    proportion channels for this qualitative variable.
+                    proportion channels for this qualitative quality.
                   </p>
                 ) : null}
                 <div className="quality-list">
@@ -268,14 +268,14 @@ export function ProfiledPropertiesPanel({
             ) : (
               <p className="muted-text">
                 This cache does not expose explicit qualitative proportion channels for the
-                selected variable, and no block or cell-level predominant labels are available
+                selected quality, and no block or cell-level predominant labels are available
                 to estimate a distribution.
               </p>
             )}
           </div>
         ) : (
           <p className="muted-text">
-            No categorical profiled variables are available for proportion breakdowns.
+            No categorical profiled qualities are available for proportion breakdowns.
           </p>
         )
       ) : null}

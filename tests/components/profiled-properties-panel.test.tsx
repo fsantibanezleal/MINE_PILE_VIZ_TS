@@ -139,7 +139,7 @@ describe("ProfiledPropertiesPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Profiled properties")).toBeInTheDocument();
+    expect(screen.getByText("Profiled qualities")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Quantitative" })).toBeInTheDocument();
     expect(screen.getByText("Fe")).toBeInTheDocument();
     expect(screen.getByText("1.12")).toBeInTheDocument();
@@ -154,10 +154,10 @@ describe("ProfiledPropertiesPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Proportions" }));
 
-    expect(screen.getByText("Qualitative property")).toBeInTheDocument();
+    expect(screen.getByText("Qualitative quality")).toBeInTheDocument();
     expect(screen.getByText("Explicit proportions")).toBeInTheDocument();
     expect(screen.getByText("Mass-weighted distribution from explicit categorical proportion values.")).toBeInTheDocument();
-    expect(screen.getByText("Derived from 3 explicit proportion channels for this qualitative variable.")).toBeInTheDocument();
+    expect(screen.getByText("Derived from 3 explicit proportion channels for this qualitative quality.")).toBeInTheDocument();
     expect(screen.getByText("Oxide 2")).toBeInTheDocument();
     expect(screen.getByText("Other")).toBeInTheDocument();
     expect(screen.getByText("24.5 t")).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe("ProfiledPropertiesPanel", () => {
     expect(screen.getByText("40.83%")).toBeInTheDocument();
     expect(screen.getByText("33.33%")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Qualitative property"), {
+    fireEvent.change(screen.getByLabelText("Qualitative quality"), {
       target: { value: "q_cat_cfp_main" },
     });
 
@@ -176,7 +176,7 @@ describe("ProfiledPropertiesPanel", () => {
     expect(screen.getByText("83.33%")).toBeInTheDocument();
     expect(screen.getByText("16.67%")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Qualitative property"), {
+    fireEvent.change(screen.getByLabelText("Qualitative quality"), {
       target: { value: "q_cat_mineral_main" },
     });
 

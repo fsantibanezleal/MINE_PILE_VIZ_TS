@@ -574,7 +574,7 @@ export function StockpileWorkspace({
 
       <aside className="panel">
         <div className="section-label">
-          {isLiveVariant ? "Current dense pile reading" : "Current structure reading"}
+          {isLiveVariant ? "Current dense pile reading" : "Pile structure reading"}
         </div>
         <h3>{dataset?.displayName ?? selectedPileEntry?.displayName ?? "Selected pile"}</h3>
         <MetricGrid
@@ -591,7 +591,13 @@ export function StockpileWorkspace({
             Use the stockpile route when you want structure-first interpretation,
             footprint use, and internal pile profile metrics.
           </p>
-        ) : null}
+        ) : (
+          <p className="muted-text">
+            This route stays inside one current pile as structure. It prioritizes
+            occupied shape, footprint use, layer profile, and in-figure feed and
+            discharge context over broader cross-route comparison.
+          </p>
+        )}
         {dataset && !isLiveVariant ? <PileStructurePanel dataset={dataset} /> : null}
         {!isLiveVariant ? (
           <RouteBasisPanel
@@ -632,7 +638,7 @@ export function StockpileWorkspace({
             />
           </div>
         ) : null}
-        {dataset ? (
+        {dataset && isLiveVariant ? (
           <ProfiledPropertiesPanel
             qualities={availableQualities}
             values={dataset.qualityAverages}

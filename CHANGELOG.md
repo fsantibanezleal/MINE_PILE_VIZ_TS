@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.081`
-- Active tracked version: `0.01.082`
+- Closed release baseline: `0.01.082`
+- Active tracked version: `0.01.083`
 
 ## Release History
+
+### 0.01.083
+
+- Finished the route-separation pass by keeping the stockpile route structure-first: the stockpile sidebar now prioritizes pile structure, mass distribution, material-time reading, and hovered-cell inspection, while the generic profiled-quality panel stays only in the live dense pile subview.
+- Tightened user-facing terminology from `property` to `quality` in the remaining visible panels and selectors, including the profiled-qualities panel and related regression coverage.
+- Cleaned the last route-hierarchy rough edges by renaming the circuit inspector around one selected circuit object, moving profiler cross-route jumps into the selected-snapshot evidence section, and aligning live-route browser expectations with the current belt-and-pile wording.
 
 ### 0.01.082
 

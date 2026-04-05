@@ -76,11 +76,11 @@ async function loadLivePageState() {
 export default async function LivePage() {
   if (!(await appDataExists())) {
     return (
-      <AppShell
-        eyebrow="Live State"
-        title="Current dense state"
-        description="Inspect dense current belt and pile snapshots without redrawing the circuit."
-      >
+        <AppShell
+          eyebrow="Live State"
+          title="Current belt and pile state"
+          description="Inspect dense current belt and pile snapshots without redrawing the circuit."
+        >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
     );
@@ -92,7 +92,7 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current dense state"
+        title="Current belt and pile state"
         description="Inspect dense current belt and pile snapshots without redrawing the circuit."
       >
         <DataUnavailable
@@ -109,7 +109,7 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current dense state"
+        title="Current belt and pile state"
         description="No current dense belt or pile snapshots are registered in the app-ready cache."
       >
         <DataUnavailable
@@ -124,7 +124,7 @@ export default async function LivePage() {
   return (
     <AppShell
       eyebrow="Live State"
-      title="Current dense state"
+      title="Current belt and pile state"
       description="The live route is dense and instantaneous. It reads current belt and pile snapshots from 06_models and keeps the focus on current material content instead of redrawing topology."
       actions={
         <MetricGrid
@@ -152,7 +152,7 @@ export default async function LivePage() {
     >
       <RouteIntentPanel
         primaryQuestion="What is physically present right now inside the current dense transport and accumulation objects?"
-        uniqueEvidence="Current dense state from 06_models, split into belt/vbelt and pile/vpile subviews so the operator can inspect either ordered transport content or internal pile structure without opening another circuit view."
+        uniqueEvidence="Current dense content from 06_models, split into belt/vbelt and pile/vpile subviews so the operator can inspect either ordered transport content or internal pile structure without opening another circuit view."
         useWhen="You need the latest dense runtime content, not profiler history and not topology-first reading."
         switchWhen="Use Circuit for topology and modeled dependencies, Profiler for summarized history through time, Stockpiles for the pile-only structural route, or Simulator for profiler-based discharge playback."
       />

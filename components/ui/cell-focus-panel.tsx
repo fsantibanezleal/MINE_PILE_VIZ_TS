@@ -22,7 +22,7 @@ interface CellFocusPanelProps {
 
 /**
  * Shared hovered-cell inspector used by pile-centric workspaces so coordinates,
- * mass, and property formatting stay consistent across stockpile, profiler, and
+ * mass, and quality formatting stay consistent across stockpile, profiler, and
  * simulator views.
  */
 export function CellFocusPanel({

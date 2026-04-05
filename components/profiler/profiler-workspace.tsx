@@ -440,7 +440,7 @@ export function ProfilerWorkspace({
   return (
     <div className="workspace-grid workspace-grid--double">
       <aside className="panel">
-        <div className="section-label">History selection</div>
+        <div className="section-label">Profiled object and time</div>
         <label className="field">
           <span>Object</span>
           <select
@@ -521,11 +521,6 @@ export function ProfilerWorkspace({
           selectedSnapshotId={effectiveSnapshotId}
           quality={selectedQuality}
         />
-        <WorkspaceJumpLinks
-          objectId={selectedObjectId}
-          objectType={selectedIndexEntry?.objectType}
-          isProfiled
-        />
       </aside>
 
       <section className="panel panel--canvas panel--stack">
@@ -579,7 +574,7 @@ export function ProfilerWorkspace({
           onSelectSnapshot={handleSelectSnapshot}
         />
         <details className="inspector-stack inspector-stack--collapsed-context" open>
-          <summary className="section-label">Snapshot evidence</summary>
+          <summary className="section-label">Selected snapshot evidence</summary>
           <p className="muted-text">
             Open this section to inspect the selected historical snapshot through
             mass distribution, represented material time, profiled qualities, and
@@ -635,6 +630,11 @@ export function ProfilerWorkspace({
             qualities={qualities}
             selectedQuality={selectedQuality}
             emptyMessage="Hover a summary row, band, or cell in the active profiler view to inspect its coordinates, mass, and quality values."
+          />
+          <WorkspaceJumpLinks
+            objectId={selectedObjectId}
+            objectType={selectedIndexEntry?.objectType}
+            isProfiled
           />
         </details>
       </section>

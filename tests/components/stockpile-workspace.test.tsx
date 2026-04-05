@@ -314,6 +314,7 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
     expect(screen.getByText("Structure profile")).toBeInTheDocument();
     expect(screen.getByText("Mass by x axis")).toBeInTheDocument();
+    expect(screen.queryByText("Profiled qualities")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
 
@@ -453,8 +454,10 @@ describe("StockpileWorkspace", () => {
     );
 
     await screen.findByText("Current dense pile reading");
+    await screen.findByText("Pile A Feed");
     expect(screen.queryByText("Structure profile")).not.toBeInTheDocument();
     expect(screen.queryByText("Route basis")).not.toBeInTheDocument();
+    expect(screen.getByText("Profiled qualities")).toBeInTheDocument();
     expect(
       screen.getByText(/This subview stays on the current dense pile snapshot from 06_models/i),
     ).toBeInTheDocument();

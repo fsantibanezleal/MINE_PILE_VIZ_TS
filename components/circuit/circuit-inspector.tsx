@@ -58,7 +58,7 @@ export function CircuitInspector({
   if (!node) {
     return (
       <aside className="panel panel--inspector">
-        <div className="section-label">Object Focus</div>
+        <div className="section-label">Selected circuit object</div>
         <p className="muted-text">
           Select an object from the illustration, the diagram, or the selector to inspect
           its stage role, flow semantics, and modeled anchors.
@@ -71,7 +71,7 @@ export function CircuitInspector({
 
   return (
     <aside className="panel panel--inspector">
-      <div className="section-label">Object Focus</div>
+      <div className="section-label">Selected circuit object</div>
       <h3>{node.label}</h3>
       <p className="muted-text">{node.shortDescription}</p>
       <div className="metric-grid">
