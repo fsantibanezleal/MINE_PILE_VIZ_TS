@@ -49,8 +49,8 @@ export default async function ProfilerPage() {
     return (
       <AppShell
         eyebrow="Profiler"
-        title="History explorer"
-        description="Replay aggregated profiler snapshots through time for circuit and object-level inspection."
+        title="Historical object explorer"
+        description="Replay summarized profiler snapshots through time for one selected object."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -63,8 +63,8 @@ export default async function ProfilerPage() {
     return (
       <AppShell
         eyebrow="Profiler"
-        title="History explorer"
-        description="Replay aggregated profiler snapshots through time for circuit and object-level inspection."
+        title="Historical object explorer"
+        description="Replay summarized profiler snapshots through time for one selected object."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -79,30 +79,30 @@ export default async function ProfilerPage() {
   return (
     <AppShell
       eyebrow="Profiler"
-      title="History explorer"
-      description="Use circuit mode to compare reduced historical summary rows at a selected timestamp, then switch to detail mode to inspect one object's summarized rows, bands, or cells through time. The route is historical summary, not dense live state, and now keeps snapshot-to-snapshot change explicit."
+      title="Historical object explorer"
+      description="The profiler route is object-and-time first. It reads only summarized history from 08_reporting so one selected MTO can be inspected through its stored snapshots, its summarized content view, and its selected-quality series."
       actions={
         <MetricGrid
           metrics={[
             { label: "Dataset", value: state.manifest.datasetLabel },
             { label: "Profiled objects", value: String(state.index.objects.length) },
             {
-              label: "Reading basis",
-              value: "Historical summaries",
+              label: "Source",
+              value: "08_reporting",
             },
             {
-              label: "View modes",
-              value: "Circuit + detail",
+              label: "Reading basis",
+              value: "Historical summaries",
             },
           ]}
         />
       }
     >
       <RouteIntentPanel
-        primaryQuestion="How does summarized content change through time across the circuit or within one profiled object?"
-        uniqueEvidence="Historical profiler summaries that trade dense current resolution for time navigation, timestamp selection, summarized detail playback, and explicit snapshot-to-snapshot change reading."
-        useWhen="You need time-series reading, summarized snapshots, or comparison between timestamps rather than the latest dense state."
-        switchWhen="Use Live for current transport detail, Stockpiles for current dense pile internals, Circuit for topology, or Simulator for discharge-centric route reading."
+        primaryQuestion="How does one profiled object's summarized content change through time?"
+        uniqueEvidence="Historical profiler snapshots from 08_reporting, shown as one selected summarized object view plus a time series for the selected quality and explicit snapshot-to-snapshot deltas."
+        useWhen="You need historical playback, snapshot comparison, or trend reading for one profiled belt or pile."
+        switchWhen="Use Live for current dense belt content, Stockpiles for current dense pile structure, Circuit for topology, or Simulator for pile-centric discharge organization."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <ProfilerWorkspace

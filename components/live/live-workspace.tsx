@@ -9,7 +9,6 @@ import type {
   ObjectSummary,
   QualityDefinition,
 } from "@/types/app-data";
-import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { BeltBlockStrip } from "@/components/live/belt-block-strip";
 import { BeltMassHistogram } from "@/components/live/belt-mass-histogram";
 import { InlineNotice } from "@/components/ui/inline-notice";
@@ -17,10 +16,10 @@ import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
+import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RelationshipPanel } from "@/components/ui/relationship-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
-import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { deriveLiveBeltRouteContext } from "@/lib/live-belt-context";
@@ -30,7 +29,6 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
-import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -60,12 +58,11 @@ export function LiveWorkspace({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const allObjectIds = registry.map((entry) => entry.objectId);
   const beltEntries = registry.filter((entry) => entry.objectType === "belt" && entry.liveRef);
   const beltIds = beltEntries.map((entry) => entry.objectId);
-  const initialSelectedObjectId = resolveQuerySelection(
+  const initialSelectedBeltId = resolveQuerySelection(
     searchParams.get("object"),
-    allObjectIds,
+    beltIds,
     initialBelt.objectId,
   );
   const initialSelectedQualityId = resolveQuerySelection(
@@ -78,10 +75,6 @@ export function LiveWorkspace({
     materialTimeModes,
     "property",
   ) as MaterialTimeMode;
-  const initialSelectedBeltId = beltIds.includes(initialSelectedObjectId)
-    ? initialSelectedObjectId
-    : initialBelt.objectId;
-  const [selectedObjectId, setSelectedObjectId] = useState(initialSelectedObjectId);
   const [selectedBeltId, setSelectedBeltId] = useState(initialSelectedBeltId);
   const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
   const [selectedTimeMode, setSelectedTimeMode] = useState(initialSelectedTimeMode);
@@ -94,24 +87,13 @@ export function LiveWorkspace({
     selectedTimeMode === "property"
       ? selectedQuality
       : getMaterialTimeDefinition(selectedTimeMode);
-  const selectedSummary = summaries.find((summary) => summary.objectId === selectedObjectId);
-  const selectedRegistryEntry = registry.find((entry) => entry.objectId === selectedObjectId);
-  const selectedNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
-  const selectedBeltEntry = beltEntries.find(
-    (entry) => entry.objectId === selectedBeltId,
-  );
+  const selectedBeltEntry = beltEntries.find((entry) => entry.objectId === selectedBeltId);
   const selectedBeltSummary = summaries.find(
     (summary) => summary.objectId === selectedBeltId,
   );
-  const focusedObjectDiffersFromInspectionBelt = selectedObjectId !== selectedBeltId;
   const inspectionBeltRouteContext = useMemo(
     () => deriveLiveBeltRouteContext(graph, selectedBeltId),
     [graph, selectedBeltId],
-  );
-  const transportSemantics = useMemo(
-    () =>
-      selectedNode ? deriveTransportNodeSemantics(graph, selectedNode.id) : null,
-    [graph, selectedNode],
   );
   const beltTimeSummary = useMemo(
     () => buildMaterialTimeSummary(currentBelt.blocks, currentBelt.timestamp),
@@ -125,31 +107,6 @@ export function LiveWorkspace({
             getMaterialTimeValue(block, selectedTimeMode, currentBelt.timestamp),
     [currentBelt.timestamp, selectedTimeMode],
   );
-
-  function handleSelectObject(nextObjectId: string) {
-    const beltEntry = beltEntries.find((entry) => entry.objectId === nextObjectId);
-
-    setSelectedObjectId(nextObjectId);
-    router.replace(
-      buildHrefWithQuery(pathname, searchParams, {
-        object: nextObjectId,
-      }),
-      {
-        scroll: false,
-      },
-    );
-
-    if (!beltEntry) {
-      return;
-    }
-
-    setSelectedBeltId(nextObjectId);
-
-    if (nextObjectId !== currentBelt.objectId) {
-      setLoading(true);
-      setLoadError(null);
-    }
-  }
 
   useEffect(() => {
     if (selectedBeltId === currentBelt.objectId) {
@@ -204,6 +161,24 @@ export function LiveWorkspace({
     };
   }, [currentBelt.objectId, selectedBeltId]);
 
+  function handleSelectBelt(nextBeltId: string) {
+    setSelectedBeltId(nextBeltId);
+    setLoadError(null);
+
+    if (nextBeltId !== currentBelt.objectId) {
+      setLoading(true);
+    }
+
+    router.replace(
+      buildHrefWithQuery(pathname, searchParams, {
+        object: nextBeltId,
+      }),
+      {
+        scroll: false,
+      },
+    );
+  }
+
   function handleSelectQuality(nextQualityId: string) {
     setSelectedQualityId(nextQualityId);
     router.replace(
@@ -229,14 +204,14 @@ export function LiveWorkspace({
   }
 
   return (
-    <div className="workspace-grid workspace-grid--triple">
+    <div className="workspace-grid workspace-grid--double">
       <aside className="panel">
         <div className="section-label">Selection</div>
         <label className="field">
-          <span>Inspection belt</span>
+          <span>Current belt</span>
           <select
             value={selectedBeltId}
-            onChange={(event) => handleSelectObject(event.target.value)}
+            onChange={(event) => handleSelectBelt(event.target.value)}
           >
             {beltEntries.map((entry) => (
               <option key={entry.objectId} value={entry.objectId}>
@@ -246,7 +221,7 @@ export function LiveWorkspace({
           </select>
         </label>
         <QualitySelector
-          label="Color by quality"
+          label="Quality"
           qualities={qualities}
           value={selectedQualityId}
           onChange={handleSelectQuality}
@@ -259,70 +234,6 @@ export function LiveWorkspace({
         <MetricGrid
           metrics={[
             { label: "Live belts", value: String(beltEntries.length) },
-            { label: "Tracked objects", value: String(registry.length) },
-            {
-              label: "Graph focus",
-              value: selectedSummary?.displayName ?? currentBelt.displayName,
-            },
-            {
-              label: "Quality kind",
-              value: inspectionQuality?.kind ?? "Pending",
-            },
-          ]}
-        />
-      </aside>
-
-      <section className="panel panel--canvas panel--stack">
-        {loadError ? (
-          <InlineNotice tone="error" title="Live belt snapshot unavailable">
-            {loadError}
-          </InlineNotice>
-        ) : null}
-        {loading ? <div className="loading-banner">Loading belt snapshot...</div> : null}
-        <CircuitFlow
-          graph={graph}
-          summaries={summaries}
-          selectedObjectId={selectedObjectId}
-          onSelect={handleSelectObject}
-        />
-        <div className="belt-strip-panel">
-          <div className="section-label">Current belt content</div>
-          {focusedObjectDiffersFromInspectionBelt ? (
-            <InlineNotice tone="info" title="Graph focus is contextual">
-              The graph focus is {selectedSummary?.displayName ?? selectedObjectId}, but the
-              dense live content below stays on {currentBelt.displayName}. Use the belt selector
-              on the left to change which current transport strip is being inspected.
-            </InlineNotice>
-          ) : null}
-          {selectedTimeMode !== "property" ? (
-            <InlineNotice tone="info" title="Material time mode active">
-              The block strip and histogram are using represented material timestamps
-              relative to the current belt snapshot instead of a tracked quality.
-            </InlineNotice>
-          ) : null}
-          <BeltBlockStrip
-            snapshot={currentBelt}
-            quality={inspectionQuality}
-            valueAccessor={inspectionValueAccessor}
-          />
-          <div className="section-label">Mass-weighted histogram</div>
-          <BeltMassHistogram
-            snapshot={currentBelt}
-            quality={inspectionQuality}
-            valueAccessor={inspectionValueAccessor}
-          />
-        </div>
-      </section>
-
-      <aside className="panel">
-        <div className="section-label">Current belt snapshot</div>
-        <h3>{currentBelt.displayName}</h3>
-        <MetricGrid
-          metrics={[
-            {
-              label: "Status",
-              value: selectedBeltSummary?.status ?? "Updated",
-            },
             {
               label: "Current mass",
               value: formatMassTon(currentBelt.totalMassTon),
@@ -332,21 +243,21 @@ export function LiveWorkspace({
               value: formatTimestamp(currentBelt.timestamp),
             },
             {
-              label: "Inspection belt",
-              value: selectedBeltEntry?.displayName ?? currentBelt.displayName,
+              label: "Blocks",
+              value: String(currentBelt.blockCount),
             },
           ]}
         />
         <RouteBasisPanel
-          source="Current belt snapshot"
-          resolution="Dense ordered blocks"
-          timeBasis="Current runtime state"
-          note="This route is always belt-centric. Use graph selection for structural context, but use the inspection belt selector to choose which dense live transport strip and histogram are being read."
+          source="Current dense belt snapshot"
+          resolution="Dense ordered belt blocks"
+          timeBasis="Latest runtime state from 06_models"
+          note="This route is intentionally current-state only. It avoids replay or topology-first reading so the operator can focus on what is physically present on one transport object right now."
         />
         {inspectionBeltRouteContext ? (
           <RelationshipPanel
             title="Inspection belt route context"
-            summary="This panel keeps the live route centered on the currently inspected belt and its immediate modeled neighborhood instead of on whichever object happens to be selected in the circuit context."
+            summary="The inspected belt still keeps minimal structural context so the current dense strip can be read against its immediate modeled neighborhood without redrawing the full circuit."
             metrics={[
               {
                 label: "Stage",
@@ -374,37 +285,7 @@ export function LiveWorkspace({
                 label: "Downstream objects",
                 items: inspectionBeltRouteContext.downstreamNodes.map((node) => node.label),
               },
-              {
-                label: "Stage peers",
-                items: inspectionBeltRouteContext.stagePeers.map((node) => node.label),
-              },
             ]}
-          />
-        ) : null}
-        {focusedObjectDiffersFromInspectionBelt ? (
-          <RelationshipPanel
-            title="Graph focus context"
-            summary="The selected graph object remains available as context, but the right-side evidence stays tied to the currently inspected belt."
-            metrics={[
-              {
-                label: "Focused object",
-                value: selectedSummary?.displayName ?? selectedObjectId,
-              },
-              {
-                label: "Focused type",
-                value: selectedRegistryEntry?.objectType ?? "Unknown",
-              },
-              {
-                label: "Current belt",
-                value: currentBelt.displayName,
-              },
-            ]}
-          />
-        ) : null}
-        {focusedObjectDiffersFromInspectionBelt && transportSemantics ? (
-          <TransportSemanticsPanel
-            semantics={transportSemantics}
-            title="Focused object semantics"
           />
         ) : null}
         <MaterialTimePanel summary={beltTimeSummary} />
@@ -415,11 +296,67 @@ export function LiveWorkspace({
           totalMassTon={currentBelt.totalMassTon}
         />
         <WorkspaceJumpLinks
-          objectId={selectedObjectId}
-          objectType={selectedRegistryEntry?.objectType}
-          isProfiled={selectedRegistryEntry?.isProfiled}
+          objectId={selectedBeltId}
+          objectType={selectedBeltEntry?.objectType}
+          isProfiled={selectedBeltEntry?.isProfiled}
         />
       </aside>
+
+      <section className="panel panel--canvas panel--stack">
+        {loadError ? (
+          <InlineNotice tone="error" title="Live belt snapshot unavailable">
+            {loadError}
+          </InlineNotice>
+        ) : null}
+        {loading ? <div className="loading-banner">Loading belt snapshot...</div> : null}
+        {selectedTimeMode !== "property" ? (
+          <InlineNotice tone="info" title="Material time mode active">
+            The strip and histogram are reading represented material timestamps
+            relative to the current snapshot instead of one tracked quality.
+          </InlineNotice>
+        ) : null}
+        <div className="belt-strip-panel">
+          <div className="section-label">Current belt content</div>
+          <h3>{currentBelt.displayName}</h3>
+          <p className="muted-text">
+            Dense current-state blocks from the selected belt. This route does
+            not redraw the circuit; it stays on the ordered content actually
+            present on the inspected transport object.
+          </p>
+          <QualityLegend quality={inspectionQuality} />
+          <BeltBlockStrip
+            snapshot={currentBelt}
+            quality={inspectionQuality}
+            valueAccessor={inspectionValueAccessor}
+          />
+        </div>
+        <div className="belt-strip-panel">
+          <div className="section-label">Mass-weighted histogram</div>
+          <BeltMassHistogram
+            snapshot={currentBelt}
+            quality={inspectionQuality}
+            valueAccessor={inspectionValueAccessor}
+          />
+        </div>
+        {selectedBeltSummary ? (
+          <MetricGrid
+            metrics={[
+              {
+                label: "Status",
+                value: selectedBeltSummary.status,
+              },
+              {
+                label: "Summary mass",
+                value: formatMassTon(selectedBeltSummary.massTon),
+              },
+              {
+                label: "Tracked quality",
+                value: inspectionQuality?.label ?? "Pending",
+              },
+            ]}
+          />
+        ) : null}
+      </section>
     </div>
   );
 }

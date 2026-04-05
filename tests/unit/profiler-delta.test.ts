@@ -54,27 +54,27 @@ describe("buildProfilerDeltaFrame", () => {
     expect(frame).not.toBeNull();
     expect(frame?.deltaMassTon).toBe(20);
     expect(frame?.deltaMassSinceStartTon).toBe(20);
-    expect(frame?.propertyMode).toBe("numerical");
-    expect(frame?.propertyDeltaText).toBe("+0.1");
-    expect(frame?.currentPropertyValue).toBe("1.2");
-    expect(frame?.previousPropertyValue).toBe("1.1");
+    expect(frame?.qualityMode).toBe("numerical");
+    expect(frame?.qualityDeltaText).toBe("+0.1");
+    expect(frame?.currentQualityValue).toBe("1.2");
+    expect(frame?.previousQualityValue).toBe("1.1");
   });
 
   it("builds categorical change summaries", () => {
     const frame = buildProfilerDeltaFrame(rows, "s2", categoricalQuality);
 
     expect(frame).not.toBeNull();
-    expect(frame?.propertyMode).toBe("categorical");
-    expect(frame?.propertyDeltaText).toBe("Changed");
-    expect(frame?.currentPropertyValue).toBe("Pyrite");
-    expect(frame?.previousPropertyValue).toBe("Chalcopyrite");
+    expect(frame?.qualityMode).toBe("categorical");
+    expect(frame?.qualityDeltaText).toBe("Changed");
+    expect(frame?.currentQualityValue).toBe("Pyrite");
+    expect(frame?.previousQualityValue).toBe("Chalcopyrite");
   });
 
-  it("reports property comparison as unavailable outside property mode", () => {
+  it("keeps quality comparison available even under material-time coloring", () => {
     const frame = buildProfilerDeltaFrame(rows, "s2");
 
     expect(frame).not.toBeNull();
-    expect(frame?.propertyMode).toBe("unavailable");
-    expect(frame?.propertyDeltaText).toBe("Switch to property mode");
+    expect(frame?.qualityMode).toBe("unavailable");
+    expect(frame?.qualityDeltaText).toBe("Time coloring active");
   });
 });

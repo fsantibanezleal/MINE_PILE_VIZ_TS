@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.078` |
+| Release-synced version | `0.01.079` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.077` |
-| Active tracked version | `0.01.078` |
+| Closed baseline | `0.01.078` |
+| Active tracked version | `0.01.079` |
 
 ## Current Frontend Views
 
@@ -106,9 +106,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace focuses on instantaneous transport state and is now explicitly belt-first. Belt content is represented as ordered block strips, and a mass-weighted histogram under that strip summarizes the selected quality across the current belt content without losing the block ordering view. The same strip and histogram can now switch from tracked-quality reading into represented-material time reading, so the operator can inspect oldest age, newest age, or represented material span directly on the current belt content. The route now states explicitly that it is reading current live belt snapshots rather than historical profiler content or dense pile state, and the right-side evidence remains tied to the inspected belt even when the graph focus moves to a non-belt object for context. The live sidebar now also carries a dedicated inspection-belt route context block, exposing the current belt stage, immediate upstream and downstream objects, and same-stage peers so the route reads around the selected transport path instead of around a generic object semantics card. The side panel separates profiled qualities into quantitative averages, dominant mapped categorical values, and selector-driven qualitative distributions for the inspected belt snapshot. When explicit categorical proportion channels are present in the app-ready cache, the qualitative tab uses them directly; otherwise it falls back to an estimate built from predominant block labels and states that limitation clearly. Qualitative values are now treated as true categories end to end, so mapped labels continue to work whether the cache emits numeric codes or string tokens. The focused-object semantics are still available when graph context diverges from the inspected belt, but they are no longer the default explanatory surface of the route.
-Route query state now preserves the current object and quality context when the operator moves to another workspace through the top navigation.
-The side inspection panels now expose direct cross-workspace actions so the operator can jump into a more suitable view without resetting object or quality context.
+The live workspace now stays explicitly on one current belt at a time instead of redrawing the circuit. Its main evidence is the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The same view can switch into represented-material time coloring, so the current snapshot can also be read by oldest age, newest age, or represented span without leaving the belt-centric route. The sidebar keeps only the minimal context that helps interpret the selected live belt: current mass, latest timestamp, route basis, immediate upstream/downstream neighborhood, represented-material time summary, and profiled-quality breakdowns. This route is therefore the high-resolution current transport view, not another topology page and not a historical playback surface.
 
 ### Simulator Workspace
 
@@ -120,7 +118,7 @@ The stockpile workspace exposes internal structure for accumulation objects. It 
 
 ### Profiler Workspace
 
-The profiler workspace adds time navigation. It lets the operator inspect profiled objects across stored snapshots, switching between a broader circuit reading and a more focused object-centric reading of historical content. The route now states explicitly that profiler data is reduced-resolution historical summary rather than dense current state, and it distinguishes circuit-level `summary rows` from detail-mode `summary rows`, `summary bands`, or `summary cells` depending on the represented object. Summary history loads on demand from the route API so the page can mount before fetching the full timeline table. The route now also exposes a dedicated historical timeline panel, so selected-step position, coverage span, peak mass, and snapshot-to-snapshot change stay visible as first-class profiler evidence instead of being implied only by the slider. It now also keeps an explicit historical-delta panel for the selected object, comparing mass and the selected profiled value against the previous stored snapshot and the beginning of the available history, which makes `Profiler` read as a comparative historical tool rather than a static object viewer. In `circuit` mode the sidebar uses that timeline together with history coverage and participating-object context so the route reads as historical comparison rather than as another dense object inspector. In `detail` mode the route keeps pile anchors, near-pile anchor markers for `2D` and `3D` detail views, view-scaled numerical contrast when the visible value spread is too narrow, hovered cell inspection inside the historical snapshot view, and the same tabbed split between quantitative values, dominant categorical names, and qualitative distribution histograms. The detail view can also switch into represented-material time modes, so the operator can color and histogram historical content by age or represented span relative to the selected historical snapshot. Dominant qualitative labels now stay mass-weighted and dictionary-mapped when profiler rows carry string category tokens.
+The profiler workspace is now object-and-time first. It does not redraw the circuit. Instead, the operator selects one profiled object, moves through its stored profiler snapshots, and reads two pieces of evidence together: the summarized object representation at the selected timestep, and the time series of the selected quality across the available history. This route stays explicitly on `08_reporting` historical summaries, so it is suitable for trend reading, snapshot comparison, and playback over time rather than for dense current-state inspection. The selected snapshot still exposes delta against the previous stored step, represented-material time summaries, mass distributions, mapped categorical quality views, and hovered summary-cell inspection, but all of that now sits under one historical object view rather than being split into separate circuit and detail modes.
 
 ## Scope And Current Status
 
@@ -261,7 +259,7 @@ types/
 
 ## Current Version
 
-`0.01.078`
+`0.01.079`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

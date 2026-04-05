@@ -68,7 +68,7 @@ export function getQualityDisplayLabel(
     return humanizeQualityId(fallbackId);
   }
 
-  return "Property";
+  return "Quality";
 }
 
 /**

@@ -55,7 +55,7 @@ export const MATERIAL_TIME_MODE_OPTIONS: Array<{
   id: MaterialTimeMode;
   label: string;
 }> = [
-  { id: "property", label: "Property" },
+  { id: "property", label: "Quality" },
   { id: "oldest-age", label: "Oldest age" },
   { id: "newest-age", label: "Newest age" },
   { id: "material-span", label: "Material span" },

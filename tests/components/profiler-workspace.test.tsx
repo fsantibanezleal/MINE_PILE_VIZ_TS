@@ -17,20 +17,6 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/components/circuit/circuit-flow", () => ({
-  CircuitFlow: ({
-    selectedObjectId,
-    summaries,
-  }: {
-    selectedObjectId?: string;
-    summaries: Array<{ objectId: string }>;
-  }) => (
-    <div data-testid="circuit-flow">
-      {selectedObjectId ?? "none"}:{summaries.length}
-    </div>
-  ),
-}));
-
 const qualities: QualityDefinition[] = [
   {
     id: "q_num_fe",
@@ -157,17 +143,17 @@ function createSnapshot(
     displayName,
     objectType: objectId === "pile_a" ? "pile" : "belt",
     snapshotId,
-    timestamp: "2025-03-19T01:15:00Z",
+    timestamp: snapshotId === "20250319010000" ? "2025-03-19T01:00:00Z" : "2025-03-19T01:15:00Z",
     dimension: 1,
     rows: [
       {
         ix: 0,
         iy: 0,
         iz: 0,
-        massTon: 20,
+        massTon: snapshotId === "20250319010000" ? 18 : 20,
         timestampOldestMs: 1,
         timestampNewestMs: 2,
-        qualityValues: { q_num_fe: 1.2 },
+        qualityValues: { q_num_fe: snapshotId === "20250319010000" ? 1.1 : 1.2 },
       },
     ],
   };
@@ -232,7 +218,7 @@ function jsonResponse(payload: unknown, status = 200) {
 }
 
 describe("ProfilerWorkspace", () => {
-  it("loads summary history on demand and requests a new snapshot when the selected object changes", async () => {
+  it("renders one-object historical exploration with quality series instead of a circuit mode", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -255,35 +241,27 @@ describe("ProfilerWorkspace", () => {
 
     render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
 
-    expect(screen.getByText("Loading profiler history...")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/profiler/summary");
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/profiler/objects/pile_a/snapshots/20250319011500",
-      );
-    });
-
     await screen.findByRole("heading", { name: "Pile A" });
+    expect(screen.getByText("Historical object content")).toBeInTheDocument();
+    expect(screen.getByText("Quality series")).toBeInTheDocument();
+    expect(screen.queryByText("Circuit")).not.toBeInTheDocument();
+
     fireEvent.change(screen.getByLabelText("Object"), {
       target: { value: "belt_b" },
     });
 
-    expect(screen.getByText("Loading profiler snapshot...")).toBeInTheDocument();
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/profiler/objects/belt_b/snapshots/20250319011500",
       );
     });
+
     await screen.findByRole("heading", { name: "Belt B" });
-    expect(screen.getByText("Historical circuit reading")).toBeInTheDocument();
-    expect(screen.getByText("History coverage")).toBeInTheDocument();
-    expect(screen.getByText("Timeline context")).toBeInTheDocument();
-    expect(screen.getByText("Historical delta")).toBeInTheDocument();
-    expect(screen.getByText("Mass vs previous")).toBeInTheDocument();
-    expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
+    expect(screen.getByText("Historical object content")).toBeInTheDocument();
+    expect(screen.getByText("Quality series")).toBeInTheDocument();
   });
 
-  it("shows pile anchors and hovered cell details in profiler detail mode", async () => {
+  it("shows pile anchors and hovered cell details in the historical object view", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -303,14 +281,8 @@ describe("ProfilerWorkspace", () => {
     render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
 
     await screen.findByRole("heading", { name: "Pile A" });
-    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
-
     await screen.findByText("Pile A Feed");
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
-    expect(screen.queryByTestId("pile-anchor-overlay-input")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("pile-anchor-overlay-output")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Detailed snapshot inspection"));
-
     fireEvent.mouseEnter(screen.getByLabelText("Pile cell 0,0,0"));
 
     expect(screen.getByText("Cell Focus")).toBeInTheDocument();
@@ -318,44 +290,7 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getAllByText("20 t").length).toBeGreaterThan(0);
   });
 
-  it("states explicitly that profiler detail is summarized historical content", async () => {
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = String(input);
-
-      if (url.endsWith("/api/profiler/summary")) {
-        return jsonResponse(summaryRows);
-      }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
-        return jsonResponse(createSnapshot("pile_a", "Pile A", "20250319011500"));
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
-
-    await screen.findByRole("heading", { name: "Pile A" });
-    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
-
-    await screen.findByText("Historical summary only");
-    expect(screen.getByText("Detailed snapshot inspection")).toBeInTheDocument();
-    expect(screen.getByText("Reduced pile summary bands")).toBeInTheDocument();
-    expect(screen.getByText("Band basis")).toBeInTheDocument();
-    expect(screen.getByText("Timeline context")).toBeInTheDocument();
-    expect(screen.getByText("Historical delta")).toBeInTheDocument();
-    expect(screen.getByText("Fe change")).toBeInTheDocument();
-    expect(screen.getByText("+0.1")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and quality values.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("allows selecting a historical snapshot directly from the profiler timeline", async () => {
+  it("allows selecting a historical snapshot directly from the quality series", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -381,7 +316,7 @@ describe("ProfilerWorkspace", () => {
     await screen.findByRole("heading", { name: "Pile A" });
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Select snapshot 1 at 2025-03-19T01:00:00Z",
+        name: "Select quality series snapshot 1 at 2025-03-19T01:00:00Z",
       }),
     );
 
@@ -392,7 +327,7 @@ describe("ProfilerWorkspace", () => {
     });
   });
 
-  it("adds in-figure anchors for 2D profiler pile detail snapshots", async () => {
+  it("adds in-figure anchors for 2D profiler pile snapshots", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -412,8 +347,6 @@ describe("ProfilerWorkspace", () => {
     render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
 
     await screen.findByRole("heading", { name: "Pile A" });
-    fireEvent.click(screen.getByRole("button", { name: "Detail" }));
-
     await screen.findByText("Pile A Feed");
     const inputOverlay = await screen.findByTestId("pile-anchor-overlay-input");
     const outputOverlay = screen.getByTestId("pile-anchor-overlay-output");
@@ -422,7 +355,5 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Numerical - view-scaled")).toBeInTheDocument();
     expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
     expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
-    expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
-    expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
   });
 });

@@ -42,7 +42,6 @@ describe("ProfilerHistoryPanel", () => {
       <ProfilerHistoryPanel
         rows={rows}
         selectedSnapshotId="20250319011500"
-        mode="detail"
       />,
     );
 
@@ -59,7 +58,6 @@ describe("ProfilerHistoryPanel", () => {
       <ProfilerHistoryPanel
         rows={rows}
         selectedSnapshotId="20250319011500"
-        mode="circuit"
         onSelectSnapshot={onSelectSnapshot}
       />,
     );

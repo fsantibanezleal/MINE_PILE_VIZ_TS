@@ -108,7 +108,7 @@ export function buildMassDistribution<TRecord extends MassDistributionRecord>(
       kind: "empty",
       totalMassTon,
       representedMassTon: 0,
-      reason: "No property is selected.",
+      reason: "No quality is selected.",
     };
   }
 
@@ -167,7 +167,7 @@ export function buildMassDistribution<TRecord extends MassDistributionRecord>(
         totalMassTon,
         representedMassTon,
         reason:
-          "The selected qualitative property has no assigned values in the represented content.",
+          "The selected qualitative quality has no assigned values in the represented content.",
       };
     }
 
@@ -204,7 +204,7 @@ export function buildMassDistribution<TRecord extends MassDistributionRecord>(
       totalMassTon,
       representedMassTon: 0,
       reason:
-        "The selected numerical property has no valid values in the represented content.",
+        "The selected numerical quality has no valid values in the represented content.",
     };
   }
 
@@ -225,7 +225,7 @@ export function buildMassDistribution<TRecord extends MassDistributionRecord>(
       totalMassTon,
       representedMassTon: 0,
       reason:
-        "The selected numerical property has no valid values in the represented content.",
+        "The selected numerical quality has no valid values in the represented content.",
     };
   }
 

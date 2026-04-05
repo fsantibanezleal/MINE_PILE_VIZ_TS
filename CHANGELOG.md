@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.077`
-- Active tracked version: `0.01.078`
+- Closed release baseline: `0.01.078`
+- Active tracked version: `0.01.079`
 
 ## Release History
+
+### 0.01.079
+
+- Reframed the live route as a dense current-belt workspace instead of a circuit-context workspace, removing the embedded circuit view and keeping the route centered on one selected live belt, its ordered block strip, and its mass-weighted histogram.
+- Rebuilt the profiler route into an object-and-time explorer: it now keeps one profiled object in view, removes the old circuit/detail mode split, and adds a historical quality series directly under the summarized object representation.
+- Tightened operator-facing terminology from `property` toward `quality` in the touched history and distribution surfaces, and added reusable historical-quality-series logic plus regression coverage for the new live/profiler reading model.
 
 ### 0.01.078
 

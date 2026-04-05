@@ -1,13 +1,11 @@
 "use client";
 
 import { formatDuration, formatMassTon, formatTimestamp } from "@/lib/format";
-import type { ProfilerMode } from "@/lib/profiler-semantics";
 import type { ProfilerSummaryRow } from "@/types/app-data";
 
 interface ProfilerHistoryPanelProps {
   rows: ProfilerSummaryRow[];
   selectedSnapshotId: string;
-  mode: ProfilerMode;
   onSelectSnapshot?: (snapshotId: string) => void;
 }
 
@@ -26,7 +24,6 @@ function formatSignedMassDelta(value: number) {
 export function ProfilerHistoryPanel({
   rows,
   selectedSnapshotId,
-  mode,
   onSelectSnapshot,
 }: ProfilerHistoryPanelProps) {
   if (rows.length === 0) {
@@ -40,7 +37,10 @@ export function ProfilerHistoryPanel({
   const selectedRow = rows[selectedIndex] ?? rows[rows.length - 1]!;
   const previousRow = selectedIndex > 0 ? rows[selectedIndex - 1] : null;
   const nextRow = selectedIndex < rows.length - 1 ? rows[selectedIndex + 1] : null;
-  const peakMass = Math.max(...rows.map((row) => row.massTon));
+  const peakMass = rows.reduce(
+    (current, row) => (row.massTon > current ? row.massTon : current),
+    rows[0]?.massTon ?? 0,
+  );
   const firstRow = rows[0]!;
   const lastRow = rows[rows.length - 1]!;
   const coverageMs =
@@ -48,15 +48,15 @@ export function ProfilerHistoryPanel({
   const selectedDeltaMass = previousRow
     ? selectedRow.massTon - previousRow.massTon
     : 0;
-  const panelSummary =
-    mode === "circuit"
-      ? "Use the timeline to place the selected historical timestep inside the broader summarized history of this object."
-      : "The detail view keeps one historical snapshot fixed. Use the timeline to move between snapshots without leaving object detail mode.";
 
   return (
     <div className="profiler-history">
       <div className="section-label">Timeline context</div>
-      <p className="muted-text">{panelSummary}</p>
+      <p className="muted-text">
+        Use the stored profiler timeline to place the selected snapshot inside
+        the broader history of this object and jump directly between recorded
+        historical steps.
+      </p>
       <div className="profiler-history__metrics">
         <div className="profiler-history__metric">
           <span>Selected step</span>

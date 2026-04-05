@@ -1476,6 +1476,138 @@ code {
   font-size: 0.95rem;
 }
 
+.profiler-series {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profiler-series--empty {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-canvas-muted);
+}
+
+.profiler-series__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profiler-series__metric,
+.profiler-series__selection,
+.profiler-series__category-point {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+.profiler-series__metric span,
+.profiler-series__selection span,
+.profiler-series__selection small,
+.profiler-series__category-point small {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.profiler-series__metric strong,
+.profiler-series__selection strong,
+.profiler-series__category-point strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.profiler-series__svg-frame {
+  width: 100%;
+  padding: 6px 0 0;
+  border: 1px solid rgba(124, 164, 201, 0.12);
+  border-radius: 16px;
+  background: rgba(7, 16, 27, 0.16);
+}
+
+.profiler-series__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.profiler-series__grid-line {
+  stroke: rgba(124, 164, 201, 0.14);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.profiler-series__axis-line {
+  stroke: rgba(124, 164, 201, 0.34);
+  stroke-width: 1.4;
+  shape-rendering: crispEdges;
+}
+
+.profiler-series__line {
+  fill: none;
+  stroke: var(--accent-cyan);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profiler-series__point {
+  fill: var(--accent-blue);
+  stroke: rgba(255, 255, 255, 0.74);
+  stroke-width: 2;
+}
+
+.profiler-series__point--selected {
+  fill: var(--accent-amber);
+}
+
+.profiler-series__point-hitbox {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.profiler-series__tick,
+.profiler-series__axis-title {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+.profiler-series__tick--x {
+  font-size: 10px;
+}
+
+.profiler-series__selection {
+  align-self: flex-start;
+  min-width: min(100%, 280px);
+}
+
+.profiler-series__categorical {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.profiler-series__category-point {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.profiler-series__category-point--selected {
+  border-color: var(--border-strong);
+  background: var(--surface-control-active);
+}
+
+.profiler-series__category-swatch {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+}
+
 .pile-structure {
   display: grid;
   gap: 0.9rem;
@@ -2066,7 +2198,8 @@ code {
   .profiler-history__metrics,
   .profiler-history__focus,
   .profiler-delta__cards,
-  .profiler-delta__comparison {
+  .profiler-delta__comparison,
+  .profiler-series__metrics {
     grid-template-columns: 1fr;
   }
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LiveWorkspace } from "@/components/live/live-workspace";
 import type {
@@ -15,24 +15,6 @@ vi.mock("next/navigation", () => ({
     replace: vi.fn(),
   }),
   useSearchParams: () => new URLSearchParams(),
-}));
-
-vi.mock("@/components/circuit/circuit-flow", () => ({
-  CircuitFlow: ({
-    graph,
-    onSelect,
-  }: {
-    graph: CircuitGraph;
-    onSelect?: (objectId: string) => void;
-  }) => (
-    <div>
-      {graph.nodes.map((node) => (
-        <button key={node.objectId} type="button" onClick={() => onSelect?.(node.objectId)}>
-          {node.label}
-        </button>
-      ))}
-    </div>
-  ),
 }));
 
 const qualities: QualityDefinition[] = [
@@ -90,15 +72,6 @@ const summaries: ObjectSummary[] = [
     status: "Updated",
     qualityValues: { q_num_fe: 0.61 },
   },
-  {
-    objectId: "pile_a",
-    objectType: "pile",
-    displayName: "Pile A",
-    timestamp: "2025-03-19T01:15:00Z",
-    massTon: 410,
-    status: "Updated",
-    qualityValues: { q_num_fe: 1.42 },
-  },
 ];
 
 const registry: ObjectRegistryEntry[] = [
@@ -112,16 +85,6 @@ const registry: ObjectRegistryEntry[] = [
     dimension: 1,
     isProfiled: true,
     liveRef: "live/belts/belt_feed.json",
-  },
-  {
-    objectId: "pile_a",
-    displayName: "Pile A",
-    objectType: "pile",
-    objectRole: "physical",
-    shortDescription: "Accumulation object",
-    stageIndex: 0,
-    dimension: 3,
-    isProfiled: true,
   },
 ];
 
@@ -151,7 +114,7 @@ const initialBelt: BeltSnapshot = {
 };
 
 describe("LiveWorkspace", () => {
-  it("keeps dense evidence tied to the inspected belt when graph focus moves to a pile", () => {
+  it("keeps the route belt-centric and does not render the circuit view", () => {
     render(
       <LiveWorkspace
         graph={graph}
@@ -162,17 +125,13 @@ describe("LiveWorkspace", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Pile A" }));
-
-    expect(screen.getAllByText("Current belt snapshot")).toHaveLength(2);
+    expect(screen.getByText("Current belt content")).toBeInTheDocument();
+    expect(screen.getByText("Mass-weighted histogram")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Feed Belt" })).toBeInTheDocument();
     expect(screen.getByLabelText("Feed Belt block strip")).toBeInTheDocument();
     expect(screen.getByText("Inspection belt route context")).toBeInTheDocument();
-    expect(screen.getByText("Downstream objects")).toBeInTheDocument();
-    expect(screen.getAllByText("Stage peers").length).toBeGreaterThan(0);
-    expect(screen.getByText("Graph focus context")).toBeInTheDocument();
-    expect(screen.getByText(/The graph focus is Pile A, but the dense live content below stays on Feed Belt\./)).toBeInTheDocument();
-    expect(screen.getByText("Focused object semantics")).toBeInTheDocument();
-    expect(screen.queryByText("No belt block strip for this object")).not.toBeInTheDocument();
+    expect(screen.getByText("Current dense belt snapshot")).toBeInTheDocument();
+    expect(screen.queryByText("Graph focus context")).not.toBeInTheDocument();
+    expect(screen.queryByText("Focused object semantics")).not.toBeInTheDocument();
   });
 });

@@ -1,32 +1,20 @@
 "use client";
 
-import {
-  startTransition,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { startTransition, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   CircuitGraph,
-  ObjectSummary,
   PileCellRecord,
   ProfilerIndex,
   ProfilerSnapshot,
   ProfilerSummaryRow,
   QualityDefinition,
 } from "@/types/app-data";
-import { CircuitFlow } from "@/components/circuit/circuit-flow";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildMassDistribution } from "@/lib/mass-distribution";
-import {
-  getProfilerSemanticFrame,
-  type ProfilerMode,
-} from "@/lib/profiler-semantics";
+import { getProfilerSemanticFrame } from "@/lib/profiler-semantics";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
@@ -35,9 +23,9 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-panel";
 import { ProfilerDeltaPanel } from "@/components/ui/profiler-delta-panel";
 import { ProfilerHistoryPanel } from "@/components/ui/profiler-history-panel";
+import { ProfilerQualitySeriesPanel } from "@/components/ui/profiler-quality-series-panel";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
-import { RelationshipPanel } from "@/components/ui/relationship-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
@@ -102,7 +90,6 @@ export function ProfilerWorkspace({
     "property",
   ) as MaterialTimeMode;
   const initialObjectIdRef = useRef(initialObjectId);
-  const [mode, setMode] = useState<ProfilerMode>("circuit");
   const [selectedObjectId, setSelectedObjectId] = useState(initialObjectId);
   const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
   const [selectedTimeMode, setSelectedTimeMode] = useState(initialTimeMode);
@@ -180,6 +167,18 @@ export function ProfilerWorkspace({
   )
     ? selectedSnapshotId
     : latestSnapshotId;
+
+  const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
+  const selectedGraphNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
+  const selectedSummaryRow = selectedObjectRows.find(
+    (row) => row.snapshotId === effectiveSnapshotId,
+  );
+  const selectedQuality =
+    qualities.find((quality) => quality.id === selectedQualityId) ?? qualities[0];
+  const inspectionQuality =
+    selectedTimeMode === "property"
+      ? selectedQuality
+      : getMaterialTimeDefinition(selectedTimeMode);
 
   function handleSelectObject(nextObjectId: string) {
     if (!index.objects.some((entry) => entry.objectId === nextObjectId)) {
@@ -301,50 +300,18 @@ export function ProfilerWorkspace({
     };
   }, [effectiveSnapshotId, selectedObjectId]);
 
-  const selectedSummaryRow = selectedObjectRows.find(
-    (row) => row.snapshotId === effectiveSnapshotId,
-  );
-  const firstObjectRow = selectedObjectRows[0];
-  const lastObjectRow = selectedObjectRows[selectedObjectRows.length - 1];
-  const currentTimestamp = selectedSummaryRow?.timestamp;
-  const circuitSummaries: ObjectSummary[] = summaryRows
-    .filter((row) => row.timestamp === currentTimestamp)
-    .map((row) => ({
-      objectId: row.objectId,
-      objectType: row.objectType,
-      displayName: row.displayName,
-      timestamp: row.timestamp,
-      massTon: row.massTon,
-      status: "Profile snapshot",
-      qualityValues: row.qualityValues,
-    }));
-  const availableQualities = qualities.filter((quality) =>
-    circuitSummaries.some((row) => quality.id in row.qualityValues),
-  );
-  const selectedQuality =
-    availableQualities.find((quality) => quality.id === selectedQualityId) ??
-    availableQualities[0];
-  const inspectionQuality =
-    selectedTimeMode === "property"
-      ? selectedQuality
-      : getMaterialTimeDefinition(selectedTimeMode);
-  const selectedIndexEntry = index.objects.find((entry) => entry.objectId === selectedObjectId);
-  const selectedGraphNode = graph.nodes.find((node) => node.objectId === selectedObjectId);
-  const semanticFrame = getProfilerSemanticFrame(
-    mode,
-    detailSnapshot
+  const semanticFrame = getProfilerSemanticFrame("detail", detailSnapshot
+    ? {
+        objectType: detailSnapshot.objectType,
+        dimension: detailSnapshot.dimension,
+      }
+    : selectedIndexEntry
       ? {
-          objectType: detailSnapshot.objectType,
-          dimension: detailSnapshot.dimension,
+          objectType: selectedIndexEntry.objectType,
+          dimension: selectedIndexEntry.dimension,
         }
-      : selectedIndexEntry
-        ? {
-            objectType: selectedIndexEntry.objectType,
-            dimension: selectedIndexEntry.dimension,
-          }
-        : null,
-  );
-
+      : null);
+  const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
   );
@@ -364,7 +331,6 @@ export function ProfilerWorkspace({
     setDetailError(null);
   }
 
-  const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
   const inspectionValueAccessor = useMemo(
     () =>
       selectedTimeMode === "property"
@@ -472,25 +438,9 @@ export function ProfilerWorkspace({
   }
 
   return (
-    <div className="workspace-grid workspace-grid--triple">
+    <div className="workspace-grid workspace-grid--double">
       <aside className="panel">
-        <div className="section-label">Playback</div>
-        <div className="button-row">
-          <button
-            type="button"
-            className={`segmented-button ${mode === "circuit" ? "segmented-button--active" : ""}`}
-            onClick={() => setMode("circuit")}
-          >
-            Circuit
-          </button>
-          <button
-            type="button"
-            className={`segmented-button ${mode === "detail" ? "segmented-button--active" : ""}`}
-            onClick={() => setMode("detail")}
-          >
-            Detail
-          </button>
-        </div>
+        <div className="section-label">History selection</div>
         <label className="field">
           <span>Object</span>
           <select
@@ -505,15 +455,15 @@ export function ProfilerWorkspace({
           </select>
         </label>
         <QualitySelector
-          label="Quality"
-          qualities={availableQualities}
+          label="Tracked quality"
+          qualities={qualities}
           value={selectedQuality?.id ?? ""}
           onChange={handleSelectQuality}
         />
         <MaterialTimeModeSelector
           value={selectedTimeMode}
           onChange={handleSelectTimeMode}
-          label="Inspection mode"
+          label="Snapshot coloring"
         />
         <label className="field">
           <span>Snapshot</span>
@@ -535,9 +485,50 @@ export function ProfilerWorkspace({
         >
           {playing ? "Pause" : "Play"}
         </button>
+        <MetricGrid
+          metrics={[
+            {
+              label: "Snapshots",
+              value: String(selectedObjectRows.length),
+            },
+            {
+              label: "Selected step",
+              value: selectedStepLabel,
+            },
+            {
+              label: "Current snapshot",
+              value: effectiveSnapshotId || "N/A",
+            },
+            {
+              label: "Current mass",
+              value: selectedSummaryRow ? formatMassTon(selectedSummaryRow.massTon) : "N/A",
+            },
+          ]}
+        />
+        <RouteBasisPanel
+          source={semanticFrame.source}
+          resolution={semanticFrame.resolution}
+          timeBasis={effectiveSnapshotId ? "Selected historical profiler timestep" : "Pending"}
+          note="This route is object-and-time first. It does not redraw the whole circuit; it keeps one profiled object in view while historical quality and mass context are navigated through stored profiler snapshots."
+        />
+        <ProfilerHistoryPanel
+          rows={selectedObjectRows}
+          selectedSnapshotId={effectiveSnapshotId}
+          onSelectSnapshot={handleSelectSnapshot}
+        />
+        <ProfilerDeltaPanel
+          rows={selectedObjectRows}
+          selectedSnapshotId={effectiveSnapshotId}
+          quality={selectedQuality}
+        />
+        <WorkspaceJumpLinks
+          objectId={selectedObjectId}
+          objectType={selectedIndexEntry?.objectType}
+          isProfiled
+        />
       </aside>
 
-      <section className="panel panel--canvas">
+      <section className="panel panel--canvas panel--stack">
         {summaryError ? (
           <InlineNotice tone="error" title="Profiler summary unavailable">
             {summaryError}
@@ -550,173 +541,103 @@ export function ProfilerWorkspace({
         ) : null}
         {loadingSummary ? <div className="loading-banner">Loading profiler history...</div> : null}
         {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
-        {mode === "detail" &&
-        inspectionQuality?.kind === "numerical" &&
-        detailColorDomain?.mode === "adaptive-local" ? (
+        {inspectionQuality?.kind === "numerical" && detailColorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
-            The active profiler detail snapshot is using a local color domain so the visible
-            pile or belt cells keep enough contrast for inspection.
+            The active summarized snapshot is using a local color domain so the
+            visible rows, bands, or cells keep enough contrast for inspection.
           </InlineNotice>
         ) : null}
-        {mode === "detail" && selectedTimeMode !== "property" ? (
-          <InlineNotice tone="info" title="Material time mode active">
-            The profiler detail colors and histogram are using represented material timestamps
-            relative to the selected historical snapshot instead of a tracked quality.
+        {selectedTimeMode !== "property" ? (
+          <InlineNotice tone="info" title="Material time coloring active">
+            The object view and mass distribution are using represented material
+            timestamps relative to the selected historical snapshot. The time
+            series below still follows the selected tracked quality.
           </InlineNotice>
         ) : null}
-        {mode === "detail" ? (
+        <div className="belt-strip-panel">
+          <div className="section-label">Historical object content</div>
+          <h3>
+            {selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"}
+          </h3>
+          <p className="muted-text">
+            Summarized profiler content for the selected object at one stored
+            timestep. The figure below is historical summary, not dense current
+            state from the live route.
+          </p>
           <QualityLegend quality={inspectionQuality} numericDomain={detailColorDomain} />
-        ) : null}
-        {mode === "circuit" ? (
-          <CircuitFlow
-            graph={graph}
-            summaries={circuitSummaries}
-            selectedObjectId={selectedObjectId}
-            onSelect={handleSelectObject}
-          />
-        ) : detailView ?? (
-          <InlineNotice tone="info" title="No profiler detail snapshot available">
-            Select a profiled object and snapshot to inspect its aggregated detail view.
-          </InlineNotice>
-        )}
-      </section>
-
-      <aside className="panel">
-        <div className="section-label">
-          {mode === "circuit" ? "Historical circuit reading" : "Historical detail snapshot"}
+          {detailView ?? (
+            <InlineNotice tone="info" title="No profiler detail snapshot available">
+              Select a profiled object and snapshot to inspect its summarized
+              historical rows, bands, or cells.
+            </InlineNotice>
+          )}
         </div>
-        <h3>
-          {selectedSummaryRow?.displayName ?? detailSnapshot?.displayName ?? "Selected object"}
-        </h3>
-        <MetricGrid
-          metrics={[
-            {
-              label: "Timestamp",
-              value: selectedSummaryRow
-                ? formatTimestamp(selectedSummaryRow.timestamp)
-                : "N/A",
-            },
-            {
-              label: "Mass",
-              value: selectedSummaryRow
-                ? formatMassTon(selectedSummaryRow.massTon)
-                : "N/A",
-            },
-            {
-              label: "Snapshot",
-              value: effectiveSnapshotId || "N/A",
-            },
-          ]}
-        />
-        <RouteBasisPanel
-          source={semanticFrame.source}
-          resolution={semanticFrame.resolution}
-          timeBasis={effectiveSnapshotId ? "Selected historical timestep" : "Pending"}
-          note={semanticFrame.note}
-        />
-        <ProfilerHistoryPanel
+        <ProfilerQualitySeriesPanel
           rows={selectedObjectRows}
           selectedSnapshotId={effectiveSnapshotId}
-          mode={mode}
+          quality={selectedQuality}
           onSelectSnapshot={handleSelectSnapshot}
         />
-        <ProfilerDeltaPanel
-          rows={selectedObjectRows}
-          selectedSnapshotId={effectiveSnapshotId}
-          quality={selectedTimeMode === "property" ? selectedQuality : undefined}
-        />
-        <MetricGrid
-          metrics={[
-            {
-              label: "Summary rows",
-              value: loadingSummary ? "Loading" : String(summaryRows.length),
-            },
-            { label: "Snapshots", value: String(selectedObjectRows.length) },
-            { label: "Selected step", value: selectedStepLabel },
-            { label: semanticFrame.basisLabel, value: semanticFrame.aggregationLabel },
-            { label: "Density", value: semanticFrame.densityLabel },
-          ]}
-        />
-        {mode === "circuit" ? (
-          <RelationshipPanel
-            title="History coverage"
-            summary="Circuit mode is for comparing one selected historical timestep across the profiled circuit, not for dense object inspection."
+        <details className="inspector-stack inspector-stack--collapsed-context" open>
+          <summary className="section-label">Snapshot evidence</summary>
+          <p className="muted-text">
+            Open this section to inspect the selected historical snapshot through
+            mass distribution, represented material time, profiled qualities, and
+            hovered summary rows, bands, or cells.
+          </p>
+          <MetricGrid
             metrics={[
               {
-                label: "First snapshot",
-                value: firstObjectRow ? formatTimestamp(firstObjectRow.timestamp) : "N/A",
+                label: "Timestamp",
+                value: selectedSummaryRow
+                  ? formatTimestamp(selectedSummaryRow.timestamp)
+                  : "N/A",
               },
               {
-                label: "Last snapshot",
-                value: lastObjectRow ? formatTimestamp(lastObjectRow.timestamp) : "N/A",
+                label: "Object basis",
+                value: semanticFrame.aggregationLabel,
               },
               {
-                label: "Objects at step",
-                value: String(circuitSummaries.length),
-              },
-            ]}
-            groups={[
-              {
-                label: "Objects at selected timestep",
-                items: circuitSummaries.map((row) => row.displayName),
+                label: "Density",
+                value: semanticFrame.densityLabel,
               },
             ]}
           />
-        ) : null}
-        {mode !== "detail" ? (
-          <InlineNotice tone="info" title="Detail-only inspection panels">
-            Switch to detail mode when you need summarized rows, bands, or cells, plus
-            material-time inspection and mass distributions for one profiled object.
-          </InlineNotice>
-        ) : (
-          <details className="inspector-stack inspector-stack--collapsed-context">
-            <summary className="section-label">Detailed snapshot inspection</summary>
-            <p className="muted-text">
-              This route stays history-first. Open this section when you need to drill into
-              one summarized historical snapshot through material-time reading, mass
-              distribution, profiled properties, or hovered summary cells.
-            </p>
-            <MaterialTimePanel
-              summary={materialTimeSummary}
-              emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
-            />
-            {detailDistribution && inspectionQuality ? (
-              <div className="inspector-stack">
-                <div className="section-label">Mass distribution</div>
-                <MassDistributionChart
-                  distribution={detailDistribution}
-                  quality={inspectionQuality}
-                  subjectLabel={
-                    selectedSummaryRow?.displayName ??
-                    detailSnapshot?.displayName ??
-                    "Selected object"
-                  }
-                  recordLabel={semanticFrame.recordLabel}
-                />
-              </div>
-            ) : null}
-            {selectedSummaryRow ? (
-              <ProfiledPropertiesPanel
-                qualities={availableQualities}
-                values={selectedSummaryRow.qualityValues}
-                records={detailSnapshot?.rows ?? null}
-                totalMassTon={selectedSummaryRow.massTon}
+          <MaterialTimePanel
+            summary={materialTimeSummary}
+            emptyMessage="No valid represented-material timestamps are available for the active profiler snapshot."
+          />
+          {detailDistribution && inspectionQuality ? (
+            <div className="inspector-stack">
+              <div className="section-label">Mass distribution</div>
+              <MassDistributionChart
+                distribution={detailDistribution}
+                quality={inspectionQuality}
+                subjectLabel={
+                  selectedSummaryRow?.displayName ??
+                  detailSnapshot?.displayName ??
+                  "Selected object"
+                }
+                recordLabel={semanticFrame.recordLabel}
               />
-            ) : null}
-            <CellFocusPanel
-              hoveredCell={activeHoveredCell}
-              qualities={availableQualities}
-              selectedQuality={selectedQuality}
-              emptyMessage="Hover a summary cell, band, or row in the active profiler detail view to inspect its coordinates, mass, and quality values."
+            </div>
+          ) : null}
+          {selectedSummaryRow ? (
+            <ProfiledPropertiesPanel
+              qualities={qualities}
+              values={selectedSummaryRow.qualityValues}
+              records={detailSnapshot?.rows ?? null}
+              totalMassTon={selectedSummaryRow.massTon}
             />
-            <WorkspaceJumpLinks
-              objectId={selectedObjectId}
-              objectType={selectedIndexEntry?.objectType}
-              isProfiled
-            />
-          </details>
-        )}
-      </aside>
+          ) : null}
+          <CellFocusPanel
+            hoveredCell={activeHoveredCell}
+            qualities={qualities}
+            selectedQuality={selectedQuality}
+            emptyMessage="Hover a summary row, band, or cell in the active profiler view to inspect its coordinates, mass, and quality values."
+          />
+        </details>
+      </section>
     </div>
   );
 }

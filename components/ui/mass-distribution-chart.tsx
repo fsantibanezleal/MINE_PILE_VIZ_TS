@@ -79,7 +79,7 @@ export function MassDistributionChart({
 }: MassDistributionChartProps) {
   const qualityLabel = getQualityDisplayLabel(
     quality,
-    quality ? undefined : humanizeQualityId("property"),
+    quality ? undefined : humanizeQualityId("quality"),
   );
 
   if (distribution.kind === "empty") {
@@ -211,7 +211,7 @@ export function MassDistributionChart({
       </div>
       <p className="quality-list__subtext">
         Mass distribution of {qualityLabel}. Each bar accumulates the represented mass
-        whose property value falls inside that interval.
+        whose quality value falls inside that interval.
       </p>
       <div className="belt-histogram__svg-frame">
         <svg

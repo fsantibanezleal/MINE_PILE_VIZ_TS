@@ -65,19 +65,19 @@ export function ProfilerDeltaPanel({
           </small>
         </div>
         <div className="profiler-delta__card">
-          <span>{`${frame.propertyLabel} change`}</span>
-          <strong>{frame.propertyDeltaText}</strong>
-          <small>{frame.propertyStatusText}</small>
+          <span>{`${frame.qualityLabel} change`}</span>
+          <strong>{frame.qualityDeltaText}</strong>
+          <small>{frame.qualityStatusText}</small>
         </div>
       </div>
       <div className="profiler-delta__comparison">
         <div className="profiler-delta__comparison-card">
-          <span>Current value</span>
-          <strong>{frame.currentPropertyValue}</strong>
+          <span>Current quality</span>
+          <strong>{frame.currentQualityValue}</strong>
         </div>
         <div className="profiler-delta__comparison-card">
-          <span>Previous value</span>
-          <strong>{frame.previousPropertyValue}</strong>
+          <span>Previous quality</span>
+          <strong>{frame.previousQualityValue}</strong>
         </div>
       </div>
     </div>
