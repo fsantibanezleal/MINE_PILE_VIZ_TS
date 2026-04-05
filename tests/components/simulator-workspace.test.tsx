@@ -241,7 +241,7 @@ const currentVirtualPile: PileDataset = {
       relatedObjectId: "belt_b",
     },
   ],
-  files: { cells: "stockpiles/vpile_mix/cells.arrow" },
+  files: { cells: "live/piles/vpile_mix/cells.arrow" },
   cells: [
     {
       ix: 0,

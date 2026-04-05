@@ -37,7 +37,7 @@ const pileEntries: ObjectRegistryEntry[] = [
     stageIndex: 1,
     dimension: 1,
     isProfiled: false,
-    stockpileRef: "stockpiles/pile_a/meta.json",
+    livePileRef: "live/piles/pile_a/meta.json",
   },
   {
     objectId: "pile_b",
@@ -48,7 +48,7 @@ const pileEntries: ObjectRegistryEntry[] = [
     stageIndex: 2,
     dimension: 1,
     isProfiled: false,
-    stockpileRef: "stockpiles/pile_b/meta.json",
+    livePileRef: "live/piles/pile_b/meta.json",
   },
 ];
 
@@ -89,7 +89,7 @@ function createPileDataset(objectId: string, displayName: string, fe: number): P
       },
     ],
     files: {
-      cells: `stockpiles/${objectId}/cells.arrow`,
+      cells: `live/piles/${objectId}/cells.arrow`,
     },
     cells: [
       {
@@ -188,7 +188,7 @@ function create2DPileDataset(objectId: string, displayName: string, fe: number):
       },
     ],
     files: {
-      cells: `stockpiles/${objectId}/cells.arrow`,
+      cells: `live/piles/${objectId}/cells.arrow`,
     },
     cells: [
       {
@@ -286,11 +286,11 @@ describe("StockpileWorkspace", () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
-      if (url.endsWith("/api/stockpiles/pile_a")) {
+      if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
       }
 
-      if (url.endsWith("/api/stockpiles/pile_b")) {
+      if (url.endsWith("/api/live/piles/pile_b")) {
         return jsonResponse(pileB);
       }
 
@@ -307,9 +307,9 @@ describe("StockpileWorkspace", () => {
       />,
     );
 
-    expect(screen.getByText("Loading stockpile dataset...")).toBeInTheDocument();
+    expect(screen.getByText("Loading current pile dataset...")).toBeInTheDocument();
     await screen.findByText("Pile A Feed");
-    expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_a");
+    expect(fetchMock).toHaveBeenCalledWith("/api/live/piles/pile_a");
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
     expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
     expect(screen.getByText("Structure profile")).toBeInTheDocument();
@@ -321,13 +321,13 @@ describe("StockpileWorkspace", () => {
       target: { value: "pile_b" },
     });
 
-    expect(screen.getByText("Loading stockpile dataset...")).toBeInTheDocument();
+    expect(screen.getByText("Loading current pile dataset...")).toBeInTheDocument();
     await screen.findByText("Pile B Feed");
     expect(screen.getByText("Pile B Feed")).toBeInTheDocument();
     expect(screen.getByText("Pile B Reclaim")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/stockpiles/pile_b");
+      expect(fetchMock).toHaveBeenCalledWith("/api/live/piles/pile_b");
     });
   });
 
@@ -336,7 +336,7 @@ describe("StockpileWorkspace", () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
-      if (url.endsWith("/api/stockpiles/pile_a")) {
+      if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
       }
 
@@ -366,7 +366,7 @@ describe("StockpileWorkspace", () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
-      if (url.endsWith("/api/stockpiles/pile_a")) {
+      if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
       }
 
@@ -397,7 +397,7 @@ describe("StockpileWorkspace", () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
-      if (url.endsWith("/api/stockpiles/pile_a")) {
+      if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
       }
 

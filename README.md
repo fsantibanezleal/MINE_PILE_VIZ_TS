@@ -12,7 +12,7 @@ Mine Pile Visualizer is not intended to be only a developer sandbox. It is a wor
 - `/stockpiles`
 - `/profiler`
 
-The current baseline already provides a routed application shell, an illustrative circuit overview with `2D`, `3D`, and diagram modes, live belt block inspection, dimensional stockpile views for `1D`, `2D`, and `3D` objects, and history playback over profiler snapshots. The repository is intentionally decoupled from raw source-trace artifacts. At runtime it consumes only an app-ready local cache rooted at `.local/app-data/v1/` or an explicit `APP_DATA_ROOT` override.
+The current baseline already provides a routed application shell, an illustrative circuit overview with `2D`, `3D`, and diagram modes, dense live-state inspection for both belts and piles, dimensional stockpile views for `1D`, `2D`, and `3D` objects, and history playback over profiler snapshots. The repository is intentionally decoupled from raw source-trace artifacts. At runtime it consumes only an app-ready local cache rooted at `.local/app-data/v1/` or an explicit `APP_DATA_ROOT` override.
 
 ## Problem Framing
 
@@ -21,7 +21,7 @@ Operational mineral tracking outputs are information-rich but not naturally easy
 Mine Pile Visualizer responds by turning those app-ready outputs into a set of linked spatial and temporal views:
 
 - a circuit view for sequence and object relationships
-- a live view for current belt content and object summaries
+- a live view for current dense belts and current dense piles
 - a stockpile view for internal structure by selected quality
 - a profiler view for historical snapshots and time navigation
 
@@ -41,9 +41,9 @@ The application is organized as a progressive reading flow rather than a single 
 
 The operator starts in `/circuit` to understand the modeled area as a staged sequence of belts and accumulation objects. This is the structural map of the system and the entry point for object selection.
 
-### 2. Instantaneous Transport State
+### 2. Instantaneous Dense State
 
-The operator then moves to `/live` to inspect what is currently present on modeled belts. The route overlays ordered block content with object summary metrics so the live transport picture stays tied to the same circuit context.
+The operator then moves to `/live` to inspect the current dense runtime state from `06_models`. The route is split into two subviews: one for belts and virtual belts, and one for piles and virtual piles, so current transport and current accumulation can be inspected without redrawing the circuit.
 
 ### 3. Internal Stockpile Inspection
 
@@ -88,15 +88,15 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `0.01.079` |
+| Release-synced version | `0.01.080` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
 
 | Status | Version |
 |---|---|
-| Closed baseline | `0.01.078` |
-| Active tracked version | `0.01.079` |
+| Closed baseline | `0.01.079` |
+| Active tracked version | `0.01.080` |
 
 ## Current Frontend Views
 
@@ -106,7 +106,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace now stays explicitly on one current belt at a time instead of redrawing the circuit. Its main evidence is the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The same view can switch into represented-material time coloring, so the current snapshot can also be read by oldest age, newest age, or represented span without leaving the belt-centric route. The sidebar keeps only the minimal context that helps interpret the selected live belt: current mass, latest timestamp, route basis, immediate upstream/downstream neighborhood, represented-material time summary, and profiled-quality breakdowns. This route is therefore the high-resolution current transport view, not another topology page and not a historical playback surface.
+The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview reuses the same dense current pile datasets that feed the stockpile route, but keeps them inside the live route as the current accumulation counterpart to belt inspection. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
 
 ### Simulator Workspace
 
@@ -114,7 +114,7 @@ The simulator workspace now uses piles and virtual piles as its central object m
 
 ### Stockpile Workspace
 
-The stockpile workspace exposes internal structure for accumulation objects. It supports quality selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render, and the route now states explicitly that it is reading current dense pile inventories rather than historical snapshots. The pile visual keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Those anchors now also respect relative footprint spans from configuration instead of rendering only as point markers. The same selector can now switch the pile from tracked-quality coloring into oldest-age, newest-age, or represented-span coloring, which makes material residence patterns visible directly inside the dense cell or voxel view. Numerical pile qualities also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when qualities are tightly clustered. The `3D` voxel renderer now uses an explicit shader-based instance-color path so visible voxels keep the selected quality color instead of collapsing into black silhouettes under the dense stockpile load path. The sidebar now includes a stockpile-specific structure profile with fill ratio, footprint use, mass center, axis coverage, and mass-by-layer profile, which makes the route read more clearly as internal pile interpretation instead of another generic inspector. The remaining sidebar panels still separate quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
+The stockpile workspace exposes internal structure for accumulation objects as a pile-only route. It supports quality selection, dimension-aware rendering, and multiple `3D` display strategies so the operator can move between overview and denser views without changing data sources. Dense pile tables are requested on demand after the selected object is known instead of being preloaded during the route render, and the route now states explicitly that it is reading current dense pile inventories rather than historical snapshots. The pile visual keeps configured feed and discharge anchors visible on the view itself instead of relegating them to supporting text, and `2D` and `3D` pile views keep a second near-pile anchor layer slightly above and below the drawn pile so the operator can read anchor position directly against the figure. Those anchors now also respect relative footprint spans from configuration instead of rendering only as point markers. The same selector can now switch the pile from tracked-quality coloring into oldest-age, newest-age, or represented-span coloring, which makes material residence patterns visible directly inside the dense cell or voxel view. Numerical pile qualities also switch to a view-scaled contrast domain when the visible cells only occupy a narrow slice of the configured range, so voxel patterns stay readable when qualities are tightly clustered. The `3D` voxel renderer now uses an explicit merged visible-voxel mesh so colored cells remain visible under dense real datasets. The sidebar now includes a stockpile-specific structure profile with fill ratio, footprint use, mass center, axis coverage, and mass-by-layer profile, which makes the route read more clearly as internal pile interpretation instead of another generic inspector. The remaining sidebar panels still separate quantitative averages, dominant mapped categorical values, and histogram-style qualitative distributions, preferring explicit categorical proportion channels when they are present in the cache. String-valued qualitative tokens are resolved through the same dictionary path as numeric-coded categories. The workspace can also surface hovered cell details without leaving the current view mode.
 
 ### Profiler Workspace
 
@@ -126,7 +126,7 @@ The profiler workspace is now object-and-time first. It does not redraw the circ
 
 - `Circuit`: illustrative `2D` and `3D` overview, diagram fallback, and object inspection.
 - `Simulator`: timestep-oriented circuit scenario playback backed by profiled summary history.
-- `Live`: circuit context plus live belt block content and summary metrics.
+- `Live`: dense current state from `06_models`, split into belt/vbelt and pile/vpile subviews.
 - `Stockpiles`: pile selection, quality selection, dimension-aware rendering, and `3D` view modes.
 - `Profiler`: timestamp navigation, playback controls, circuit mode, and object-detail mode.
 
@@ -229,10 +229,11 @@ pnpm build
 ### Live state services
 
 - `GET /api/live/belts/{beltId}`
+- `GET /api/live/piles/{pileId}`
 
 ### Stockpile services
 
-- `GET /api/stockpiles/{pileId}`
+- `GET /api/stockpiles/{pileId}` (legacy route alias for the dense pile dataset loader)
 
 ### Profiler services
 
@@ -259,7 +260,7 @@ types/
 
 ## Current Version
 
-`0.01.079`
+`0.01.080`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 See [Changelog](CHANGELOG.md) for release-by-release history.

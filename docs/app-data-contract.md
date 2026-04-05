@@ -27,12 +27,12 @@ That cache is local-only and ignored by Git.
     object-summaries.json
     belts/
       <belt_id>.arrow
-  stockpiles/
-    <pile_id>/
-      meta.json
-      cells.arrow
-      surface.arrow        # optional but strongly recommended for 3D
-      shell.arrow          # optional acceleration artifact
+    piles/
+      <pile_id>/
+        meta.json
+        cells.arrow
+        surface.arrow        # optional but strongly recommended for 3D
+        shell.arrow          # optional acceleration artifact
   profiler/
     index.json
     summary.arrow
@@ -122,11 +122,20 @@ Required fields per item:
 Optional references:
 
 - `liveRef`
+- `livePileRef`
 - `stockpileRef`
 - `profilerRef`
 
 All references are paths relative to `.local/app-data/v1/`.
 References must remain inside the configured cache root. Absolute paths or escaping relative paths are treated as contract errors.
+
+Runtime transition note:
+
+- dense current belts should register `liveRef: "live/belts/<belt_id>.arrow"`
+- dense current piles should register `livePileRef: "live/piles/<pile_id>/meta.json"`
+
+`stockpileRef` is treated as a legacy compatibility field for older local caches and should not be
+emitted by new exporters.
 
 ### `circuit.json`
 
@@ -193,7 +202,7 @@ Required fields per item:
 - categorical qualities may emit either numeric codes or string tokens, as long as they match one
   of the configured category definitions
 
-### `stockpiles/<pile_id>/meta.json`
+### `live/piles/<pile_id>/meta.json`
 
 Required fields:
 
@@ -268,7 +277,7 @@ Required columns:
 
 Rows must already be ordered by belt position.
 
-### Stockpile cells
+### Live pile cells
 
 Required columns:
 

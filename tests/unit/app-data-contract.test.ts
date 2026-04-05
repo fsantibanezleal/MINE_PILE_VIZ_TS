@@ -45,10 +45,10 @@ describe("app data contract loaders", () => {
 
   it("derives optional stockpile acceleration layers when the optional files are missing", async () => {
     await unlink(
-      path.join(tempDir, ".local", "app-data", "v1", "stockpiles", "pile_stockpile", "surface.arrow"),
+      path.join(tempDir, ".local", "app-data", "v1", "live", "piles", "pile_stockpile", "surface.arrow"),
     );
     await unlink(
-      path.join(tempDir, ".local", "app-data", "v1", "stockpiles", "pile_stockpile", "shell.arrow"),
+      path.join(tempDir, ".local", "app-data", "v1", "live", "piles", "pile_stockpile", "shell.arrow"),
     );
 
     const stockpile = await getStockpileDataset("pile_stockpile");

@@ -70,6 +70,7 @@ export const objectRegistryEntrySchema = z.object({
   dimension: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   isProfiled: z.boolean(),
   liveRef: z.string().nullable().optional(),
+  livePileRef: z.string().nullable().optional(),
   stockpileRef: z.string().nullable().optional(),
   profilerRef: z.string().nullable().optional(),
 });

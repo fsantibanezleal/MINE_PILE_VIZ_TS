@@ -23,7 +23,7 @@ export async function createSampleAppData(root: string) {
 
   const manifest = {
     schemaVersion: "1.0.0",
-    appVersion: "0.01.079",
+    appVersion: "0.01.080",
     datasetLabel: "Synthetic contract fixture",
     generatedAt: "2026-04-02T12:00:00Z",
     latestTimestamp: "2025-03-19T01:15:00Z",
@@ -103,7 +103,7 @@ export async function createSampleAppData(root: string) {
       stageIndex: 1,
       dimension: 1,
       isProfiled: false,
-      stockpileRef: "stockpiles/vpile_ch1/meta.json",
+      livePileRef: "live/piles/vpile_ch1/meta.json",
     },
     {
       objectId: "belt_cv200",
@@ -126,7 +126,7 @@ export async function createSampleAppData(root: string) {
       stageIndex: 3,
       dimension: 3,
       isProfiled: true,
-      stockpileRef: "stockpiles/pile_stockpile/meta.json",
+      livePileRef: "live/piles/pile_stockpile/meta.json",
       profilerRef: "profiler/objects/pile_stockpile/manifest.json",
     },
     {
@@ -138,7 +138,7 @@ export async function createSampleAppData(root: string) {
       stageIndex: 4,
       dimension: 1,
       isProfiled: false,
-      stockpileRef: "stockpiles/vpile_out_cv301/meta.json",
+      livePileRef: "live/piles/vpile_out_cv301/meta.json",
     },
   ];
 
@@ -299,7 +299,7 @@ export async function createSampleAppData(root: string) {
     q_cat_materialtype_main: [10001, 10001, 10002, 10002, 10002, 10003, 10003, 10003, 10003],
   };
 
-  await writeJson(path.join(root, "stockpiles", "pile_stockpile", "meta.json"), {
+  await writeJson(path.join(root, "live", "piles", "pile_stockpile", "meta.json"), {
     objectId: "pile_stockpile",
     displayName: "Plant Stockpile",
     objectRole: "physical",
@@ -323,14 +323,14 @@ export async function createSampleAppData(root: string) {
       { id: "stockpile-out-east", label: "Reclaim east", kind: "output", x: 0.74, y: 0.9, relatedObjectId: "vpile_out_cv301" },
     ],
     files: {
-      cells: "stockpiles/pile_stockpile/cells.arrow",
-      surface: "stockpiles/pile_stockpile/surface.arrow",
-      shell: "stockpiles/pile_stockpile/shell.arrow",
+      cells: "live/piles/pile_stockpile/cells.arrow",
+      surface: "live/piles/pile_stockpile/surface.arrow",
+      shell: "live/piles/pile_stockpile/shell.arrow",
     },
   });
 
-  await writeArrow(path.join(root, "stockpiles", "pile_stockpile", "cells.arrow"), stockpileCells);
-  await writeArrow(path.join(root, "stockpiles", "pile_stockpile", "surface.arrow"), {
+  await writeArrow(path.join(root, "live", "piles", "pile_stockpile", "cells.arrow"), stockpileCells);
+  await writeArrow(path.join(root, "live", "piles", "pile_stockpile", "surface.arrow"), {
     ix: [0, 1, 2],
     iy: [0, 1, 1],
     iz: [1, 1, 1],
@@ -341,9 +341,9 @@ export async function createSampleAppData(root: string) {
     q_num_cut: [0.94, 0.99, 1.04],
     q_cat_materialtype_main: [10003, 10003, 10003],
   });
-  await writeArrow(path.join(root, "stockpiles", "pile_stockpile", "shell.arrow"), stockpileCells);
+  await writeArrow(path.join(root, "live", "piles", "pile_stockpile", "shell.arrow"), stockpileCells);
 
-  await writeJson(path.join(root, "stockpiles", "vpile_ch1", "meta.json"), {
+  await writeJson(path.join(root, "live", "piles", "vpile_ch1", "meta.json"), {
     objectId: "vpile_ch1",
     displayName: "Virtual Crusher Residence",
     objectRole: "virtual",
@@ -360,9 +360,9 @@ export async function createSampleAppData(root: string) {
     qualityAverages: { q_num_fe: 1.12, q_num_cut: 0.76, q_cat_materialtype_main: 10001 },
     inputs: [{ id: "res-in", label: "From feed", kind: "input", x: 0, y: 1, relatedObjectId: "vbelt_feed_ch1" }],
     outputs: [{ id: "res-out", label: "To CV200", kind: "output", x: 1, y: 0, relatedObjectId: "belt_cv200" }],
-    files: { cells: "stockpiles/vpile_ch1/cells.arrow" },
+    files: { cells: "live/piles/vpile_ch1/cells.arrow" },
   });
-  await writeArrow(path.join(root, "stockpiles", "vpile_ch1", "cells.arrow"), {
+  await writeArrow(path.join(root, "live", "piles", "vpile_ch1", "cells.arrow"), {
     ix: [0, 0, 0, 0],
     iy: [0, 0, 0, 0],
     iz: [0, 1, 2, 3],
@@ -374,7 +374,7 @@ export async function createSampleAppData(root: string) {
     q_cat_materialtype_main: [10001, 10001, 10002, 10002],
   });
 
-  await writeJson(path.join(root, "stockpiles", "vpile_out_cv301", "meta.json"), {
+  await writeJson(path.join(root, "live", "piles", "vpile_out_cv301", "meta.json"), {
     objectId: "vpile_out_cv301",
     displayName: "Virtual Outflow Mixer",
     objectRole: "virtual",
@@ -391,9 +391,9 @@ export async function createSampleAppData(root: string) {
     qualityAverages: { q_num_fe: 1.24, q_num_cut: 0.95, q_cat_materialtype_main: 10003 },
     inputs: [{ id: "out-in", label: "From stockpile", kind: "input", x: 0, y: 1, relatedObjectId: "pile_stockpile" }],
     outputs: [],
-    files: { cells: "stockpiles/vpile_out_cv301/cells.arrow" },
+    files: { cells: "live/piles/vpile_out_cv301/cells.arrow" },
   });
-  await writeArrow(path.join(root, "stockpiles", "vpile_out_cv301", "cells.arrow"), {
+  await writeArrow(path.join(root, "live", "piles", "vpile_out_cv301", "cells.arrow"), {
     ix: [0, 0, 0],
     iy: [0, 0, 0],
     iz: [0, 1, 2],

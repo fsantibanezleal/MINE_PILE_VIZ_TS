@@ -189,7 +189,7 @@ export function StockpileWorkspace({
 
     let cancelled = false;
 
-    fetch(`/api/stockpiles/${selectedPileId}`)
+    fetch(`/api/live/piles/${selectedPileId}`)
       .then(async (response) => {
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as
@@ -200,7 +200,7 @@ export function StockpileWorkspace({
               }
             | null;
           throw new Error(
-            payload?.error?.message ?? "Failed to load stockpile dataset.",
+            payload?.error?.message ?? "Failed to load current pile dataset.",
           );
         }
 
@@ -229,7 +229,7 @@ export function StockpileWorkspace({
           setLoadError(
             error instanceof Error
               ? error.message
-              : "Failed to load stockpile dataset.",
+              : "Failed to load current pile dataset.",
           );
         }
       })
@@ -367,7 +367,7 @@ export function StockpileWorkspace({
 
   if (!dataset) {
     content = (
-      <InlineNotice tone={loadError ? "error" : "info"} title="Stockpile dataset loads on demand">
+      <InlineNotice tone={loadError ? "error" : "info"} title="Current pile dataset loads on demand">
         {loadError
           ? "Select the pile again after the dataset becomes available."
           : "Choose a stockpile to request its dense cell table only when this workspace needs it."}
@@ -515,7 +515,7 @@ export function StockpileWorkspace({
 
       <section className="panel panel--canvas">
         {loadError ? (
-          <InlineNotice tone="error" title="Stockpile dataset unavailable">
+          <InlineNotice tone="error" title="Current pile dataset unavailable">
             {loadError}
           </InlineNotice>
         ) : null}
@@ -540,7 +540,7 @@ export function StockpileWorkspace({
             surface layer instead.
           </InlineNotice>
         ) : null}
-        {loading ? <div className="loading-banner">Loading stockpile dataset...</div> : null}
+        {loading ? <div className="loading-banner">Loading current pile dataset...</div> : null}
         {inspectionQuality?.kind === "numerical" && colorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
             The current visible cells occupy only a narrow slice of the selected inspection

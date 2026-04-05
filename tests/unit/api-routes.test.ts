@@ -67,14 +67,14 @@ describe("API route handlers", () => {
       code: "invalid_schema",
       title: "Invalid stockpile schema",
       message: "The stockpile cache metadata is invalid.",
-      relativePath: "stockpiles/pile_a/meta.json",
+      relativePath: "live/piles/pile_a/meta.json",
       details: ["Missing extents.x"],
     };
     const payload = {
       code: "invalid_schema",
       title: "Invalid stockpile schema",
       message: "The stockpile cache metadata is invalid.",
-      relativePath: "stockpiles/pile_a/meta.json",
+      relativePath: "live/piles/pile_a/meta.json",
       details: ["Missing extents.x"],
     };
 

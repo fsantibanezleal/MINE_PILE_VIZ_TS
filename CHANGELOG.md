@@ -11,10 +11,16 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.078`
-- Active tracked version: `0.01.079`
+- Closed release baseline: `0.01.079`
+- Active tracked version: `0.01.080`
 
 ## Release History
+
+### 0.01.080
+
+- Reordered the app-ready dense-state contract so current pile datasets now live under `live/piles/` alongside `live/belts/`, while profiler history remains isolated under `profiler/`.
+- Added explicit `Belts / VBelts` and `Piles / VPiles` subviews to the live route so `/live` now reads as the dense current-state workspace from `06_models` instead of a belt-only route.
+- Rebuilt the default local cache under `.local/app-data/v1/` with the corrected dense pile paths, verified `belt_cv200.arrow` and `live/piles/pile_stockpile/meta.json`, and kept the legacy stockpile API route only as a compatibility alias while the runtime shifts to the new layout.
 
 ### 0.01.079
 

@@ -24,7 +24,8 @@ async function loadStockpilePageState() {
     assertManifestCapability(manifest, "stockpiles", "Stockpile view");
 
     const pileEntries = registry.filter(
-      (entry) => entry.objectType === "pile" && entry.stockpileRef,
+      (entry) =>
+        entry.objectType === "pile" && (entry.livePileRef ?? entry.stockpileRef),
     );
 
     if (pileEntries.length === 0) {
@@ -107,7 +108,7 @@ export default async function StockpilesPage() {
     <AppShell
       eyebrow="Stockpiles"
       title="Internal stockpile views"
-      description="The stockpile route reads current dense pile inventories as internal structure. Choose a pile and property, then move between column, heatmap, surface, shell, full voxel, and slice representations while keeping the focus on current spatial occupancy and mass distribution."
+      description="The stockpile route reads current dense pile inventories as internal structure. Choose a pile and quality, then move between column, heatmap, surface, shell, full voxel, and slice representations while keeping the focus on current spatial occupancy and mass distribution."
       actions={
         <MetricGrid
           metrics={[
@@ -127,8 +128,8 @@ export default async function StockpilesPage() {
     >
       <RouteIntentPanel
         primaryQuestion="What does the inside of one current pile look like when it is read as cells, columns, heatmaps, or voxels?"
-        uniqueEvidence="Current dense pile content with property-driven coloring, structure profile metrics, and pile-specific feed and reclaim context across 1D, 2D, and 3D views."
-        useWhen="You need to inspect one pile internally and compare how the selected property is distributed through its current occupied structure."
+        uniqueEvidence="Current dense pile content with quality-driven coloring, structure profile metrics, and pile-specific feed and reclaim context across 1D, 2D, and 3D views."
+        useWhen="You need to inspect one pile internally and compare how the selected quality is distributed through its current occupied structure."
         switchWhen="Use Live for belts, Profiler for historical summary snapshots, Circuit for overall topology, or Simulator for downstream discharge-route context."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
-import { LiveWorkspace } from "@/components/live/live-workspace";
+import { LiveRouteWorkspace } from "@/components/live/live-route-workspace";
 import { DataUnavailable } from "@/components/ui/data-unavailable";
 import { MetricGrid } from "@/components/ui/metric-grid";
 import { RouteIntentPanel } from "@/components/ui/route-intent-panel";
@@ -32,17 +32,23 @@ async function loadLivePageState() {
     const firstLiveBelt = registry.find(
       (entry) => entry.objectType === "belt" && entry.liveRef,
     );
+    const pileEntries = registry.filter(
+      (entry) =>
+        entry.objectType === "pile" && (entry.livePileRef ?? entry.stockpileRef),
+    );
 
-    if (!firstLiveBelt) {
+    if (!firstLiveBelt && pileEntries.length === 0) {
       return {
         kind: "empty" as const,
-        title: "No live belt snapshots registered",
+        title: "No dense live objects registered",
         description:
-          "The live route is enabled, but the object registry does not expose any belt with a live snapshot reference.",
+          "The live route is enabled, but the object registry does not expose any dense current belt or pile dataset.",
       };
     }
 
-    const initialBelt = await getLiveBeltSnapshot(firstLiveBelt.objectId);
+    const initialBelt = firstLiveBelt
+      ? await getLiveBeltSnapshot(firstLiveBelt.objectId)
+      : null;
 
     return {
       kind: "ready" as const,
@@ -52,6 +58,8 @@ async function loadLivePageState() {
       registry,
       qualities,
       initialBelt,
+      pileEntries,
+      initialPileId: pileEntries[0]?.objectId ?? null,
     };
   } catch (error) {
     return {
@@ -70,8 +78,8 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt content"
-        description="Inspect dense current belt snapshots without redrawing the circuit."
+        title="Current dense state"
+        description="Inspect dense current belt and pile snapshots without redrawing the circuit."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -84,8 +92,8 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt content"
-        description="Inspect dense current belt snapshots without redrawing the circuit."
+        title="Current dense state"
+        description="Inspect dense current belt and pile snapshots without redrawing the circuit."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -101,8 +109,8 @@ export default async function LivePage() {
     return (
       <AppShell
         eyebrow="Live State"
-        title="Current belt content"
-        description="No live belt snapshots are registered in the app-ready cache."
+        title="Current dense state"
+        description="No current dense belt or pile snapshots are registered in the app-ready cache."
       >
         <DataUnavailable
           title={state.title}
@@ -116,20 +124,26 @@ export default async function LivePage() {
   return (
     <AppShell
       eyebrow="Live State"
-      title="Current belt content"
-      description="The live route is dense and instantaneous. It reads current belt snapshots from 06_models and stays focused on the selected transport object instead of redrawing circuit topology."
+      title="Current dense state"
+      description="The live route is dense and instantaneous. It reads current belt and pile snapshots from 06_models and keeps the focus on current material content instead of redrawing topology."
       actions={
         <MetricGrid
           metrics={[
             { label: "Dataset", value: state.manifest.datasetLabel },
             {
-              label: "Tracked belts",
+              label: "Dense belts",
               value: String(
-                state.registry.filter((entry) => entry.objectType === "belt").length,
+                state.registry.filter(
+                  (entry) => entry.objectType === "belt" && entry.liveRef,
+                ).length,
               ),
             },
             {
-              label: "Current snapshot",
+              label: "Dense piles",
+              value: String(state.pileEntries.length),
+            },
+            {
+              label: "Latest UTC",
               value: formatTimestamp(state.manifest.latestTimestamp),
             },
           ]}
@@ -137,18 +151,20 @@ export default async function LivePage() {
       }
     >
       <RouteIntentPanel
-        primaryQuestion="What is physically present on the selected transport belt right now?"
-        uniqueEvidence="Current dense belt blocks from 06_models, shown as an ordered strip plus a mass-weighted histogram for the selected quality or material-time mode."
-        useWhen="You need current transport evidence at high resolution and do not want historical playback or another circuit view."
-        switchWhen="Use Stockpiles for current dense pile structure, Profiler for summarized history through time, Circuit for topology, or Simulator for pile-centric discharge organization."
+        primaryQuestion="What is physically present right now inside the current dense transport and accumulation objects?"
+        uniqueEvidence="Current dense state from 06_models, split into belt/vbelt and pile/vpile subviews so the operator can inspect either ordered transport content or internal pile structure without opening another circuit view."
+        useWhen="You need the latest dense runtime content, not profiler history and not topology-first reading."
+        switchWhen="Use Circuit for topology and modeled dependencies, Profiler for summarized history through time, Stockpiles for the pile-only structural route, or Simulator for profiler-based discharge playback."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
-        <LiveWorkspace
+        <LiveRouteWorkspace
           graph={state.graph}
           summaries={state.summaries}
           registry={state.registry}
           qualities={state.qualities}
           initialBelt={state.initialBelt}
+          pileEntries={state.pileEntries}
+          initialPileId={state.initialPileId}
         />
       </Suspense>
     </AppShell>

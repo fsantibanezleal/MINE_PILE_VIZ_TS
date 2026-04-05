@@ -61,6 +61,7 @@ export interface ObjectRegistryEntry {
   dimension: 1 | 2 | 3;
   isProfiled: boolean;
   liveRef?: string | null;
+  livePileRef?: string | null;
   stockpileRef?: string | null;
   profilerRef?: string | null;
 }

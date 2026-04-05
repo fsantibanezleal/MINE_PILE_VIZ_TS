@@ -44,6 +44,10 @@ import {
   qualityDefinitionSchema,
 } from "@/lib/server/schemas";
 
+function getDensePileRef(entry: ObjectRegistryEntry) {
+  return entry.livePileRef ?? entry.stockpileRef ?? null;
+}
+
 function getAppDataRoot() {
   const configuredRoot = process.env.APP_DATA_ROOT?.trim();
 
@@ -378,45 +382,46 @@ export async function getLiveBeltSnapshot(beltId: string): Promise<BeltSnapshot>
   };
 }
 
-export async function getStockpileDataset(pileId: string): Promise<PileDataset> {
+export async function getLivePileDataset(pileId: string): Promise<PileDataset> {
   const [registry, qualities] = await Promise.all([
     getObjectRegistry(),
     getQualityDefinitions(),
   ]);
-  const pileEntry = registry.find(
-    (entry) => entry.objectId === pileId && entry.stockpileRef,
-  );
+  const pileEntry = registry.find((entry) => entry.objectId === pileId);
+  const pileRef = pileEntry ? getDensePileRef(pileEntry) : null;
 
-  if (!pileEntry?.stockpileRef) {
+  if (!pileEntry || !pileRef) {
     throw new AppDataContractError({
       code: "missing_object",
-      title: "Stockpile dataset not registered",
-      message: `No stockpile dataset is registered for '${pileId}'.`,
+      title: "Current pile dataset not registered",
+      message: `No dense current pile dataset is registered for '${pileId}'.`,
       status: 404,
-      details: ["The selected pile is missing a stockpileRef entry in the object registry."],
+      details: [
+        "The selected pile is missing a livePileRef entry in the object registry.",
+      ],
     });
   }
 
   const rawMeta = await readJsonFile<unknown>(
-    pileEntry.stockpileRef,
-    `Stockpile metadata for ${pileEntry.displayName}`,
+    pileRef,
+    `Current pile metadata for ${pileEntry.displayName}`,
   );
   const meta = parseWithSchema(
     rawMeta,
     pileDatasetMetaSchema,
-    `Stockpile metadata for ${pileEntry.displayName}`,
-    pileEntry.stockpileRef,
+    `Current pile metadata for ${pileEntry.displayName}`,
+    pileRef,
   ) as PileDatasetMeta;
   const qualityIds = qualities.map((quality) => quality.id);
   const [cellRows, surfaceRows, shellRows] = await Promise.all([
-    readArrowFile(meta.files.cells, `Stockpile cells for ${pileEntry.displayName}`),
+    readArrowFile(meta.files.cells, `Current pile cells for ${pileEntry.displayName}`),
     readOptionalArrowFile(
       meta.files.surface,
-      `Stockpile surface cells for ${pileEntry.displayName}`,
+      `Current pile surface cells for ${pileEntry.displayName}`,
     ),
     readOptionalArrowFile(
       meta.files.shell,
-      `Stockpile shell cells for ${pileEntry.displayName}`,
+      `Current pile shell cells for ${pileEntry.displayName}`,
     ),
   ]);
   const cells = mapPileCells(cellRows, qualityIds);
@@ -439,6 +444,10 @@ export async function getStockpileDataset(pileId: string): Promise<PileDataset> 
     surfaceCells,
     shellCells,
   };
+}
+
+export async function getStockpileDataset(pileId: string): Promise<PileDataset> {
+  return getLivePileDataset(pileId);
 }
 
 export async function getProfilerIndex(): Promise<ProfilerIndex> {
