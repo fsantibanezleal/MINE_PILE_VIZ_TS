@@ -137,6 +137,13 @@ const index: ProfilerIndex = {
       dimension: 3,
       manifestRef: "profiler/objects/pile_a/manifest.json",
     },
+    {
+      objectId: "belt_b",
+      displayName: "Belt B",
+      objectType: "belt",
+      dimension: 1,
+      manifestRef: "profiler/objects/belt_b/manifest.json",
+    },
   ],
 };
 
@@ -287,30 +294,36 @@ const virtualBelt: BeltSnapshot = {
   ],
 };
 
-const physicalBelt: BeltSnapshot = {
+const profiledPhysicalBelt: ProfilerSnapshot = {
   objectId: "belt_b",
   displayName: "Belt B",
+  objectType: "belt",
+  snapshotId: "20250319011500",
   timestamp: "2025-03-19T01:15:00Z",
-  totalMassTon: 54,
-  blockCount: 3,
-  qualityAverages: { q_num_fe: 1.24 },
-  blocks: [
+  dimension: 1,
+  rows: [
     {
-      position: 0,
+      ix: 0,
+      iy: 0,
+      iz: 0,
       massTon: 18,
       timestampOldestMs: 1742346000000,
       timestampNewestMs: 1742346900000,
       qualityValues: { q_num_fe: 1.2 },
     },
     {
-      position: 1,
+      ix: 1,
+      iy: 0,
+      iz: 0,
       massTon: 18,
       timestampOldestMs: 1742346000000,
       timestampNewestMs: 1742346900000,
       qualityValues: { q_num_fe: 1.24 },
     },
     {
-      position: 2,
+      ix: 2,
+      iy: 0,
+      iz: 0,
       massTon: 18,
       timestampOldestMs: 1742346000000,
       timestampNewestMs: 1742346900000,
@@ -349,8 +362,8 @@ describe("SimulatorWorkspace", () => {
         return jsonResponse(virtualBelt);
       }
 
-      if (url.endsWith("/api/live/belts/belt_b")) {
-        return jsonResponse(physicalBelt);
+      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
+        return jsonResponse(profiledPhysicalBelt);
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -370,6 +383,12 @@ describe("SimulatorWorkspace", () => {
       expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
     });
 
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/profiler/objects/belt_b/snapshots/20250319011500",
+    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/live/belts/vbelt_lane");
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/belt_b");
+
     expect(screen.getByRole("button", { name: /West reclaim/i })).toBeInTheDocument();
     expect(screen.getByText("Direct reclaim")).toBeInTheDocument();
     expect(screen.getAllByText("Virtual merge").length).toBeGreaterThan(0);
@@ -384,6 +403,9 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByText("Inspect central pile")).toBeInTheDocument();
     expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
     expect(screen.getByText("Combined mass")).toBeInTheDocument();
+    expect(screen.getAllByText("Hybrid profiler + live").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Snapshot UTC").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Current UTC").length).toBeGreaterThan(0);
     expect(screen.queryByText("Profiled properties")).not.toBeInTheDocument();
     expect(
       screen.getByLabelText("West reclaim numerical mass distribution for Fe"),

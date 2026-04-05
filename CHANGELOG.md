@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `0.01.074`
-- Active tracked version: `0.01.075`
+- Active tracked version: `0.01.076`
 
 ## Release History
+
+### 0.01.076
+
+- Added a reusable profiler-belt normalization layer so profiled downstream conveyor snapshots can be turned into the same dense belt-strip contract used by the live route without duplicating simulator-only parsing logic.
+- Updated the simulator to load downstream physical belts from the selected profiler timestep when that historical snapshot exists locally, while falling back to the current live cache for unprofiled or unresolved route belts.
+- Made the simulator route basis explicit at both card and route-summary level, so operators can see when a discharge path is fully profiler-aligned, fully live, or hybrid across mixed historical and current belt content.
 
 ### 0.01.075
 

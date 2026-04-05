@@ -37,6 +37,10 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
+import {
+  normalizeProfilerBeltSnapshot,
+  type SimulatorBeltSnapshotSource,
+} from "@/lib/profiler-belt-snapshot";
 import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import {
   buildAdaptiveFullRenderPlan,
@@ -112,6 +116,7 @@ interface SimulatorCentralObjectData {
 interface DischargeLaneCardProps {
   belt: SimulatorDischargeBelt;
   snapshot?: BeltSnapshot;
+  source?: SimulatorBeltSnapshotSource;
   quality: QualityDefinition | undefined;
   materialTimeMode: MaterialTimeMode;
   loading: boolean;
@@ -243,9 +248,18 @@ function getDefaultViewMode(dataset: SimulatorCentralObjectData): StockpileViewM
     : (dataset.viewModes[0] ?? "full");
 }
 
+function getBeltSourceLabel(source: SimulatorBeltSnapshotSource | undefined) {
+  return source === "profiler-snapshot" ? "Profiler snapshot" : "Current live snapshot";
+}
+
+function getBeltTimestampLabel(source: SimulatorBeltSnapshotSource | undefined) {
+  return source === "profiler-snapshot" ? "Snapshot UTC" : "Current UTC";
+}
+
 function SimulatorDischargeLaneCard({
   belt,
   snapshot,
+  source,
   quality,
   materialTimeMode,
   loading,
@@ -281,7 +295,11 @@ function SimulatorDischargeLaneCard({
             metrics={[
               { label: "Blocks", value: String(snapshot.blockCount) },
               { label: "Mass", value: formatMassTon(snapshot.totalMassTon) },
-              { label: "Current UTC", value: formatTimestamp(snapshot.timestamp) },
+              {
+                label: getBeltTimestampLabel(source),
+                value: formatTimestamp(snapshot.timestamp),
+              },
+              { label: "Source", value: getBeltSourceLabel(source) },
             ]}
           />
           <BeltBlockStrip
@@ -418,6 +436,9 @@ export function SimulatorWorkspace({
   const [centralError, setCentralError] = useState<string | null>(null);
   const [loadingCentral, setLoadingCentral] = useState(true);
   const [beltSnapshots, setBeltSnapshots] = useState<Record<string, BeltSnapshot>>({});
+  const [beltSources, setBeltSources] = useState<
+    Record<string, SimulatorBeltSnapshotSource>
+  >({});
   const [beltErrors, setBeltErrors] = useState<Record<string, string>>({});
   const [loadingBelts, setLoadingBelts] = useState(() =>
     buildSimulatorDischargeLanes(graph, initialSelectedObjectId).some((lane) =>
@@ -631,15 +652,65 @@ export function SimulatorWorkspace({
         ),
       ),
     ];
-
-    if (uniqueBeltIds.length === 0) {
-      return;
-    }
-
+    const profiledBeltIds = new Set(
+      index.objects
+        .filter((entry) => entry.objectType === "belt")
+        .map((entry) => entry.objectId),
+    );
     let cancelled = false;
 
-    Promise.all(
-      uniqueBeltIds.map(async (beltId) => {
+    async function loadBeltSnapshots() {
+      if (uniqueBeltIds.length === 0) {
+        if (!cancelled) {
+          startTransition(() => {
+            setBeltSnapshots({});
+            setBeltSources({});
+            setBeltErrors({});
+            setLoadingBelts(false);
+          });
+        }
+
+        return;
+      }
+
+      if (loadingSummary) {
+        return;
+      }
+
+      if (!cancelled) {
+        startTransition(() => {
+          setLoadingBelts(true);
+          setBeltSnapshots({});
+          setBeltSources({});
+          setBeltErrors({});
+        });
+      }
+
+      const loadBeltSnapshot = async (beltId: string) => {
+        const canUseProfilerSnapshot =
+          hasProfilerHistory &&
+          Boolean(effectiveSnapshotId) &&
+          profiledBeltIds.has(beltId);
+
+        if (canUseProfilerSnapshot) {
+          try {
+            const profilerSnapshot = await fetchJson<ProfilerSnapshot>(
+              `/api/profiler/objects/${beltId}/snapshots/${effectiveSnapshotId}`,
+              "Failed to load downstream profiler belt snapshot.",
+            );
+
+            return {
+              beltId,
+              snapshot: normalizeProfilerBeltSnapshot(profilerSnapshot, qualities),
+              source: "profiler-snapshot" as const,
+              error: null,
+            };
+          } catch {
+            // Fall through to the live cache when a downstream belt is not available
+            // for the selected profiler timestep.
+          }
+        }
+
         try {
           const snapshot = await fetchJson<BeltSnapshot>(
             `/api/live/belts/${beltId}`,
@@ -649,53 +720,69 @@ export function SimulatorWorkspace({
           return {
             beltId,
             snapshot,
+            source: "live" as const,
             error: null,
           };
         } catch (error) {
           return {
             beltId,
             snapshot: null,
+            source: null,
             error:
               error instanceof Error
                 ? error.message
                 : "Failed to load downstream belt snapshot.",
           };
         }
-      }),
-    )
-      .then((results) => {
-        if (cancelled) {
-          return;
+      };
+
+      const results = await Promise.all(uniqueBeltIds.map((beltId) => loadBeltSnapshot(beltId)));
+
+      if (cancelled) {
+        return;
+      }
+
+      const nextSnapshots: Record<string, BeltSnapshot> = {};
+      const nextSources: Record<string, SimulatorBeltSnapshotSource> = {};
+      const nextErrors: Record<string, string> = {};
+
+      results.forEach((result) => {
+        if (result.snapshot) {
+          nextSnapshots[result.beltId] = result.snapshot;
         }
 
-        const nextSnapshots: Record<string, BeltSnapshot> = {};
-        const nextErrors: Record<string, string> = {};
+        if (result.source) {
+          nextSources[result.beltId] = result.source;
+        }
 
-        results.forEach((result) => {
-          if (result.snapshot) {
-            nextSnapshots[result.beltId] = result.snapshot;
-          }
-
-          if (result.error) {
-            nextErrors[result.beltId] = result.error;
-          }
-        });
-
-        startTransition(() => {
-          setBeltSnapshots(nextSnapshots);
-          setBeltErrors(nextErrors);
-        });
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingBelts(false);
+        if (result.error) {
+          nextErrors[result.beltId] = result.error;
         }
       });
+
+      if (!cancelled) {
+        startTransition(() => {
+          setBeltSnapshots(nextSnapshots);
+          setBeltSources(nextSources);
+          setBeltErrors(nextErrors);
+          setLoadingBelts(false);
+        });
+      }
+    }
+
+    void loadBeltSnapshots();
 
     return () => {
       cancelled = true;
     };
-  }, [dischargeLanes]);
+  }, [
+    dischargeLanes,
+    effectiveSnapshotId,
+    hasProfilerHistory,
+    index.objects,
+    loadingSummary,
+    qualities,
+  ]);
 
   function handleSelectObject(nextObjectId: string) {
     if (nextObjectId === selectedObjectId || !pileIds.includes(nextObjectId)) {
@@ -708,6 +795,7 @@ export function SimulatorWorkspace({
     setHoveredCell(null);
     setSelectedOutputId("");
     setBeltSnapshots({});
+    setBeltSources({});
     setBeltErrors({});
     setLoadingBelts(
       buildSimulatorDischargeLanes(graph, nextObjectId).some(
@@ -875,6 +963,19 @@ export function SimulatorWorkspace({
       (sum, belt) => sum + (beltSnapshots[belt.objectId]?.totalMassTon ?? 0),
       0,
     );
+  const activeLaneSources = activeLaneBelts
+    .map((belt) => beltSources[belt.objectId])
+    .filter((source): source is SimulatorBeltSnapshotSource => Boolean(source));
+  const activeLaneUsesProfiler = activeLaneSources.includes("profiler-snapshot");
+  const activeLaneUsesLive = activeLaneSources.includes("live");
+  const activeLaneSourceLabel =
+    activeLaneUsesProfiler && activeLaneUsesLive
+      ? "Hybrid profiler + live"
+      : activeLaneUsesProfiler
+        ? "Profiler-aligned"
+        : activeLaneUsesLive
+          ? "Current live"
+          : "Pending";
   const activeLaneLoadedCount = activeLaneBelts.filter(
     (belt) => beltSnapshots[belt.objectId],
   ).length;
@@ -1120,11 +1221,26 @@ export function SimulatorWorkspace({
         ) : null}
         {loadingSummary ? <div className="loading-banner">Loading simulator history...</div> : null}
         {loadingCentral ? <div className="loading-banner">Loading central pile...</div> : null}
-        {hasProfilerHistory ? (
-          <InlineNotice tone="info" title="Downstream lanes use current transport strips">
-            The central pile follows the selected profiler timestep, but downstream conveyor
-            strips and histograms currently use live belt snapshots from the local runtime cache.
-          </InlineNotice>
+        {hasProfilerHistory && activeLaneBelts.length > 0 ? (
+          activeLaneUsesProfiler && activeLaneUsesLive ? (
+            <InlineNotice tone="warning" title="Hybrid route basis active">
+              The central pile follows the selected profiler timestep, profiled downstream
+              belts use the same stored snapshot where available, and the remaining route
+              belts fall back to current live strips from the local runtime cache.
+            </InlineNotice>
+          ) : activeLaneUsesProfiler ? (
+            <InlineNotice tone="info" title="Profiled downstream route active">
+              The central pile and the profiled downstream physical belts are following the
+              same selected profiler timestep. Unprofiled virtual transport remains structural
+              context only.
+            </InlineNotice>
+          ) : (
+            <InlineNotice tone="info" title="Downstream lanes use current transport strips">
+              The central pile follows the selected profiler timestep, but downstream conveyor
+              strips and histograms currently use live belt snapshots from the local runtime
+              cache.
+            </InlineNotice>
+          )
         ) : null}
         {inspectionQuality?.kind === "numerical" &&
         colorDomain?.mode === "adaptive-local" ? (
@@ -1191,6 +1307,10 @@ export function SimulatorWorkspace({
                   label: "Loaded belts",
                   value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
                 },
+                {
+                  label: "Route basis",
+                  value: activeLaneSourceLabel,
+                },
               ]}
             />
             {activeLaneSemantics ? (
@@ -1204,10 +1324,11 @@ export function SimulatorWorkspace({
             ) : (
               <>
                 {!activeLaneSnapshot.timestampsAligned ? (
-                  <InlineNotice tone="warning" title="Mixed live timestamps detected">
-                    The active lane combines multiple current belt snapshots that do not share
-                    exactly the same timestamp. The aggregate histogram still reflects the
-                    current route content, but timestamp alignment is not exact.
+                  <InlineNotice tone="warning" title="Mixed route timestamps detected">
+                    The active lane combines downstream belt strips that do not share exactly
+                    the same timestamp. This can happen when the route mixes selected profiler
+                    snapshots with live fallbacks, or when multiple live belt snapshots are
+                    not perfectly aligned.
                   </InlineNotice>
                 ) : null}
                 <BeltMassHistogram
@@ -1289,6 +1410,7 @@ export function SimulatorWorkspace({
                               key={`${activeLane.output.id}:direct:${belt.objectId}`}
                               belt={belt}
                               snapshot={beltSnapshots[belt.objectId]}
+                              source={beltSources[belt.objectId]}
                               quality={inspectionQuality}
                               materialTimeMode={selectedTimeMode}
                               loading={
@@ -1338,6 +1460,7 @@ export function SimulatorWorkspace({
                               key={`${activeLane.output.id}:downstream:${belt.objectId}`}
                               belt={belt}
                               snapshot={beltSnapshots[belt.objectId]}
+                              source={beltSources[belt.objectId]}
                               quality={inspectionQuality}
                               materialTimeMode={selectedTimeMode}
                               loading={
@@ -1410,11 +1533,15 @@ export function SimulatorWorkspace({
                 value: `${activeLaneLoadedCount}/${activeLaneBelts.length}`,
               },
               {
+                label: "Route basis",
+                value: activeLaneSourceLabel,
+              },
+              {
                 label: "Time alignment",
                 value: activeLaneSnapshot
                   ? activeLaneSnapshot.timestampsAligned
                     ? "Aligned"
-                    : "Mixed live timestamps"
+                    : "Mixed timestamps"
                   : "Pending",
               },
             ]}
@@ -1437,7 +1564,11 @@ export function SimulatorWorkspace({
         <RouteBasisPanel
           source={
             centralData?.source === "profiler-snapshot"
-              ? "Profiler pile snapshot + live route belts"
+              ? activeLaneUsesProfiler && activeLaneUsesLive
+                ? "Profiler pile snapshot + mixed route belts"
+                : activeLaneUsesProfiler
+                  ? "Profiler pile snapshot + profiled route belts"
+                  : "Profiler pile snapshot + live route belts"
               : centralData?.source === "current-stockpile"
                 ? "Current pile dataset + live route belts"
                 : "Pending"
@@ -1447,12 +1578,20 @@ export function SimulatorWorkspace({
           }
           timeBasis={
             centralData?.source === "profiler-snapshot"
-              ? "Selected pile timestep with current route belts"
+              ? activeLaneUsesProfiler && activeLaneUsesLive
+                ? "Selected pile timestep with live fallbacks"
+                : activeLaneUsesProfiler
+                  ? "Selected pile timestep across the profiled route"
+                  : "Selected pile timestep with current route belts"
               : centralData?.source === "current-stockpile"
                 ? "Current pile and route state"
                 : "Pending"
           }
-          note="The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
+          note={
+            centralData?.source === "profiler-snapshot" && activeLaneUsesProfiler
+              ? "Profiled downstream physical belts now follow the selected timestep when that snapshot exists locally. Unprofiled or unresolved route belts still fall back to the current cache."
+              : "The central pile can already follow historical profiler time, but downstream route belts remain current until time-aligned route history is available."
+          }
         />
         <details className="inspector-stack inspector-stack--collapsed-context">
           <summary className="section-label">Inspect central pile</summary>
