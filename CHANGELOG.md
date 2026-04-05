@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `0.01.074`
-- Active tracked version: `0.01.076`
+- Active tracked version: `0.01.077`
 
 ## Release History
+
+### 0.01.077
+
+- Reworked same-stage circuit placement so disconnected subgraphs are now treated as separate vertical groups instead of one mixed ordering pass, which improves branch readability in the shared parametric layout used by the circuit views.
+- Preserved strong vertical separation for fully connected same-stage branches while keeping the new grouping behavior for truly disconnected stage clusters, and extended layout regression coverage in both the presentation and diagram projections.
+- Added a live-route-specific belt context panel so `/live` reads more clearly around the currently inspected belt and its immediate upstream, downstream, and same-stage neighborhood instead of leaning on the generic transport semantics panel as the default explanation.
 
 ### 0.01.076
 

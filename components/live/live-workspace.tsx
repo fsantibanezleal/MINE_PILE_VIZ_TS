@@ -23,6 +23,7 @@ import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import { deriveLiveBeltRouteContext } from "@/lib/live-belt-context";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   getMaterialTimeDefinition,
@@ -103,6 +104,10 @@ export function LiveWorkspace({
     (summary) => summary.objectId === selectedBeltId,
   );
   const focusedObjectDiffersFromInspectionBelt = selectedObjectId !== selectedBeltId;
+  const inspectionBeltRouteContext = useMemo(
+    () => deriveLiveBeltRouteContext(graph, selectedBeltId),
+    [graph, selectedBeltId],
+  );
   const transportSemantics = useMemo(
     () =>
       selectedNode ? deriveTransportNodeSemantics(graph, selectedNode.id) : null,
@@ -338,6 +343,44 @@ export function LiveWorkspace({
           timeBasis="Current runtime state"
           note="This route is always belt-centric. Use graph selection for structural context, but use the inspection belt selector to choose which dense live transport strip and histogram are being read."
         />
+        {inspectionBeltRouteContext ? (
+          <RelationshipPanel
+            title="Inspection belt route context"
+            summary="This panel keeps the live route centered on the currently inspected belt and its immediate modeled neighborhood instead of on whichever object happens to be selected in the circuit context."
+            metrics={[
+              {
+                label: "Stage",
+                value: `${inspectionBeltRouteContext.stageIndex + 1}: ${inspectionBeltRouteContext.stageLabel}`,
+              },
+              {
+                label: "Receives from",
+                value: String(inspectionBeltRouteContext.upstreamNodes.length),
+              },
+              {
+                label: "Feeds into",
+                value: String(inspectionBeltRouteContext.downstreamNodes.length),
+              },
+              {
+                label: "Stage peers",
+                value: String(inspectionBeltRouteContext.stagePeers.length),
+              },
+            ]}
+            groups={[
+              {
+                label: "Upstream objects",
+                items: inspectionBeltRouteContext.upstreamNodes.map((node) => node.label),
+              },
+              {
+                label: "Downstream objects",
+                items: inspectionBeltRouteContext.downstreamNodes.map((node) => node.label),
+              },
+              {
+                label: "Stage peers",
+                items: inspectionBeltRouteContext.stagePeers.map((node) => node.label),
+              },
+            ]}
+          />
+        ) : null}
         {focusedObjectDiffersFromInspectionBelt ? (
           <RelationshipPanel
             title="Graph focus context"
@@ -358,14 +401,10 @@ export function LiveWorkspace({
             ]}
           />
         ) : null}
-        {transportSemantics ? (
+        {focusedObjectDiffersFromInspectionBelt && transportSemantics ? (
           <TransportSemanticsPanel
             semantics={transportSemantics}
-            title={
-              focusedObjectDiffersFromInspectionBelt
-                ? "Focused object semantics"
-                : "Inspection belt semantics"
-            }
+            title="Focused object semantics"
           />
         ) : null}
         <MaterialTimePanel summary={beltTimeSummary} />

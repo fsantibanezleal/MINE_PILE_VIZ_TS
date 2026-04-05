@@ -278,6 +278,68 @@ const sameStageBranchGraph: CircuitGraph = {
   ],
 };
 
+const disconnectedClustersGraph: CircuitGraph = {
+  stages: [{ index: 0, label: "Stage 1", nodeIds: ["source_a", "lane_a", "source_b", "lane_b"] }],
+  nodes: [
+    {
+      id: "source_a",
+      objectId: "source_a",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Source A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Source A",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_a",
+      objectId: "lane_a",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Lane A",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "source_b",
+      objectId: "source_b",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Source B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Source B",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_b",
+      objectId: "lane_b",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Lane B",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [
+    { id: "edge-a", source: "source_a", target: "lane_a", label: "a" },
+    { id: "edge-b", source: "source_b", target: "lane_b", label: "b" },
+  ],
+};
+
 describe("layoutCircuitGraph", () => {
   it("keeps the original node and edge counts while adding full-height stage frames", () => {
     const result = layoutCircuitGraph(graph.stages, graph.nodes, graph.edges);
@@ -358,5 +420,27 @@ describe("layoutCircuitGraph", () => {
     expect(east!.position.x).toBeLessThan(laneEast!.position.x);
     expect(west!.position.y).toBeLessThan(east!.position.y);
     expect(laneWest!.position.y).toBeLessThan(laneEast!.position.y);
+  });
+
+  it("keeps disconnected same-stage clusters separated in the diagram layout", () => {
+    const result = layoutCircuitGraph(
+      disconnectedClustersGraph.stages,
+      disconnectedClustersGraph.nodes,
+      disconnectedClustersGraph.edges,
+    );
+    const sourceA = result.nodes.find((node) => node.id === "source_a");
+    const laneA = result.nodes.find((node) => node.id === "lane_a");
+    const sourceB = result.nodes.find((node) => node.id === "source_b");
+    const laneB = result.nodes.find((node) => node.id === "lane_b");
+
+    expect(sourceA).toBeDefined();
+    expect(laneA).toBeDefined();
+    expect(sourceB).toBeDefined();
+    expect(laneB).toBeDefined();
+    expect(sourceA!.position.x).toBeLessThan(laneA!.position.x);
+    expect(sourceB!.position.x).toBeLessThan(laneB!.position.x);
+    expect(Math.abs(sourceA!.position.y - laneA!.position.y)).toBeLessThan(120);
+    expect(Math.abs(sourceB!.position.y - laneB!.position.y)).toBeLessThan(120);
+    expect(Math.abs(sourceA!.position.y - sourceB!.position.y)).toBeGreaterThan(180);
   });
 });

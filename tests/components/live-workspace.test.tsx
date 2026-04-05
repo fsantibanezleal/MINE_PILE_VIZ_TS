@@ -167,8 +167,12 @@ describe("LiveWorkspace", () => {
     expect(screen.getAllByText("Current belt snapshot")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Feed Belt" })).toBeInTheDocument();
     expect(screen.getByLabelText("Feed Belt block strip")).toBeInTheDocument();
+    expect(screen.getByText("Inspection belt route context")).toBeInTheDocument();
+    expect(screen.getByText("Downstream objects")).toBeInTheDocument();
+    expect(screen.getAllByText("Stage peers").length).toBeGreaterThan(0);
     expect(screen.getByText("Graph focus context")).toBeInTheDocument();
     expect(screen.getByText(/The graph focus is Pile A, but the dense live content below stays on Feed Belt\./)).toBeInTheDocument();
+    expect(screen.getByText("Focused object semantics")).toBeInTheDocument();
     expect(screen.queryByText("No belt block strip for this object")).not.toBeInTheDocument();
   });
 });

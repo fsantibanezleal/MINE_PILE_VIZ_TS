@@ -107,6 +107,7 @@ const STAGE_FRAME_PADDING_X = 20;
 const STAGE_FRAME_PADDING_TOP = 44;
 const STAGE_FRAME_PADDING_BOTTOM = 26;
 const MIN_VERTICAL_GAP = 28;
+const STAGE_COMPONENT_GAP = 64;
 const PRESENTATION_3D_X_SCALE = 28;
 const PRESENTATION_3D_Z_SCALE = 30;
 const STAGE_FOOTPRINT_3D_HEIGHT = 0.56;
@@ -600,6 +601,88 @@ function distributeCenters(
   return centers;
 }
 
+function distributeComponentCenters(
+  top: number,
+  bottom: number,
+  heights: number[],
+) {
+  if (heights.length === 0) {
+    return [];
+  }
+
+  if (heights.length === 1) {
+    return [(top + bottom) / 2];
+  }
+
+  const availableHeight = bottom - top;
+  const contentHeight =
+    heights.reduce((sum, height) => sum + height, 0) +
+    STAGE_COMPONENT_GAP * (heights.length - 1);
+  const extraHeight = Math.max(0, availableHeight - contentHeight);
+  const gap = STAGE_COMPONENT_GAP + extraHeight / (heights.length - 1);
+  const centers: number[] = [];
+  let cursor = top;
+
+  heights.forEach((height, index) => {
+    cursor += height / 2;
+    centers.push(cursor);
+
+    if (index < heights.length - 1) {
+      cursor += height / 2 + gap;
+    }
+  });
+
+  return centers;
+}
+
+function buildStageComponents(
+  stageNodes: CircuitNode[],
+  edgeContexts: CircuitPresentationEdgeContext[],
+) {
+  const nodeIds = new Set(stageNodes.map((node) => node.id));
+  const adjacency = new Map(stageNodes.map((node) => [node.id, new Set<string>()]));
+
+  edgeContexts.forEach((context) => {
+    if (!nodeIds.has(context.source.id) || !nodeIds.has(context.target.id)) {
+      return;
+    }
+
+    adjacency.get(context.source.id)?.add(context.target.id);
+    adjacency.get(context.target.id)?.add(context.source.id);
+  });
+
+  const components: string[][] = [];
+  const visited = new Set<string>();
+
+  stageNodes.forEach((node) => {
+    if (visited.has(node.id)) {
+      return;
+    }
+
+    const queue = [node.id];
+    const component: string[] = [];
+    visited.add(node.id);
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      component.push(currentId);
+
+      (adjacency.get(currentId) ?? new Set<string>()).forEach((neighborId) => {
+        if (visited.has(neighborId)) {
+          return;
+        }
+
+        visited.add(neighborId);
+        queue.push(neighborId);
+      });
+    }
+
+    components.push(component);
+  });
+
+  return components;
+}
+
 function buildStageNodePlacements(
   stageNodes: CircuitNode[],
   stageX: number,
@@ -703,17 +786,85 @@ function buildStageNodePlacements(
 
       return left.node.label.localeCompare(right.node.label);
     });
-  const globalCenters = distributeCenters(
-    stageBounds.top,
-    stageBounds.bottom,
-    orderedDraftNodes.map((draftNode) => draftNode.height),
+  const draftNodeById = new Map(
+    orderedDraftNodes.map((draftNode) => [draftNode.node.id, draftNode]),
   );
-  const centerByNodeId = new Map(
-    orderedDraftNodes.map((draftNode, index) => [
-      draftNode.node.id,
-      globalCenters[index]!,
-    ]),
-  );
+  const orderedComponents = buildStageComponents(stageNodes, edgeContexts)
+    .map((componentNodeIds) =>
+      componentNodeIds
+        .map((nodeId) => draftNodeById.get(nodeId))
+        .filter((draftNode): draftNode is StageLayoutNodeDraft => Boolean(draftNode))
+        .sort((left, right) => {
+          const sortDifference = left.sortHint - right.sortHint;
+
+          if (Math.abs(sortDifference) > 1e-6) {
+            return sortDifference;
+          }
+
+          if (left.level !== right.level) {
+            return left.level - right.level;
+          }
+
+          return left.node.label.localeCompare(right.node.label);
+        }),
+    )
+    .sort((left, right) => {
+      const leftHint = average(left.map((draftNode) => draftNode.sortHint));
+      const rightHint = average(right.map((draftNode) => draftNode.sortHint));
+      const sortDifference = leftHint - rightHint;
+
+      if (Math.abs(sortDifference) > 1e-6) {
+        return sortDifference;
+      }
+
+      const leftLevel = Math.min(...left.map((draftNode) => draftNode.level));
+      const rightLevel = Math.min(...right.map((draftNode) => draftNode.level));
+
+      if (leftLevel !== rightLevel) {
+        return leftLevel - rightLevel;
+      }
+
+      return left[0]?.node.label.localeCompare(right[0]?.node.label ?? "") ?? 0;
+    });
+  const centerByNodeId = new Map<string, number>();
+
+  if (orderedComponents.length <= 1) {
+    const globalCenters = distributeCenters(
+      stageBounds.top,
+      stageBounds.bottom,
+      orderedDraftNodes.map((draftNode) => draftNode.height),
+    );
+
+    orderedDraftNodes.forEach((draftNode, index) => {
+      centerByNodeId.set(draftNode.node.id, globalCenters[index] ?? frameCenterY);
+    });
+  } else {
+    const componentHeights = orderedComponents.map(
+      (componentDraftNodes) =>
+        componentDraftNodes.reduce((sum, draftNode) => sum + draftNode.height, 0) +
+        Math.max(0, componentDraftNodes.length - 1) * MIN_VERTICAL_GAP,
+    );
+    const componentCenters = distributeComponentCenters(
+      stageBounds.top,
+      stageBounds.bottom,
+      componentHeights,
+    );
+
+    orderedComponents.forEach((componentDraftNodes, index) => {
+      const componentHeight = componentHeights[index] ?? 0;
+      const componentCenter = componentCenters[index] ?? frameCenterY;
+      const componentTop = componentCenter - componentHeight / 2;
+      const localCenters = distributeCenters(
+        componentTop,
+        componentTop + componentHeight,
+        componentDraftNodes.map((draftNode) => draftNode.height),
+      );
+
+      componentDraftNodes.forEach((draftNode, nodeIndex) => {
+        centerByNodeId.set(draftNode.node.id, localCenters[nodeIndex] ?? frameCenterY);
+      });
+    });
+  }
 
   return orderedDraftNodes.map((draftNode) => {
     const centerX =

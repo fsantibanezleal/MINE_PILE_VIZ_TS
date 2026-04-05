@@ -396,6 +396,74 @@ const sameStageBranchGraph: CircuitGraph = {
   ],
 };
 
+const disconnectedClustersGraph: CircuitGraph = {
+  stages: [
+    {
+      index: 0,
+      label: "Stage cluster",
+      nodeIds: ["source_a", "lane_a", "source_b", "lane_b"],
+    },
+  ],
+  nodes: [
+    {
+      id: "source_a",
+      objectId: "source_a",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Source A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Independent source A",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_a",
+      objectId: "lane_a",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane A",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Independent lane A",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "source_b",
+      objectId: "source_b",
+      objectType: "belt",
+      objectRole: "physical",
+      label: "Source B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Independent source B",
+      inputs: [],
+      outputs: [],
+    },
+    {
+      id: "lane_b",
+      objectId: "lane_b",
+      objectType: "belt",
+      objectRole: "virtual",
+      label: "Lane B",
+      stageIndex: 0,
+      dimension: 1,
+      isProfiled: false,
+      shortDescription: "Independent lane B",
+      inputs: [],
+      outputs: [],
+    },
+  ],
+  edges: [
+    { id: "edge-a", source: "source_a", target: "lane_a", label: "a" },
+    { id: "edge-b", source: "source_b", target: "lane_b", label: "b" },
+  ],
+};
+
 describe("buildCircuitPresentation", () => {
   it("stacks disconnected objects vertically inside the same stage column", () => {
     const presentation = buildCircuitPresentation(mixedStageGraph);
@@ -463,6 +531,25 @@ describe("buildCircuitPresentation", () => {
     expect(east!.x).toBeLessThan(laneEast!.x);
     expect(west!.y).toBeLessThan(east!.y);
     expect(laneWest!.y).toBeLessThan(laneEast!.y);
+  });
+
+  it("keeps disconnected same-stage clusters separated as vertical groups", () => {
+    const presentation = buildCircuitPresentation(disconnectedClustersGraph);
+    const sourceA = presentation.nodes.find((node) => node.id === "source_a");
+    const laneA = presentation.nodes.find((node) => node.id === "lane_a");
+    const sourceB = presentation.nodes.find((node) => node.id === "source_b");
+    const laneB = presentation.nodes.find((node) => node.id === "lane_b");
+
+    expect(sourceA).toBeDefined();
+    expect(laneA).toBeDefined();
+    expect(sourceB).toBeDefined();
+    expect(laneB).toBeDefined();
+    expect(sourceA!.x).toBeLessThan(laneA!.x);
+    expect(sourceB!.x).toBeLessThan(laneB!.x);
+    expect(Math.abs(sourceA!.y - laneA!.y)).toBeLessThan(90);
+    expect(Math.abs(sourceB!.y - laneB!.y)).toBeLessThan(90);
+    expect(Math.abs(sourceA!.y - sourceB!.y)).toBeGreaterThan(170);
+    expect(Math.abs(laneA!.y - laneB!.y)).toBeGreaterThan(170);
   });
 
   it("maps 3D stage footprints as a shared top-down board", () => {
