@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.001`
+- Active tracked version: `1.00.002`
 
 ## Release History
+
+### 1.00.002
+
+- Added a complementary `Top Surface` view for `3D` piles inside the dense pile workspace, keeping the existing voxel, shell, surface, and slice views intact.
+- Added two surface-coloring modes for that view: `Top cell quality` and `Mass-weighted column quality`, so operators can read either the visible skin or one aggregated column value without changing route.
+- Extracted reusable pile-surface aggregation logic and extended renderer coverage so the new heightfield-style view stays compatible with the current `three`-based render stack.
 
 ### 1.00.001
 

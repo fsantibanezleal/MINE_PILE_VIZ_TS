@@ -45,7 +45,7 @@ The operator then moves to `/live` to inspect the current dense runtime state fr
 
 ### 3. Internal Pile Inspection
 
-The next step remains inside `/live`, but in the `Piles / VPiles` subview. A selected accumulation object is rendered according to its dimensionality. `1D` objects are shown as columns, `2D` objects as matrices, and `3D` objects as voxel-based scenes with surface-first and slice-friendly rendering modes.
+The next step remains inside `/live`, but in the `Piles / VPiles` subview. A selected accumulation object is rendered according to its dimensionality. `1D` objects are shown as columns, `2D` objects as matrices, and `3D` objects as voxel-based scenes with voxel, shell, slice, and complementary top-surface reading modes.
 
 ### 4. Historical Review
 
@@ -80,13 +80,13 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Routed workspaces | `4` |
 | User-facing focus areas | circuit, simulator, live state, profiler history |
 | Dimensional pile support | `1D`, `2D`, `3D` |
-| `3D` pile render modes | `surface`, `shell`, `full`, `slice` |
+| `3D` pile render modes | `surface`, `shell`, `full`, `slice`, `top surface` |
 | Runtime cache contract | JSON metadata + Arrow IPC tables |
 | Default local cache root | `.local/app-data/v1/` |
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.001` |
+| Release-synced version | `1.00.002` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.001` |
+| Active tracked version | `1.00.002` |
 
 ## Current Frontend Views
 
@@ -104,7 +104,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
+The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. The `3D` pile view now also exposes a complementary `Top Surface` mode, which derives one height column per occupied `(x, y)` location and colors it either from the top visible cell or from the mass-weighted quality of the full column. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
 
 ### Simulator Workspace
 
@@ -136,7 +136,7 @@ The profiler workspace is now object-and-time first. It does not redraw the circ
 
 ### Current Boundaries
 
-- The tracked `1.00.001` baseline is still local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
+- The tracked `1.00.002` baseline is still local-first; deployment packaging, desktop wrapping, and container workflows are not yet part of the shipped baseline.
 - The application expects the app-ready cache to exist before runtime; it does not generate that cache itself.
 - Very large `3D` piles already support safer rendering modes, but this is not yet a specialized high-end large-scene rendering pipeline.
 - The current documentation baseline is still growing around the app-ready contract and runtime behavior.
@@ -257,7 +257,7 @@ types/
 
 ## Current Version
 
-`1.00.001`
+`1.00.002`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

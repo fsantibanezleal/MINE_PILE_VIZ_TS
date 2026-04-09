@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
+import { buildPileSurfaceColumns } from "@/lib/pile-surface";
 import type { QualityDefinition } from "@/types/app-data";
 
 vi.mock("@react-three/fiber", () => ({
@@ -76,5 +77,43 @@ describe("Pile3DCanvas", () => {
     expect(container.querySelector("mesh")).not.toBeNull();
     expect(container.querySelector("instancedmesh")).toBeNull();
     expect(container.querySelector("axeshelper")).toBeNull();
+  });
+
+  it("renders top-surface mode as a visible heightfield mesh with per-column coloring", () => {
+    const cells = [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 12,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 0.8 },
+      },
+      {
+        ix: 0,
+        iy: 0,
+        iz: 1,
+        massTon: 10,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.2 },
+      },
+    ] as const;
+    const surfaceColumns = buildPileSurfaceColumns([...cells], quality);
+    const { container } = render(
+      <Pile3DCanvas
+        cells={[...cells]}
+        extents={{ x: 1, y: 1, z: 2 }}
+        quality={quality}
+        renderMode="top-surface"
+        surfaceColumns={surfaceColumns}
+        surfaceColorMode="column-mass-weighted"
+      />,
+    );
+
+    expect(container.querySelector("mesh")).not.toBeNull();
+    expect(container.querySelector("meshlambertmaterial")).not.toBeNull();
+    expect(container.querySelector("instancedmesh")).toBeNull();
   });
 });

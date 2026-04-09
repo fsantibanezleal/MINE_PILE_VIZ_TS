@@ -6,6 +6,11 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useTheme } from "@/components/shell/theme-provider";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
+import {
+  getPileSurfaceColumnValue,
+  type PileSurfaceColorMode,
+  type PileSurfaceColumn,
+} from "@/lib/pile-surface";
 import { getThemeCanvasPalette } from "@/lib/theme";
 import type {
   PileCellRecord,
@@ -51,6 +56,9 @@ interface Pile3DCanvasProps {
   numericDomain?: NumericColorDomain;
   onHoverCellChange?: (cell: PileCellRecord | null) => void;
   valueAccessor?: (cell: PileCellRecord) => QualityValue;
+  renderMode?: "voxels" | "top-surface";
+  surfaceColumns?: PileSurfaceColumn[];
+  surfaceColorMode?: PileSurfaceColorMode;
 }
 
 function getVoxelSize(cellCount: number) {
@@ -161,6 +169,87 @@ function buildVoxelGeometry(
   };
 }
 
+function buildSurfaceGeometry(
+  columns: PileSurfaceColumn[],
+  extents: { x: number; y: number; z: number },
+  quality: QualityDefinition | undefined,
+  numericDomain: NumericColorDomain | undefined,
+  surfaceColorMode: PileSurfaceColorMode,
+) {
+  const slabWidth = columns.length >= 10_000 ? 0.88 : 0.94;
+  let totalVertexCount = 0;
+
+  const baseGeometries = columns.map((column) => {
+    const geometry = new THREE.BoxGeometry(
+      slabWidth,
+      Math.max(column.height, 0.08),
+      slabWidth,
+    ).toNonIndexed();
+    totalVertexCount += geometry.getAttribute("position").count;
+    return geometry;
+  });
+
+  const positions = new Float32Array(totalVertexCount * 3);
+  const normals = new Float32Array(totalVertexCount * 3);
+  const colors = new Float32Array(totalVertexCount * 3);
+  const offset = new THREE.Vector3();
+  const color = new THREE.Color();
+  let vertexOffset = 0;
+
+  columns.forEach((column, columnIndex) => {
+    const baseGeometry = baseGeometries[columnIndex]!;
+    const basePositions = baseGeometry.getAttribute("position");
+    const baseNormals = baseGeometry.getAttribute("normal");
+    const vertexCount = basePositions.count;
+
+    offset.set(
+      column.ix - extents.x / 2 + 0.5,
+      -extents.z / 2 + column.height / 2,
+      column.iy - extents.y / 2 + 0.5,
+    );
+
+    color.set(
+      getQualityColor(
+        quality,
+        getPileSurfaceColumnValue(column, surfaceColorMode),
+        numericDomain,
+      ),
+    );
+
+    for (let index = 0; index < vertexCount; index += 1) {
+      const sourceOffset = index * 3;
+      const targetOffset = (vertexOffset + index) * 3;
+
+      positions[targetOffset] = basePositions.array[sourceOffset]! + offset.x;
+      positions[targetOffset + 1] = basePositions.array[sourceOffset + 1]! + offset.y;
+      positions[targetOffset + 2] = basePositions.array[sourceOffset + 2]! + offset.z;
+
+      normals[targetOffset] = baseNormals.array[sourceOffset]!;
+      normals[targetOffset + 1] = baseNormals.array[sourceOffset + 1]!;
+      normals[targetOffset + 2] = baseNormals.array[sourceOffset + 2]!;
+
+      colors[targetOffset] = color.r;
+      colors[targetOffset + 1] = color.g;
+      colors[targetOffset + 2] = color.b;
+    }
+
+    vertexOffset += vertexCount;
+    baseGeometry.dispose();
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+
+  return {
+    geometry,
+    trianglesPerColumn: totalVertexCount > 0 ? totalVertexCount / columns.length / 3 : 0,
+  };
+}
+
 function VoxelMesh({
   cells,
   extents,
@@ -214,6 +303,71 @@ function VoxelMesh({
   );
 }
 
+function SurfaceMesh({
+  columns,
+  extents,
+  quality,
+  numericDomain,
+  onHoverCellChange,
+  surfaceColorMode = "top-cell",
+}: Pick<
+  Pile3DCanvasProps,
+  | "extents"
+  | "quality"
+  | "numericDomain"
+  | "onHoverCellChange"
+  | "surfaceColorMode"
+  | "surfaceColumns"
+> & {
+  columns: PileSurfaceColumn[];
+}) {
+  const { geometry, trianglesPerColumn } = useMemo(
+    () =>
+      buildSurfaceGeometry(
+        columns,
+        extents,
+        quality,
+        numericDomain,
+        surfaceColorMode,
+      ),
+    [columns, extents, numericDomain, quality, surfaceColorMode],
+  );
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
+
+  return (
+    <mesh
+      geometry={geometry}
+      frustumCulled={false}
+      onPointerMove={(event: ThreeEvent<PointerEvent>) => {
+        if (
+          event.faceIndex === undefined ||
+          event.faceIndex === null ||
+          trianglesPerColumn <= 0
+        ) {
+          onHoverCellChange?.(null);
+          return;
+        }
+
+        const columnIndex = Math.floor(event.faceIndex / trianglesPerColumn);
+        onHoverCellChange?.(columns[columnIndex]?.topCell ?? null);
+      }}
+      onPointerOut={() => onHoverCellChange?.(null)}
+    >
+      <meshLambertMaterial
+        color="#ffffff"
+        flatShading
+        vertexColors
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
 export function Pile3DCanvas({
   cells,
   extents,
@@ -221,13 +375,24 @@ export function Pile3DCanvas({
   numericDomain,
   onHoverCellChange,
   valueAccessor,
+  renderMode = "voxels",
+  surfaceColumns,
+  surfaceColorMode = "top-cell",
 }: Pile3DCanvasProps) {
   const { theme } = useTheme();
+  const effectiveSurfaceColumns = surfaceColumns ?? [];
 
-  if (cells.length === 0) {
+  if (
+    (renderMode === "voxels" && cells.length === 0) ||
+    (renderMode === "top-surface" && effectiveSurfaceColumns.length === 0)
+  ) {
     return (
       <div className="empty-visual">
-        <p>No occupied cells are available for this view mode.</p>
+        <p>
+          {renderMode === "top-surface"
+            ? "No occupied surface columns are available for this view mode."
+            : "No occupied cells are available for this view mode."}
+        </p>
       </div>
     );
   }
@@ -265,14 +430,25 @@ export function Pile3DCanvas({
           ]}
           position={[0, -extents.z / 2 - 0.1, 0]}
         />
-        <VoxelMesh
-          cells={cells}
-          extents={extents}
-          quality={quality}
-          numericDomain={numericDomain}
-          onHoverCellChange={onHoverCellChange}
-          valueAccessor={valueAccessor}
-        />
+        {renderMode === "top-surface" ? (
+          <SurfaceMesh
+            columns={effectiveSurfaceColumns}
+            extents={extents}
+            quality={quality}
+            numericDomain={numericDomain}
+            onHoverCellChange={onHoverCellChange}
+            surfaceColorMode={surfaceColorMode}
+          />
+        ) : (
+          <VoxelMesh
+            cells={cells}
+            extents={extents}
+            quality={quality}
+            numericDomain={numericDomain}
+            onHoverCellChange={onHoverCellChange}
+            valueAccessor={valueAccessor}
+          />
+        )}
         <OrbitControls
           makeDefault
           enableDamping

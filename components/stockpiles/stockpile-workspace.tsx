@@ -13,6 +13,11 @@ import { deriveNumericColorDomain } from "@/lib/color";
 import { MassDistributionChart } from "@/components/ui/mass-distribution-chart";
 import { buildAdaptiveFullRenderPlan } from "@/lib/stockpile-rendering";
 import { buildMassDistribution } from "@/lib/mass-distribution";
+import {
+  buildPileSurfaceColumns,
+  getPileSurfaceColumnValue,
+  type PileSurfaceColorMode,
+} from "@/lib/pile-surface";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
@@ -50,6 +55,7 @@ interface StockpileWorkspaceProps {
 }
 
 type SliceAxis = "x" | "y" | "z";
+type Pile3DDisplayMode = StockpileViewMode | "top-surface";
 
 function isSameCell(left: PileCellRecord, right: PileCellRecord) {
   return left.ix === right.ix && left.iy === right.iy && left.iz === right.iz;
@@ -108,7 +114,9 @@ export function StockpileWorkspace({
   const [dataset, setDataset] = useState<PileDataset | null>(null);
   const [selectedQualityId, setSelectedQualityId] = useState(initialSelectedQualityId);
   const [selectedTimeMode, setSelectedTimeMode] = useState(initialSelectedTimeMode);
-  const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
+  const [viewMode, setViewMode] = useState<Pile3DDisplayMode>("full");
+  const [surfaceColorMode, setSurfaceColorMode] =
+    useState<PileSurfaceColorMode>("top-cell");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
@@ -222,6 +230,7 @@ export function StockpileWorkspace({
               : payload.defaultQualityId,
           );
           setViewMode(getDefaultViewMode(payload));
+          setSurfaceColorMode("top-cell");
           setSliceAxis("z");
           setSliceIndex(0);
           setHoveredCell(null);
@@ -262,6 +271,17 @@ export function StockpileWorkspace({
       dataset?.surfaceCells,
     ],
   );
+  const surfaceColumns = useMemo(
+    () =>
+      dataset && dataset.dimension === 3
+        ? buildPileSurfaceColumns(
+            dataset.cells,
+            inspectionQuality,
+            inspectionValueAccessor,
+          )
+        : [],
+    [dataset, inspectionQuality, inspectionValueAccessor],
+  );
 
   const sliceMax = Math.max(
     0,
@@ -288,7 +308,9 @@ export function StockpileWorkspace({
   }, [dataset?.cells, effectiveSliceIndex, sliceAxis]);
   const visibleCellCount =
     dataset?.dimension === 3
-      ? viewMode === "surface"
+      ? viewMode === "top-surface"
+        ? surfaceColumns.length
+        : viewMode === "surface"
         ? dataset.surfaceCells.length
         : viewMode === "shell"
           ? (dataset.shellCells.length > 0 ? dataset.shellCells : dataset.surfaceCells).length
@@ -299,6 +321,16 @@ export function StockpileWorkspace({
   const colorDomain = useMemo(() => {
     if (!dataset || !inspectionQuality || inspectionQuality.kind !== "numerical") {
       return undefined;
+    }
+
+    if (dataset.dimension === 3 && viewMode === "top-surface") {
+      return deriveNumericColorDomain(
+        surfaceColumns.map((column) => {
+          const value = getPileSurfaceColumnValue(column, surfaceColorMode);
+          return typeof value === "number" ? value : null;
+        }),
+        inspectionQuality,
+      );
     }
 
     const cellsForDomain =
@@ -329,6 +361,8 @@ export function StockpileWorkspace({
     inspectionQuality,
     inspectionValueAccessor,
     sliceCells,
+    surfaceColorMode,
+    surfaceColumns,
     viewMode,
   ]);
 
@@ -336,7 +370,9 @@ export function StockpileWorkspace({
     !dataset
       ? []
       : dataset.dimension === 3
-        ? viewMode === "surface"
+        ? viewMode === "top-surface"
+          ? surfaceColumns.map((column) => column.topCell)
+          : viewMode === "surface"
           ? dataset.surfaceCells
           : viewMode === "shell"
             ? dataset.shellCells.length > 0
@@ -373,7 +409,7 @@ export function StockpileWorkspace({
       <InlineNotice tone={loadError ? "error" : "info"} title="Current pile dataset loads on demand">
         {loadError
           ? "Select the pile again after the dataset becomes available."
-          : "Choose a stockpile to request its dense cell table only when this workspace needs it."}
+          : "Choose a pile to request its dense cell table only when this workspace needs it."}
       </InlineNotice>
     );
   } else if (dataset.dimension === 1) {
@@ -415,24 +451,28 @@ export function StockpileWorkspace({
       />
     );
   } else {
-    const cells =
-      viewMode === "surface"
-        ? dataset.surfaceCells
-        : viewMode === "shell"
-          ? dataset.shellCells.length > 0
-            ? dataset.shellCells
-            : dataset.surfaceCells
-          : fullRenderPlan.cells;
-
     content = (
       <Pile3DCanvas
         key={`${dataset.objectId}:${viewMode}:${effectiveQualityId}:${selectedTimeMode}`}
-        cells={cells}
+        cells={
+          viewMode === "top-surface"
+            ? surfaceColumns.map((column) => column.topCell)
+            : viewMode === "surface"
+              ? dataset.surfaceCells
+              : viewMode === "shell"
+                ? dataset.shellCells.length > 0
+                  ? dataset.shellCells
+                  : dataset.surfaceCells
+                : fullRenderPlan.cells
+        }
         extents={dataset.extents}
         quality={inspectionQuality}
         numericDomain={colorDomain}
         onHoverCellChange={setHoveredCell}
         valueAccessor={inspectionValueAccessor}
+        renderMode={viewMode === "top-surface" ? "top-surface" : "voxels"}
+        surfaceColumns={surfaceColumns}
+        surfaceColorMode={surfaceColorMode}
       />
     );
   }
@@ -470,17 +510,31 @@ export function StockpileWorkspace({
         {dataset?.dimension === 3 ? (
           <>
             <div className="button-row">
-              {(["surface", "shell", "full", "slice"] as StockpileViewMode[]).map((mode) => (
+              {(["surface", "shell", "full", "slice", "top-surface"] as Pile3DDisplayMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   className={`segmented-button ${viewMode === mode ? "segmented-button--active" : ""}`}
                   onClick={() => setViewMode(mode)}
                 >
-                  {mode}
+                  {mode === "top-surface" ? "top surface" : mode}
                 </button>
               ))}
             </div>
+            {viewMode === "top-surface" ? (
+              <div className="button-row">
+                {(["top-cell", "column-mass-weighted"] as PileSurfaceColorMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`segmented-button ${surfaceColorMode === mode ? "segmented-button--active" : ""}`}
+                    onClick={() => setSurfaceColorMode(mode)}
+                  >
+                    {mode === "top-cell" ? "top cell" : "mass-weighted column"}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {viewMode === "slice" ? (
               <>
                 <div className="button-row">
@@ -530,13 +584,20 @@ export function StockpileWorkspace({
             cells at stride {fullRenderPlan.stride} to keep dense local views responsive.
           </InlineNotice>
         ) : null}
-        {dataset?.dimension === 3 && viewMode !== "full" ? (
+        {dataset?.dimension === 3 && viewMode !== "full" && viewMode !== "top-surface" ? (
           <InlineNotice tone="info" title="Interior voxels are not fully exposed in this mode">
             {viewMode === "surface"
               ? "Surface mode colors only the currently visible outer layer. Switch to full mode to paint every occupied voxel when the dataset size allows it."
               : viewMode === "shell"
                 ? "Shell mode colors the exposed envelope of the pile. Switch to full mode to paint every occupied voxel when you need the full internal content."
                 : "Slice mode colors only the active cross-section. Switch to full mode to paint every occupied voxel across the full pile."}
+          </InlineNotice>
+        ) : null}
+        {dataset?.dimension === 3 && viewMode === "top-surface" ? (
+          <InlineNotice tone="info" title="Top surface mode active">
+            {surfaceColorMode === "top-cell"
+              ? "This view builds one height column per occupied (x, y) location and colors it from the top visible cell."
+              : "This view builds one height column per occupied (x, y) location and colors it from the mass-weighted quality of the full column."}
           </InlineNotice>
         ) : null}
         {viewMode === "shell" && dataset && dataset.shellCells.length === 0 && dataset.surfaceCells.length > 0 ? (
@@ -582,7 +643,10 @@ export function StockpileWorkspace({
             { label: "Mass", value: dataset ? formatMassTon(totalMass) : "Pending" },
             { label: "Surface cells", value: dataset ? String(dataset.surfaceCellCount) : "Pending" },
             { label: "View", value: dataset ? (dataset.dimension === 3 ? viewMode : `${dataset.dimension}D`) : "Pending" },
-            { label: "Rendered cells", value: String(visibleCellCount) },
+            {
+              label: viewMode === "top-surface" ? "Rendered columns" : "Rendered cells",
+              value: String(visibleCellCount),
+            },
           ]}
         />
         {isLiveVariant ? (
