@@ -12,6 +12,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Source cPanel Node.js environment (adds npm/node to PATH)
+NODEVENV="$HOME/nodevenv/public_html/minepile.fasl-work.com/24"
+if [ -f "$NODEVENV/bin/activate" ]; then
+  source "$NODEVENV/bin/activate"
+elif [ -d "$NODEVENV/bin" ]; then
+  export PATH="$NODEVENV/bin:$PATH"
+fi
+
 # Fix symlinked node_modules
 if [ -L "node_modules" ]; then
   TARGET=$(readlink -f node_modules)
