@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ElementRef,
+} from "react";
+import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useTheme } from "@/components/shell/theme-provider";
 import { getQualityColor, type NumericColorDomain } from "@/lib/color";
+import {
+  getDefaultPile3DViewpoint,
+  type Pile3DViewpoint,
+} from "@/lib/pile-viewpoint";
 import {
   getPileSurfaceColumnValue,
   type PileSurfaceColorMode,
@@ -61,6 +72,8 @@ interface Pile3DCanvasProps {
   surfaceColumns?: PileSurfaceColumn[];
   surfaceColorMode?: PileSurfaceColorMode;
   verticalCompressionFactor?: number;
+  viewpoint?: Pile3DViewpoint | null;
+  onViewpointChange?: (viewpoint: Pile3DViewpoint) => void;
 }
 
 function getVoxelSize(cellCount: number) {
@@ -89,7 +102,6 @@ function getCameraPlacement(
     y: extents.y,
     z: extents.z * verticalScale,
   };
-  const direction = new THREE.Vector3(1.2, 0.46, 1.08).normalize();
   const radius = Math.max(
     Math.sqrt(
       scaledExtents.x ** 2 + scaledExtents.y ** 2 + scaledExtents.z ** 2,
@@ -99,13 +111,35 @@ function getCameraPlacement(
   const fov = 42;
   const fitDistance = radius / Math.sin(THREE.MathUtils.degToRad(fov * 0.5));
   const distance = fitDistance * 0.9;
+  const defaultViewpoint = getDefaultPile3DViewpoint(
+    extents,
+    verticalCompressionFactor,
+  );
 
   return {
     fov,
     radius,
     distance,
-    position: direction.multiplyScalar(distance).toArray() as [number, number, number],
+    position: defaultViewpoint.position,
   };
+}
+
+function areViewpointsEqual(
+  left: Pile3DViewpoint | null | undefined,
+  right: Pile3DViewpoint | null | undefined,
+) {
+  if (!left || !right) {
+    return left === right;
+  }
+
+  return (
+    left.position.every(
+      (value, index) => Math.abs(value - right.position[index]!) < 0.0001,
+    ) &&
+    left.target.every(
+      (value, index) => Math.abs(value - right.target[index]!) < 0.0001,
+    )
+  );
 }
 
 function buildVoxelGeometry(
@@ -405,6 +439,71 @@ function SurfaceMesh({
   );
 }
 
+function Pile3DCameraControls({
+  minDistance,
+  maxDistance,
+  viewpoint,
+  onViewpointChange,
+}: {
+  minDistance: number;
+  maxDistance: number;
+  viewpoint: Pile3DViewpoint;
+  onViewpointChange?: (viewpoint: Pile3DViewpoint) => void;
+}) {
+  const { camera, invalidate } = useThree();
+  const controlsRef = useRef<ElementRef<typeof OrbitControls> | null>(null);
+  const appliedViewpointRef = useRef<Pile3DViewpoint | null>(null);
+
+  useLayoutEffect(() => {
+    const controls = controlsRef.current;
+
+    if (!controls || areViewpointsEqual(appliedViewpointRef.current, viewpoint)) {
+      return;
+    }
+
+    camera.position.set(...viewpoint.position);
+    controls.target.set(...viewpoint.target);
+    camera.lookAt(...viewpoint.target);
+    camera.updateProjectionMatrix();
+    controls.update();
+    appliedViewpointRef.current = viewpoint;
+    invalidate();
+  }, [camera, invalidate, viewpoint]);
+
+  const handleControlsChange = useCallback(() => {
+    invalidate();
+  }, [invalidate]);
+
+  const handleControlsEnd = useCallback(() => {
+    const controls = controlsRef.current;
+
+    if (!controls || !onViewpointChange) {
+      return;
+    }
+
+    const nextViewpoint: Pile3DViewpoint = {
+      position: [camera.position.x, camera.position.y, camera.position.z],
+      target: [controls.target.x, controls.target.y, controls.target.z],
+    };
+
+    appliedViewpointRef.current = nextViewpoint;
+    onViewpointChange(nextViewpoint);
+  }, [camera, onViewpointChange]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      enableDamping
+      target={viewpoint.target}
+      minDistance={minDistance}
+      maxDistance={maxDistance}
+      onChange={handleControlsChange}
+      onEnd={handleControlsEnd}
+    />
+  );
+}
+
 export function Pile3DCanvas({
   cells,
   extents,
@@ -416,9 +515,16 @@ export function Pile3DCanvas({
   surfaceColumns,
   surfaceColorMode = "top-cell",
   verticalCompressionFactor = 1,
+  viewpoint,
+  onViewpointChange,
 }: Pile3DCanvasProps) {
   const { theme } = useTheme();
   const effectiveSurfaceColumns = surfaceColumns ?? [];
+  const defaultViewpoint = getDefaultPile3DViewpoint(
+    extents,
+    verticalCompressionFactor,
+  );
+  const effectiveViewpoint = viewpoint ?? defaultViewpoint;
 
   if (
     (renderMode === "voxels" && cells.length === 0) ||
@@ -447,7 +553,7 @@ export function Pile3DCanvas({
         dpr={[1, 1.5]}
         gl={{ antialias: false, powerPreference: "high-performance" }}
         camera={{
-          position: camera.position,
+          position: effectiveViewpoint.position,
           fov: camera.fov,
           near: 0.1,
           far: camera.distance * 8,
@@ -494,10 +600,9 @@ export function Pile3DCanvas({
             verticalCompressionFactor={verticalCompressionFactor}
           />
         )}
-        <OrbitControls
-          makeDefault
-          enableDamping
-          target={[0, 0, 0]}
+        <Pile3DCameraControls
+          viewpoint={effectiveViewpoint}
+          onViewpointChange={onViewpointChange}
           minDistance={Math.max(camera.radius * 0.65, 4)}
           maxDistance={camera.distance * 3}
         />

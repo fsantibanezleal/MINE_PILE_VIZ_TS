@@ -38,10 +38,12 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
+import { getDefaultPile3DViewpoint } from "@/lib/pile-viewpoint";
 import {
   normalizeProfilerBeltSnapshot,
   type SimulatorBeltSnapshotSource,
 } from "@/lib/profiler-belt-snapshot";
+import { usePersistentPileViewpoint } from "@/lib/use-persistent-pile-viewpoint";
 import { buildMassWeightedQualitySummary } from "@/lib/quality-summary";
 import {
   buildAdaptiveFullRenderPlan,
@@ -64,6 +66,7 @@ import {
   buildHrefWithQuery,
   resolveQuerySelection,
 } from "@/lib/workspace-route-state";
+import { usePersistentVerticalCompression } from "@/lib/use-persistent-vertical-compression";
 import type {
   BeltSnapshot,
   CircuitGraph,
@@ -437,7 +440,8 @@ export function SimulatorWorkspace({
   );
   const [playing, setPlaying] = useState(false);
   const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
-  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
+  const [verticalCompressionFactor, setVerticalCompressionFactor] =
+    usePersistentVerticalCompression("simulator");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
@@ -478,6 +482,17 @@ export function SimulatorWorkspace({
     "";
   const selectedQuality = availableQualities.find(
     (quality) => quality.id === effectiveQualityId,
+  );
+  const defaultViewpoint =
+    centralData?.dimension === 3
+      ? getDefaultPile3DViewpoint(
+          centralData.extents,
+          verticalCompressionFactor,
+        )
+      : null;
+  const [pileViewpoint, setPileViewpoint] = usePersistentPileViewpoint(
+    "simulator",
+    defaultViewpoint,
   );
   const inspectionQuality =
     selectedTimeMode === "property"
@@ -636,7 +651,6 @@ export function SimulatorWorkspace({
           currentIndex >= selectedObjectRows.length - 1 ? 0 : currentIndex + 1;
         setLoadingCentral(true);
         setCentralError(null);
-        setCentralData(null);
         setHoveredCell(null);
         return selectedObjectRows[nextIndex]?.snapshotId ?? current;
       });
@@ -681,8 +695,6 @@ export function SimulatorWorkspace({
       if (!cancelled) {
         startTransition(() => {
           setLoadingBelts(true);
-          setBeltSnapshots({});
-          setBeltSources({});
           setBeltErrors({});
         });
       }
@@ -1057,7 +1069,6 @@ export function SimulatorWorkspace({
 
       centralContent = (
         <Pile3DCanvas
-          key={`${centralData.objectId}:${centralData.source}:${viewMode}:${effectiveQualityId}:${selectedTimeMode}`}
           cells={cells}
           extents={centralData.extents}
           quality={inspectionQuality}
@@ -1065,6 +1076,8 @@ export function SimulatorWorkspace({
           onHoverCellChange={setHoveredCell}
           valueAccessor={centralInspectionValueAccessor}
           verticalCompressionFactor={verticalCompressionFactor}
+          viewpoint={pileViewpoint}
+          onViewpointChange={setPileViewpoint}
         />
       );
     }
@@ -1111,7 +1124,6 @@ export function SimulatorWorkspace({
                   const nextRow = selectedObjectRows[Number(event.target.value)];
                   setLoadingCentral(true);
                   setCentralError(null);
-                  setCentralData(null);
                   setHoveredCell(null);
                   setSelectedSnapshotId(nextRow?.snapshotId ?? "");
                   setPlaying(false);
@@ -1209,8 +1221,20 @@ export function SimulatorWorkspace({
             {centralError}
           </InlineNotice>
         ) : null}
-        {loadingSummary ? <div className="loading-banner">Loading simulator history...</div> : null}
-        {loadingCentral ? <div className="loading-banner">Loading route anchor...</div> : null}
+        {loadingSummary || loadingCentral ? (
+          <div className="loading-banner-stack loading-banner-stack--overlay">
+            {loadingSummary ? (
+              <div className="loading-banner loading-banner--overlay">
+                Loading simulator history...
+              </div>
+            ) : null}
+            {loadingCentral ? (
+              <div className="loading-banner loading-banner--overlay">
+                Loading route anchor...
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {hasProfilerHistory && activeLaneBelts.length > 0 ? (
           <InlineNotice tone="info" title="Profiler-aligned downstream route">
             The simulator follows the selected profiler timestep only. Profiled downstream

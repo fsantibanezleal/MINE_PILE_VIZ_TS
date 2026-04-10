@@ -6,6 +6,7 @@
  *
  * Passenger sets PORT automatically.
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { spawn } = require("child_process");
 
 const port = process.env.PORT || 3000;

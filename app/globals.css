@@ -439,6 +439,7 @@ code {
 }
 
 .panel--canvas {
+  position: relative;
   min-height: 760px;
 }
 
@@ -2129,6 +2130,28 @@ code {
   border-radius: 16px;
   background: var(--surface-notice);
   color: var(--text-secondary);
+}
+
+.loading-banner-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loading-banner-stack--overlay {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 4;
+  width: min(380px, calc(100% - 44px));
+  pointer-events: none;
+}
+
+.loading-banner--overlay {
+  margin-bottom: 0;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
 }
 
 .notice-card {

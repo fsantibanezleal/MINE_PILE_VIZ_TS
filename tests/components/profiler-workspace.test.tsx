@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProfilerWorkspace } from "@/components/profiler/profiler-workspace";
+import { getVerticalCompressionStorageKey } from "@/lib/use-persistent-vertical-compression";
 import type {
   CircuitGraph,
   ProfilerIndex,
@@ -20,12 +21,15 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
   Pile3DCanvas: ({
     verticalCompressionFactor = 1,
+    viewpoint,
   }: {
     verticalCompressionFactor?: number;
+    viewpoint?: { position: [number, number, number] };
   }) => (
     <div
       data-testid="pile-3d-canvas"
       data-vertical-compression={String(verticalCompressionFactor)}
+      data-viewpoint-position={viewpoint?.position.join(",") ?? "none"}
     >
       3D pile
     </div>
@@ -272,6 +276,20 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
+function createDeferredJsonResponse() {
+  let resolveResponse: ((value: Response) => void) | null = null;
+  const promise = new Promise<Response>((resolve) => {
+    resolveResponse = resolve;
+  });
+
+  return {
+    promise,
+    resolve(payload: unknown) {
+      resolveResponse?.(jsonResponse(payload));
+    },
+  };
+}
+
 describe("ProfilerWorkspace", () => {
   it("renders one-object historical exploration with quality series instead of a circuit mode", async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
@@ -413,6 +431,7 @@ describe("ProfilerWorkspace", () => {
   });
 
   it("exposes vertical compression for 3D profiler snapshots", async () => {
+    window.localStorage.clear();
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -445,5 +464,79 @@ describe("ProfilerWorkspace", () => {
       "data-vertical-compression",
       "40",
     );
+  });
+
+  it("restores the stored profiler vertical compression factor", async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem(
+      getVerticalCompressionStorageKey("profiler"),
+      "21",
+    );
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(create3DPileSnapshot("20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByTestId("pile-3d-canvas");
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "21",
+    );
+    expect(screen.getByText("Effective vertical scale: 1 / 21")).toBeInTheDocument();
+  });
+
+  it("keeps the active 3D pile canvas mounted while the next profiler snapshot loads", async () => {
+    const deferredSnapshot = createDeferredJsonResponse();
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(create3DPileSnapshot("20250319011500"));
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319010000")) {
+        return deferredSnapshot.promise;
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByTestId("pile-3d-canvas");
+
+    fireEvent.change(screen.getByLabelText("Snapshot"), {
+      target: { value: "0" },
+    });
+
+    expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
+    expect(screen.getByText("Loading profiler snapshot...")).toBeInTheDocument();
+
+    deferredSnapshot.resolve(create3DPileSnapshot("20250319010000"));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/pile_a/snapshots/20250319010000",
+      );
+    });
   });
 });
