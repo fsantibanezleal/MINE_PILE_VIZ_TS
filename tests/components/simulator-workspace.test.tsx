@@ -20,7 +20,18 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
-  Pile3DCanvas: () => <div data-testid="pile-3d-canvas">3D pile</div>,
+  Pile3DCanvas: ({
+    verticalCompressionFactor = 1,
+  }: {
+    verticalCompressionFactor?: number;
+  }) => (
+    <div
+      data-testid="pile-3d-canvas"
+      data-vertical-compression={String(verticalCompressionFactor)}
+    >
+      3D pile
+    </div>
+  ),
 }));
 
 vi.mock("@/components/stockpiles/pile-anchor-frame", () => ({
@@ -379,6 +390,19 @@ describe("SimulatorWorkspace", () => {
     await waitFor(() => {
       expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
     });
+
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "1",
+    );
+    fireEvent.change(screen.getByLabelText("Vertical compression factor"), {
+      target: { value: "32" },
+    });
+    expect(screen.getByText("Effective vertical scale: 1 / 32")).toBeInTheDocument();
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "32",
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/profiler/objects/belt_b/snapshots/20250319011500",

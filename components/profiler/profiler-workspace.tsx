@@ -27,6 +27,7 @@ import { ProfilerQualitySeriesPanel } from "@/components/ui/profiler-quality-ser
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -94,6 +95,7 @@ export function ProfilerWorkspace({
   const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
   const [selectedTimeMode, setSelectedTimeMode] = useState(initialTimeMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
+  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -420,6 +422,7 @@ export function ProfilerWorkspace({
           numericDomain={detailColorDomain}
           onHoverCellChange={setHoveredCell}
           valueAccessor={inspectionValueAccessor}
+          verticalCompressionFactor={verticalCompressionFactor}
         />
       );
     }
@@ -465,6 +468,12 @@ export function ProfilerWorkspace({
           onChange={handleSelectTimeMode}
           label="Snapshot coloring"
         />
+        {detailSnapshot?.dimension === 3 ? (
+          <VerticalCompressionControl
+            value={verticalCompressionFactor}
+            onChange={setVerticalCompressionFactor}
+          />
+        ) : null}
         <label className="field">
           <span>Snapshot</span>
           <input

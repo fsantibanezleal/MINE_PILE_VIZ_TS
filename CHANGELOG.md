@@ -11,10 +11,28 @@ All notable tracked releases for this repository are recorded here.
 
 ## Release Status
 
-- Closed release baseline: `0.01.083`
-- Active tracked version: `1.00.000`
+- Closed release baseline: `1.00.000`
+- Active tracked version: `1.00.003`
 
 ## Release History
+
+### 1.00.003
+
+- Added a shared vertical-compression control for every `3D` pile view so operators can flatten tall voxel stacks by any integer factor from `1` to `1000` without changing the pile footprint.
+- Applied the same vertical scaling path to dense live piles, historical profiler pile snapshots, simulator route-anchor piles, and the complementary `Top Surface` mode so camera framing, grid placement, and colored geometry stay consistent.
+- Extracted reusable vertical-compression helpers, added a shared UI control, and extended component coverage across the stockpile/live, profiler, and simulator workspaces.
+
+### 1.00.002
+
+- Added a complementary `Top Surface` view for `3D` piles inside the dense pile workspace, keeping the existing voxel, shell, surface, and slice views intact.
+- Added two surface-coloring modes for that view: `Top cell quality` and `Mass-weighted column quality`, so operators can read either the visible skin or one aggregated column value without changing route.
+- Extracted reusable pile-surface aggregation logic and extended renderer coverage so the new heightfield-style view stays compatible with the current `three`-based render stack.
+
+### 1.00.001
+
+- Removed `Stockpiles` as a separate operator workspace because its functionality now lives in `Live State > Piles / VPiles`.
+- Kept `/stockpiles` only as a compatibility alias that redirects into the live pile subview while preserving the selected object and quality context.
+- Removed the dedicated stockpile navigation and cross-route jump target, and updated route copy, browser coverage, and operator documentation to reflect the four active workspaces.
 
 ### 1.00.000
 

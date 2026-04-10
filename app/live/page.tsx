@@ -154,7 +154,7 @@ export default async function LivePage() {
         primaryQuestion="What is physically present right now inside the current dense transport and accumulation objects?"
         uniqueEvidence="Current dense content from 06_models, split into belt/vbelt and pile/vpile subviews so the operator can inspect either ordered transport content or internal pile structure without opening another circuit view."
         useWhen="You need the latest dense runtime content, not profiler history and not topology-first reading."
-        switchWhen="Use Circuit for topology and modeled dependencies, Profiler for summarized history through time, Stockpiles for the pile-only structural route, or Simulator for profiler-based discharge playback."
+        switchWhen="Use Circuit for topology and modeled dependencies, Profiler for summarized history through time, or Simulator for profiler-based discharge playback."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <LiveRouteWorkspace

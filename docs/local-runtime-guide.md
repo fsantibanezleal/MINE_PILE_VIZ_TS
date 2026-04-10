@@ -37,8 +37,11 @@ Open:
 
 - `http://127.0.0.1:3000/circuit`
 - `http://127.0.0.1:3000/live`
-- `http://127.0.0.1:3000/stockpiles`
 - `http://127.0.0.1:3000/profiler`
+
+Legacy compatibility alias:
+
+- `http://127.0.0.1:3000/stockpiles` redirects to `/live?view=piles`
 
 ## First-Run Verification
 
@@ -47,7 +50,7 @@ Use this sequence to verify that the local cache is the one being served:
 1. Open `http://127.0.0.1:3000/api/manifest`.
 2. Confirm that `datasetLabel`, `latestTimestamp`, and `appVersion` are returned as JSON.
 3. Open `/circuit` and verify the dataset header is populated.
-4. Open `/stockpiles` and confirm that the page loads first, then requests the selected pile dataset.
+4. Open `/live?view=piles` and confirm that the page loads first, then requests the selected dense pile dataset.
 5. Open `/profiler` and confirm that the page loads first, then requests summary history and snapshots on demand.
 
 ## If The Cache Is Missing

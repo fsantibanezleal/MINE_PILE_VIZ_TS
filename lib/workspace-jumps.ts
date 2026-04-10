@@ -4,7 +4,6 @@ import type { ObjectType } from "@/types/app-data";
 export type WorkspaceRoute =
   | "circuit"
   | "live"
-  | "stockpiles"
   | "profiler"
   | "simulator";
 
@@ -25,7 +24,6 @@ interface GetWorkspaceJumpTargetsOptions {
 const WORKSPACE_JUMP_LABELS: Record<WorkspaceRoute, string> = {
   circuit: "Open Circuit",
   live: "Open Live State",
-  stockpiles: "Open Stockpiles",
   profiler: "Open Profiler",
   simulator: "Open Simulator",
 };
@@ -41,6 +39,7 @@ export function getWorkspaceJumpTargets({
     route: WorkspaceRoute;
     href: string;
     enabled: boolean;
+    query?: Record<string, string>;
   }> = [
     {
       route: "circuit",
@@ -51,11 +50,7 @@ export function getWorkspaceJumpTargets({
       route: "live",
       href: "/live",
       enabled: true,
-    },
-    {
-      route: "stockpiles",
-      href: "/stockpiles",
-      enabled: objectType === "pile",
+      query: objectType === "pile" ? { view: "piles" } : { view: "belts" },
     },
     {
       route: "profiler",
@@ -76,6 +71,7 @@ export function getWorkspaceJumpTargets({
       label: WORKSPACE_JUMP_LABELS[candidate.route],
       href: buildHrefWithQuery(candidate.href, searchParams, {
         object: objectId,
+        ...candidate.query,
       }),
     }));
 }
