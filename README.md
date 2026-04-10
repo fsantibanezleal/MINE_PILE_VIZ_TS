@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.005` |
+| Release-synced version | `1.00.006` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.005` |
+| Active tracked version | `1.00.006` |
 
 ## Current Frontend Views
 
@@ -180,6 +180,14 @@ Operator-facing startup checks and local runtime expectations are documented in 
 pnpm dev
 ```
 
+Local dev helpers:
+
+```powershell
+pnpm dev:status
+pnpm dev:stop
+pnpm dev:restart
+```
+
 Open one of the routed workspaces:
 
 - `http://127.0.0.1:3000/circuit`
@@ -257,7 +265,7 @@ types/
 
 ## Current Version
 
-`1.00.005`
+`1.00.006`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

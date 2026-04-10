@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.005`
+- Active tracked version: `1.00.006`
 
 ## Release History
+
+### 1.00.006
+
+- Wrapped `pnpm dev` in a repo-managed local server launcher that records one explicit dev-server state file under `.local/` and refuses to silently drift to another port when `3000` is already occupied.
+- Added `pnpm dev:status`, `pnpm dev:stop`, and `pnpm dev:restart` so the same repository can inspect, stop, and replace its own local Next dev process without relying on ad-hoc `taskkill` usage.
+- Updated the local runtime documentation so the preferred recovery path for duplicated or stale development servers is now part of the documented operator/developer workflow.
 
 ### 1.00.005
 
