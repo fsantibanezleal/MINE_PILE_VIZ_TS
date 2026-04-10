@@ -18,7 +18,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "validate": "pnpm lint && pnpm test"
+    "validate": "pnpm lint && pnpm test",
+    "validate:build": "pnpm validate && pnpm build",
+    "validate:full": "pnpm validate:build && pnpm test:e2e"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

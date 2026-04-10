@@ -225,6 +225,14 @@ pnpm test:e2e
 pnpm build
 ```
 
+### Combined validation helpers
+
+```powershell
+pnpm validate
+pnpm validate:build
+pnpm validate:full
+```
+
 ## Runtime Surface
 
 ### Metadata and contract entry points

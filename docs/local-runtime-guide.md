@@ -51,6 +51,14 @@ Legacy compatibility alias:
 
 - `http://127.0.0.1:3000/stockpiles` redirects to `/live?view=piles`
 
+Useful local validation helpers:
+
+```powershell
+pnpm validate
+pnpm validate:build
+pnpm validate:full
+```
+
 ## First-Run Verification
 
 Use this sequence to verify that the local cache is the one being served:
