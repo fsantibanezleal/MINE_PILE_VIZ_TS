@@ -12,9 +12,21 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.003`
+- Active tracked version: `1.00.005`
 
 ## Release History
+
+### 1.00.005
+
+- Persisted the `3D` pile point of view per workspace, so `Live > Piles / VPiles`, `Profiler`, and `Simulator` now restore their own last-used orbit camera and target on the next browser execution.
+- Removed the `3D` pile remount/reset path during historical timestep changes by keeping the current graph visible while the next profiler or simulator snapshot loads, instead of clearing the central dataset first.
+- Moved the relevant loading banners into non-layout-shifting overlays, so `play` can keep the `3D` scene stable while the next snapshot is being requested in the background.
+
+### 1.00.004
+
+- Persisted the `3D` pile vertical-compression factor per workspace, so `Live > Piles / VPiles`, `Profiler`, and `Simulator` each restore their own last-used value on the next browser execution.
+- Added a shared client-side persistence hook on top of the vertical-compression helper, keeping the stored factor clamped to the supported `1..1000` range before it reaches any renderer.
+- Extended component and browser coverage so the persisted vertical-compression behavior is validated both in mocked workspace tests and through a live-route reload flow.
 
 ### 1.00.003
 

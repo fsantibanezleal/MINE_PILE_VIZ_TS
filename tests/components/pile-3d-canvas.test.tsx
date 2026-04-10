@@ -1,5 +1,7 @@
+import { forwardRef, useImperativeHandle } from "react";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import * as THREE from "three";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
 import { buildPileSurfaceColumns } from "@/lib/pile-surface";
 import type { QualityDefinition } from "@/types/app-data";
@@ -8,12 +10,28 @@ vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="mock-three-canvas">{children}</div>
   ),
-  useThree: (selector: (state: { invalidate: () => void }) => unknown) =>
-    selector({ invalidate: vi.fn() }),
+  useThree: (
+    selector?: (state: {
+      camera: THREE.PerspectiveCamera;
+      invalidate: () => void;
+    }) => unknown,
+  ) => {
+    const state = {
+      camera: new THREE.PerspectiveCamera(),
+      invalidate: vi.fn(),
+    };
+    return typeof selector === "function" ? selector(state) : state;
+  },
 }));
 
 vi.mock("@react-three/drei", () => ({
-  OrbitControls: () => <div data-testid="orbit-controls" />,
+  OrbitControls: forwardRef(function MockOrbitControls(_, ref) {
+    useImperativeHandle(ref, () => ({
+      target: new THREE.Vector3(),
+      update: vi.fn(),
+    }));
+    return <div data-testid="orbit-controls" />;
+  }),
 }));
 
 vi.mock("@/components/shell/theme-provider", () => ({

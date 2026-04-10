@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { StockpileWorkspace } from "@/components/stockpiles/stockpile-workspace";
+import { getVerticalCompressionStorageKey } from "@/lib/use-persistent-vertical-compression";
 import type {
   ObjectRegistryEntry,
   PileDataset,
@@ -619,6 +620,7 @@ describe("StockpileWorkspace", () => {
   });
 
   it("exposes vertical compression for 3D pile views", async () => {
+    window.localStorage.clear();
     const pileA = create3DPileDataset("pile_a", "Pile A", 1.1);
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
@@ -655,5 +657,41 @@ describe("StockpileWorkspace", () => {
       "data-vertical-compression",
       "25",
     );
+  });
+
+  it("restores the stored live pile vertical compression factor", async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem(
+      getVerticalCompressionStorageKey("live-piles"),
+      "17",
+    );
+    const pileA = create3DPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/live/piles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+        variant="live"
+      />,
+    );
+
+    await screen.findByTestId("pile-3d-canvas");
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "17",
+    );
+    expect(screen.getByText("Effective vertical scale: 1 / 17")).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SimulatorWorkspace } from "@/components/simulator/simulator-workspace";
+import { getVerticalCompressionStorageKey } from "@/lib/use-persistent-vertical-compression";
 import type {
   CircuitGraph,
   PileDataset,
@@ -22,12 +23,15 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
   Pile3DCanvas: ({
     verticalCompressionFactor = 1,
+    viewpoint,
   }: {
     verticalCompressionFactor?: number;
+    viewpoint?: { position: [number, number, number] };
   }) => (
     <div
       data-testid="pile-3d-canvas"
       data-vertical-compression={String(verticalCompressionFactor)}
+      data-viewpoint-position={viewpoint?.position.join(",") ?? "none"}
     >
       3D pile
     </div>
@@ -353,8 +357,23 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
+function createDeferredJsonResponse() {
+  let resolveResponse: ((value: Response) => void) | null = null;
+  const promise = new Promise<Response>((resolve) => {
+    resolveResponse = resolve;
+  });
+
+  return {
+    promise,
+    resolve(payload: unknown) {
+      resolveResponse?.(jsonResponse(payload));
+    },
+  };
+}
+
 describe("SimulatorWorkspace", () => {
   it("centers the simulator on piles and renders the active discharge route as direct, merge, and downstream stages", async () => {
+    window.localStorage.clear();
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
 
@@ -451,5 +470,104 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getByRole("button", { name: /To CV301/i })).toBeInTheDocument();
     fireEvent.click(screen.getByText("Inspect route anchor"));
     expect(screen.getByText("Central object material time")).toBeInTheDocument();
+  });
+
+  it("restores the stored simulator vertical compression factor", async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem(
+      getVerticalCompressionStorageKey("simulator"),
+      "19",
+    );
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(profilerSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
+        return jsonResponse(virtualPileProfilerSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
+        return jsonResponse(profiledPhysicalBelt);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "19",
+    );
+    expect(screen.getByText("Effective vertical scale: 1 / 19")).toBeInTheDocument();
+  });
+
+  it("keeps the active 3D route-anchor canvas mounted while the next timestep loads", async () => {
+    const deferredSnapshot = createDeferredJsonResponse();
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(profilerSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319010000")) {
+        return deferredSnapshot.promise;
+      }
+
+      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
+        return jsonResponse(virtualPileProfilerSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
+        return jsonResponse(profiledPhysicalBelt);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Time step"), {
+      target: { value: "0" },
+    });
+
+    expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
+    expect(screen.getByText("Loading route anchor...")).toBeInTheDocument();
+
+    deferredSnapshot.resolve({
+      ...profilerSnapshot,
+      snapshotId: "20250319010000",
+      timestamp: "2025-03-19T01:00:00Z",
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/pile_a/snapshots/20250319010000",
+      );
+    });
   });
 });

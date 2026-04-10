@@ -42,6 +42,9 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
+import { getDefaultPile3DViewpoint } from "@/lib/pile-viewpoint";
+import { usePersistentPileViewpoint } from "@/lib/use-persistent-pile-viewpoint";
+import { usePersistentVerticalCompression } from "@/lib/use-persistent-vertical-compression";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -95,7 +98,8 @@ export function ProfilerWorkspace({
   const [selectedQualityId, setSelectedQualityId] = useState(initialQualityId);
   const [selectedTimeMode, setSelectedTimeMode] = useState(initialTimeMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState("");
-  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
+  const [verticalCompressionFactor, setVerticalCompressionFactor] =
+    usePersistentVerticalCompression("profiler");
   const [summaryRows, setSummaryRows] = useState<ProfilerSummaryRow[]>([]);
   const [detailSnapshot, setDetailSnapshot] = useState<ProfilerSnapshot | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -313,7 +317,18 @@ export function ProfilerWorkspace({
           dimension: selectedIndexEntry.dimension,
         }
       : null);
-  const detailExtents = detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 };
+  const detailExtents = useMemo(
+    () => (detailSnapshot ? getExtents(detailSnapshot.rows) : { x: 1, y: 1, z: 1 }),
+    [detailSnapshot],
+  );
+  const defaultViewpoint =
+    detailSnapshot?.dimension === 3
+      ? getDefaultPile3DViewpoint(detailExtents, verticalCompressionFactor)
+      : null;
+  const [pileViewpoint, setPileViewpoint] = usePersistentPileViewpoint(
+    "profiler",
+    defaultViewpoint,
+  );
   const snapshotIndex = selectedObjectRows.findIndex(
     (row) => row.snapshotId === effectiveSnapshotId,
   );
@@ -415,7 +430,6 @@ export function ProfilerWorkspace({
     } else {
       detailView = (
         <Pile3DCanvas
-          key={`${detailSnapshot.objectId}:${detailSnapshot.snapshotId}:${selectedQuality?.id ?? "none"}:${selectedTimeMode}`}
           cells={detailSnapshot.rows}
           extents={detailExtents}
           quality={inspectionQuality}
@@ -423,6 +437,8 @@ export function ProfilerWorkspace({
           onHoverCellChange={setHoveredCell}
           valueAccessor={inspectionValueAccessor}
           verticalCompressionFactor={verticalCompressionFactor}
+          viewpoint={pileViewpoint}
+          onViewpointChange={setPileViewpoint}
         />
       );
     }
@@ -543,8 +559,20 @@ export function ProfilerWorkspace({
             {detailError}
           </InlineNotice>
         ) : null}
-        {loadingSummary ? <div className="loading-banner">Loading profiler history...</div> : null}
-        {loadingDetail ? <div className="loading-banner">Loading profiler snapshot...</div> : null}
+        {loadingSummary || loadingDetail ? (
+          <div className="loading-banner-stack loading-banner-stack--overlay">
+            {loadingSummary ? (
+              <div className="loading-banner loading-banner--overlay">
+                Loading profiler history...
+              </div>
+            ) : null}
+            {loadingDetail ? (
+              <div className="loading-banner loading-banner--overlay">
+                Loading profiler snapshot...
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         {inspectionQuality?.kind === "numerical" && detailColorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
             The active summarized snapshot is using a local color domain so the

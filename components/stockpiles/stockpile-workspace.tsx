@@ -43,6 +43,9 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
+import { getDefaultPile3DViewpoint } from "@/lib/pile-viewpoint";
+import { usePersistentPileViewpoint } from "@/lib/use-persistent-pile-viewpoint";
+import { usePersistentVerticalCompression } from "@/lib/use-persistent-vertical-compression";
 import {
   buildHrefWithQuery,
   resolveQuerySelection,
@@ -118,7 +121,10 @@ export function StockpileWorkspace({
   const [viewMode, setViewMode] = useState<Pile3DDisplayMode>("full");
   const [surfaceColorMode, setSurfaceColorMode] =
     useState<PileSurfaceColorMode>("top-cell");
-  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
+  const [verticalCompressionFactor, setVerticalCompressionFactor] =
+    usePersistentVerticalCompression(
+      variant === "live" ? "live-piles" : "stockpiles",
+    );
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
@@ -139,6 +145,14 @@ export function StockpileWorkspace({
   const selectedQuality = availableQualities.find(
     (quality) => quality.id === effectiveQualityId,
   );
+  const defaultViewpoint =
+    dataset?.dimension === 3
+      ? getDefaultPile3DViewpoint(dataset.extents, verticalCompressionFactor)
+      : null;
+  const [pileViewpoint, setPileViewpoint] = usePersistentPileViewpoint(
+    variant === "live" ? "live-piles" : "stockpiles",
+    defaultViewpoint,
+  );
   const inspectionQuality =
     selectedTimeMode === "property"
       ? selectedQuality
@@ -157,7 +171,6 @@ export function StockpileWorkspace({
       return;
     }
 
-    setDataset(null);
     setLoading(true);
     setLoadError(null);
     setSelectedPileId(nextPileId);
@@ -240,6 +253,7 @@ export function StockpileWorkspace({
       })
       .catch((error: unknown) => {
         if (!cancelled) {
+          setDataset(null);
           setLoadError(
             error instanceof Error
               ? error.message
@@ -455,7 +469,6 @@ export function StockpileWorkspace({
   } else {
     content = (
       <Pile3DCanvas
-        key={`${dataset.objectId}:${viewMode}:${effectiveQualityId}:${selectedTimeMode}`}
         cells={
           viewMode === "top-surface"
             ? surfaceColumns.map((column) => column.topCell)
@@ -476,6 +489,8 @@ export function StockpileWorkspace({
         surfaceColumns={surfaceColumns}
         surfaceColorMode={surfaceColorMode}
         verticalCompressionFactor={verticalCompressionFactor}
+        viewpoint={pileViewpoint}
+        onViewpointChange={setPileViewpoint}
       />
     );
   }
@@ -613,7 +628,19 @@ export function StockpileWorkspace({
             surface layer instead.
           </InlineNotice>
         ) : null}
-        {loading ? <div className="loading-banner">Loading current pile dataset...</div> : null}
+        {loading ? (
+          <div
+            className={`loading-banner-stack ${
+              dataset ? "loading-banner-stack--overlay" : ""
+            }`}
+          >
+            <div
+              className={`loading-banner ${dataset ? "loading-banner--overlay" : ""}`}
+            >
+              Loading current pile dataset...
+            </div>
+          </div>
+        ) : null}
         {inspectionQuality?.kind === "numerical" && colorDomain?.mode === "adaptive-local" ? (
           <InlineNotice tone="info" title="View-scaled contrast active">
             The current visible cells occupy only a narrow slice of the selected inspection
