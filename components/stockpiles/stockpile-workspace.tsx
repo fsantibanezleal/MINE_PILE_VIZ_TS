@@ -28,6 +28,7 @@ import { ProfiledPropertiesPanel } from "@/components/ui/profiled-properties-pan
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -117,6 +118,7 @@ export function StockpileWorkspace({
   const [viewMode, setViewMode] = useState<Pile3DDisplayMode>("full");
   const [surfaceColorMode, setSurfaceColorMode] =
     useState<PileSurfaceColorMode>("top-cell");
+  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
@@ -473,6 +475,7 @@ export function StockpileWorkspace({
         renderMode={viewMode === "top-surface" ? "top-surface" : "voxels"}
         surfaceColumns={surfaceColumns}
         surfaceColorMode={surfaceColorMode}
+        verticalCompressionFactor={verticalCompressionFactor}
       />
     );
   }
@@ -535,6 +538,10 @@ export function StockpileWorkspace({
                 ))}
               </div>
             ) : null}
+            <VerticalCompressionControl
+              value={verticalCompressionFactor}
+              onChange={setVerticalCompressionFactor}
+            />
             {viewMode === "slice" ? (
               <>
                 <div className="button-row">

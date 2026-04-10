@@ -516,17 +516,35 @@ code {
 }
 
 .field select,
-.field input[type="range"] {
+.field input[type="range"],
+.field input[type="number"] {
   width: 100%;
 }
 
-.field select {
+.field select,
+.field input[type="number"] {
   min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-field);
   color: var(--text-primary);
+}
+
+.field__inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+  align-items: center;
+}
+
+.field__number {
+  text-align: right;
+}
+
+.field__hint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .circuit-grid {
@@ -2205,6 +2223,10 @@ code {
 
 @media (max-width: 720px) {
   .route-intent-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .field__inline {
     grid-template-columns: 1fr;
   }
 }

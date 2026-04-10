@@ -92,6 +92,34 @@ test("updates stockpile 3D colors when the selected property changes", async ({
   expect(deprecatedThreeClockWarnings).toEqual([]);
 });
 
+test("compresses the vertical scale of 3D pile views", async ({ page }) => {
+  await page.goto("/live?view=piles");
+  await expect(
+    page.getByRole("heading", { name: "Current belt and pile state" }),
+  ).toBeVisible();
+
+  const pileSelect = page.locator('label:has-text("Pile") select').first();
+  const factorInput = page.getByLabel("Vertical compression factor");
+  const canvas = page.locator(".pile-canvas canvas").first();
+
+  await pileSelect.selectOption("pile_stockpile");
+  await canvas.waitFor({ state: "visible" });
+  await page.waitForTimeout(800);
+
+  const before = await canvas.screenshot();
+  const beforeHash = crypto.createHash("sha256").update(before).digest("hex");
+
+  await factorInput.fill("25");
+  await factorInput.blur();
+  await page.waitForTimeout(800);
+
+  const after = await canvas.screenshot();
+  const afterHash = crypto.createHash("sha256").update(after).digest("hex");
+
+  expect(afterHash).not.toBe(beforeHash);
+  await expect(page.getByText("Effective vertical scale: 1 / 25")).toBeVisible();
+});
+
 test("preserves object and property context when moving between routed workspaces", async ({
   page,
 }) => {

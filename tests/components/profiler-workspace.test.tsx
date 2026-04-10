@@ -17,6 +17,21 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
+  Pile3DCanvas: ({
+    verticalCompressionFactor = 1,
+  }: {
+    verticalCompressionFactor?: number;
+  }) => (
+    <div
+      data-testid="pile-3d-canvas"
+      data-vertical-compression={String(verticalCompressionFactor)}
+    >
+      3D pile
+    </div>
+  ),
+}));
+
 const qualities: QualityDefinition[] = [
   {
     id: "q_num_fe",
@@ -208,6 +223,46 @@ function create2DPileSnapshot(snapshotId: string): ProfilerSnapshot {
   };
 }
 
+function create3DPileSnapshot(snapshotId: string): ProfilerSnapshot {
+  return {
+    objectId: "pile_a",
+    displayName: "Pile A",
+    objectType: "pile",
+    snapshotId,
+    timestamp: "2025-03-19T01:15:00Z",
+    dimension: 3,
+    rows: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 18,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.1 },
+      },
+      {
+        ix: 1,
+        iy: 0,
+        iz: 1,
+        massTon: 20,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.18 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 2,
+        massTon: 24,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: 1.3 },
+      },
+    ],
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -355,5 +410,40 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Numerical - view-scaled")).toBeInTheDocument();
     expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
     expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(1);
+  });
+
+  it("exposes vertical compression for 3D profiler snapshots", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(create3DPileSnapshot("20250319011500"));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ProfilerWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    const pileCanvas = await screen.findByTestId("pile-3d-canvas");
+    const factorInput = screen.getByLabelText("Vertical compression factor");
+
+    expect(pileCanvas).toHaveAttribute("data-vertical-compression", "1");
+
+    fireEvent.change(factorInput, {
+      target: { value: "40" },
+    });
+
+    expect(screen.getByText("Effective vertical scale: 1 / 40")).toBeInTheDocument();
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "40",
+    );
   });
 });

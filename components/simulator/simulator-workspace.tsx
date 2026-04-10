@@ -26,6 +26,7 @@ import { RelationshipPanel } from "@/components/ui/relationship-panel";
 import { RouteSemanticsPanel } from "@/components/ui/route-semantics-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
+import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { deriveNumericColorDomain } from "@/lib/color";
@@ -436,6 +437,7 @@ export function SimulatorWorkspace({
   );
   const [playing, setPlaying] = useState(false);
   const [viewMode, setViewMode] = useState<StockpileViewMode>("full");
+  const [verticalCompressionFactor, setVerticalCompressionFactor] = useState(1);
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("z");
   const [sliceIndex, setSliceIndex] = useState(0);
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
@@ -1062,6 +1064,7 @@ export function SimulatorWorkspace({
           numericDomain={colorDomain}
           onHoverCellChange={setHoveredCell}
           valueAccessor={centralInspectionValueAccessor}
+          verticalCompressionFactor={verticalCompressionFactor}
         />
       );
     }
@@ -1144,6 +1147,10 @@ export function SimulatorWorkspace({
                 </button>
               ))}
             </div>
+            <VerticalCompressionControl
+              value={verticalCompressionFactor}
+              onChange={setVerticalCompressionFactor}
+            />
             {viewMode === "slice" ? (
               <>
                 <div className="button-row">

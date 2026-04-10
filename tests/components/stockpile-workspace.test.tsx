@@ -15,6 +15,24 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock("@/components/stockpiles/pile-3d-canvas", () => ({
+  Pile3DCanvas: ({
+    verticalCompressionFactor = 1,
+    renderMode = "voxels",
+  }: {
+    verticalCompressionFactor?: number;
+    renderMode?: string;
+  }) => (
+    <div
+      data-testid="pile-3d-canvas"
+      data-render-mode={renderMode}
+      data-vertical-compression={String(verticalCompressionFactor)}
+    >
+      3D pile
+    </div>
+  ),
+}));
+
 const qualities: QualityDefinition[] = [
   {
     id: "q_num_fe",
@@ -270,6 +288,143 @@ function create2DPileDataset(objectId: string, displayName: string, fe: number):
   };
 }
 
+function create3DPileDataset(objectId: string, displayName: string, fe: number): PileDataset {
+  return {
+    objectId,
+    displayName,
+    objectRole: "physical",
+    timestamp: "2025-03-19T01:15:00Z",
+    dimension: 3,
+    extents: { x: 2, y: 2, z: 6 },
+    occupiedCellCount: 6,
+    surfaceCellCount: 4,
+    defaultQualityId: "q_num_fe",
+    availableQualityIds: ["q_num_fe"],
+    viewModes: ["surface", "shell", "full", "slice"],
+    suggestedFullStride: 1,
+    fullModeThreshold: 100,
+    qualityAverages: { q_num_fe: fe },
+    inputs: [
+      {
+        id: `${objectId}-feed`,
+        label: `${displayName} Feed`,
+        kind: "input",
+        x: 0.4,
+        y: 0.2,
+        relatedObjectId: "belt_feed",
+      },
+    ],
+    outputs: [
+      {
+        id: `${objectId}-reclaim`,
+        label: `${displayName} Reclaim`,
+        kind: "output",
+        x: 0.7,
+        y: 0.85,
+        relatedObjectId: "belt_reclaim",
+      },
+    ],
+    files: {
+      cells: `live/piles/${objectId}/cells.arrow`,
+    },
+    cells: [
+      {
+        ix: 0,
+        iy: 0,
+        iz: 0,
+        massTon: 11,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.1 },
+      },
+      {
+        ix: 0,
+        iy: 0,
+        iz: 1,
+        massTon: 12,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.04 },
+      },
+      {
+        ix: 1,
+        iy: 0,
+        iz: 2,
+        massTon: 13,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.02 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 3,
+        massTon: 14,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.08 },
+      },
+      {
+        ix: 0,
+        iy: 1,
+        iz: 4,
+        massTon: 15,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.14 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 5,
+        massTon: 16,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.2 },
+      },
+    ],
+    surfaceCells: [
+      {
+        ix: 1,
+        iy: 0,
+        iz: 2,
+        massTon: 13,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.02 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 3,
+        massTon: 14,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.08 },
+      },
+      {
+        ix: 0,
+        iy: 1,
+        iz: 4,
+        massTon: 15,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.14 },
+      },
+      {
+        ix: 1,
+        iy: 1,
+        iz: 5,
+        massTon: 16,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.2 },
+      },
+    ],
+    shellCells: [],
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -461,5 +616,44 @@ describe("StockpileWorkspace", () => {
     expect(
       screen.getByText(/This subview stays on the current dense pile snapshot from 06_models/i),
     ).toBeInTheDocument();
+  });
+
+  it("exposes vertical compression for 3D pile views", async () => {
+    const pileA = create3DPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/live/piles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+      />,
+    );
+
+    const pileCanvas = await screen.findByTestId("pile-3d-canvas");
+    const factorInput = screen.getByLabelText("Vertical compression factor");
+
+    expect(pileCanvas).toHaveAttribute("data-vertical-compression", "1");
+    expect(screen.getByText("Effective vertical scale: 1 / 1")).toBeInTheDocument();
+
+    fireEvent.change(factorInput, {
+      target: { value: "25" },
+    });
+
+    expect(screen.getByText("Effective vertical scale: 1 / 25")).toBeInTheDocument();
+    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+      "data-vertical-compression",
+      "25",
+    );
   });
 });

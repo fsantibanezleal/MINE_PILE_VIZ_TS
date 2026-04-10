@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.002`
+- Active tracked version: `1.00.003`
 
 ## Release History
+
+### 1.00.003
+
+- Added a shared vertical-compression control for every `3D` pile view so operators can flatten tall voxel stacks by any integer factor from `1` to `1000` without changing the pile footprint.
+- Applied the same vertical scaling path to dense live piles, historical profiler pile snapshots, simulator route-anchor piles, and the complementary `Top Surface` mode so camera framing, grid placement, and colored geometry stay consistent.
+- Extracted reusable vertical-compression helpers, added a shared UI control, and extended component coverage across the stockpile/live, profiler, and simulator workspaces.
 
 ### 1.00.002
 
