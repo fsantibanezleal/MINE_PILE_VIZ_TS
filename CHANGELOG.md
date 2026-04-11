@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.006`
+- Active tracked version: `1.00.007`
 
 ## Release History
+
+### 1.00.007
+
+- Extended the repo-managed local development workflow so `pnpm dev` and `pnpm dev:status` now report the owning PID and process name when port `3000` is occupied by a different local process.
+- Extracted the port-owner resolution logic into a dedicated helper and added unit coverage for the Windows and Unix parsing paths used by the workflow.
+- Tightened the local runtime documentation so the repo-managed dev-server section now explains that occupied-port feedback identifies the blocking process when the platform can resolve it.
 
 ### 1.00.006
 

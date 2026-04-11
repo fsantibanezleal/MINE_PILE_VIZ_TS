@@ -87,6 +87,8 @@ If `.local/app-data/v1/` is not the intended cache, set `APP_DATA_ROOT` explicit
 
 `pnpm dev` now stays pinned to one explicit port instead of silently jumping to another one. If the repo already has a managed dev server running, use `pnpm dev:status` to inspect it, `pnpm dev:stop` to stop it, or `pnpm dev:restart` to replace it cleanly.
 
+If the port is occupied by a different local process, the managed workflow now reports the owning PID and, when the operating system can resolve it, the corresponding process name as well.
+
 ### Raw Files Present But App Cache Missing
 
 The UI does not read the original local `data/` tree. The app-ready cache must exist independently and must match the contract in [App Data Contract](./app-data-contract.md).
