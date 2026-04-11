@@ -1,6 +1,7 @@
 import path from "node:path";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tableFromArrays, tableToIPC } from "apache-arrow";
+import { APP_VERSION } from "@/lib/app-config";
 
 async function ensureDir(target: string) {
   await mkdir(target, { recursive: true });
@@ -23,7 +24,7 @@ export async function createSampleAppData(root: string) {
 
   const manifest = {
     schemaVersion: "1.0.0",
-    appVersion: "1.00.005",
+    appVersion: APP_VERSION,
     datasetLabel: "Synthetic contract fixture",
     generatedAt: "2026-04-02T12:00:00Z",
     latestTimestamp: "2025-03-19T01:15:00Z",
