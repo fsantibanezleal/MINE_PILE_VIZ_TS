@@ -33,6 +33,14 @@ pnpm install
 pnpm dev
 ```
 
+If you need to inspect or reset the repo-managed local server:
+
+```powershell
+pnpm dev:status
+pnpm dev:stop
+pnpm dev:restart
+```
+
 Open:
 
 - `http://127.0.0.1:3000/circuit`
@@ -42,6 +50,14 @@ Open:
 Legacy compatibility alias:
 
 - `http://127.0.0.1:3000/stockpiles` redirects to `/live?view=piles`
+
+Useful local validation helpers:
+
+```powershell
+pnpm validate
+pnpm validate:build
+pnpm validate:full
+```
 
 ## First-Run Verification
 
@@ -66,6 +82,10 @@ Use a supported Node version from `package.json` and enable `pnpm` through `core
 ### Wrong Cache Root
 
 If `.local/app-data/v1/` is not the intended cache, set `APP_DATA_ROOT` explicitly before `pnpm dev`.
+
+### Repo-Managed Dev Server Already Running
+
+`pnpm dev` now stays pinned to one explicit port instead of silently jumping to another one. If the repo already has a managed dev server running, use `pnpm dev:status` to inspect it, `pnpm dev:stop` to stop it, or `pnpm dev:restart` to replace it cleanly.
 
 ### Raw Files Present But App Cache Missing
 
