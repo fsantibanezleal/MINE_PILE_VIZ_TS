@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.006` |
+| Release-synced version | `1.00.007` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.006` |
+| Active tracked version | `1.00.007` |
 
 ## Current Frontend Views
 
@@ -273,7 +273,7 @@ types/
 
 ## Current Version
 
-`1.00.006`
+`1.00.007`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.
