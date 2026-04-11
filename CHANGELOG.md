@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.009`
+- Active tracked version: `1.00.010`
 
 ## Release History
+
+### 1.00.010
+
+- Added a repo-managed cache rebuild command, `pnpm cache:rebuild`, backed by a tracked raw-data exporter script and a testable launcher that resolves Python consistently across Windows and Unix-like environments.
+- Added `pnpm validate:real-data`, which rebuilds the app-ready cache from the configured raw-data root and then runs the deep contract check against the regenerated payloads.
+- Added a manual self-hosted GitHub Actions workflow for real-data cache validation, plus runtime guidance that now points stale-cache recovery toward `pnpm cache:rebuild` instead of an ad hoc local script.
 
 ### 1.00.009
 

@@ -161,6 +161,7 @@ async function runDevCachePreflight() {
           ...error.details.map((detail) => `- ${detail}`),
           "",
           "Run `pnpm cache:check` for a repo-owned contract check before starting the app again.",
+          "Run `pnpm cache:rebuild` if the local app-ready cache needs to be regenerated from raw data.",
           "Use `SKIP_APP_CACHE_CHECK=1 pnpm dev` only if you intentionally need to bypass the preflight.",
         ].join("\n"),
       );

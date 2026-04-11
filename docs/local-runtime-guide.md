@@ -1,13 +1,13 @@
 # Local Runtime Guide
 
-This application is local-first. It does not read from `data/`, and it does not generate the app-ready cache on its own. Runtime starts only after the local app-ready cache already exists.
+This application is local-first. Runtime reads only the app-ready cache. It does not rebuild that cache during normal startup, but the repository now includes one explicit maintenance command for regenerating it from local raw data when needed.
 
 ## Local Boundaries
 
 - `data/` is local-only and ignored by Git.
 - `.local/` is local-only and ignored by Git.
 - The tracked repository reads only the app-ready cache contract.
-- Raw source-trace conversion must stay outside this repository.
+- Raw source-trace conversion is now available through one tracked maintenance script and command.
 
 ## Expected Runtime Root
 
@@ -44,8 +44,28 @@ pnpm dev:restart
 If you need to validate the current app-ready cache before opening routes:
 
 ```powershell
+pnpm cache:rebuild
 pnpm cache:check
 pnpm cache:check:deep
+```
+
+Optional rebuild overrides:
+
+```powershell
+pnpm cache:rebuild --root .local/app-data/v1-alt
+pnpm cache:rebuild --raw-root D:\path\to\raw\data
+```
+
+If the chosen Python environment is missing exporter dependencies:
+
+```powershell
+python -m pip install -r scripts/generate_actual_cache.requirements.txt
+```
+
+If the raw model state needs the reference `mineral_tracking` module and the default local fallback path is not available, set:
+
+```powershell
+$env:REFERENCE_ROOT = "D:\path\to\dgm_tracking_ds\databricks"
 ```
 
 The managed `pnpm dev` path now runs the shallow cache check before starting Next.js.  
@@ -72,6 +92,7 @@ Useful local validation helpers:
 pnpm validate
 pnpm validate:build
 pnpm validate:full
+pnpm validate:real-data
 ```
 
 ## First-Run Verification
@@ -102,12 +123,33 @@ If `.local/app-data/v1/` is not the intended cache, set `APP_DATA_ROOT` explicit
 
 `pnpm cache:check` now warns when the app-ready cache advertises a different `appVersion` than the current repository version. That is not always a hard failure, but it is a strong signal that the local cache should be rebuilt before trusting new UI behavior.
 
+### Rebuilding The Cache
+
+Use `pnpm cache:rebuild` when the current `.local/app-data/v1/` cache is missing, stale, or version-drifted. The command runs the tracked Python exporter against the configured raw-data root.
+
+The rebuild path can be redirected with:
+
+- `--root` for the generated app-ready cache target
+- `--raw-root` for a non-default raw dataset location
+- `PYTHON_BIN` if the preferred Python launcher is not discoverable from `PATH`
+- `python -m pip install -r scripts/generate_actual_cache.requirements.txt` if the selected Python environment is missing exporter dependencies
+- `REFERENCE_ROOT` if the raw model state needs the external `mineral_tracking` module and the default fallback path is not present
+
 ### CI Baseline
 
 The tracked repository now also expects GitHub Actions to run:
 
 - `pnpm validate:build`
 - `pnpm test:e2e`
+
+There is also a manual self-hosted workflow for real local datasets:
+
+- `.github/workflows/real-data-cache.yml`
+
+That workflow expects:
+
+- `MINE_PILE_VIZ_RAW_DATA_ROOT` for the raw-data tree available on the self-hosted runner
+- optionally `MINE_PILE_VIZ_REFERENCE_ROOT` if the runner does not expose the default local fallback for `mineral_tracking`
 
 ### Repo-Managed Dev Server Already Running
 

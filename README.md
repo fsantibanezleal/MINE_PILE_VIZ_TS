@@ -62,7 +62,7 @@ Mine Pile Visualizer uses a single Next.js application with App Router and a loc
 - `React Three Fiber` is used for `3D` pile rendering.
 - Tests use `Vitest` for unit and component checks and `Playwright` for route-level browser validation.
 
-The tracked repository documents and consumes the app-ready contract only. Any transformation from original local source data into `.local/app-data/v1/` must remain outside tracked code.
+The tracked repository consumes the app-ready contract at runtime, and it now also provides one explicit maintenance path for rebuilding that cache locally from the configured raw-data tree when the operator intentionally requests it.
 
 ## KPI Targets
 
@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.009` |
+| Release-synced version | `1.00.010` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.009` |
+| Active tracked version | `1.00.010` |
 
 ## Current Frontend Views
 
@@ -127,9 +127,9 @@ The profiler workspace is now object-and-time first. It does not redraw the circ
 
 - `data/` is local-only and ignored by Git.
 - `.local/` is local-only and ignored by Git.
-- The tracked repository does not keep source-trace serialization logic.
+- The tracked repository now keeps one repo-managed raw-data-to-cache rebuild command and script.
 - Runtime code depends only on the documented app-ready contract.
-- Local cache generation for sample or real datasets must stay outside tracked code.
+- Local cache generation is available only through an explicit maintenance command and is not part of normal runtime startup.
 - The UI never reads the original `data/` tree directly.
 - The routed shell now supports an operator-selectable dark or light theme, stored locally per browser.
 - `/stockpiles` is kept only as a compatibility redirect into `/live?view=piles`.
@@ -174,6 +174,31 @@ $env:APP_DATA_ROOT = "D:\path\to\app-data\v1"
 The required folder layout, JSON files, Arrow schemas, and semantics are documented in [App Data Contract](docs/app-data-contract.md).
 Operator-facing startup checks and local runtime expectations are documented in [Local Runtime Guide](docs/local-runtime-guide.md).
 
+If the cache needs to be regenerated from local raw data, use the repo-managed rebuild path:
+
+```powershell
+pnpm cache:rebuild
+```
+
+Optional overrides:
+
+```powershell
+pnpm cache:rebuild --root .local/app-data/v1-alt
+pnpm cache:rebuild --raw-root D:\path\to\raw\data
+```
+
+If the selected Python environment does not yet have the exporter dependencies, install them with:
+
+```powershell
+python -m pip install -r scripts/generate_actual_cache.requirements.txt
+```
+
+If the cached raw model state depends on the reference `mineral_tracking` module and the default local fallback path is not present, set:
+
+```powershell
+$env:REFERENCE_ROOT = "D:\path\to\dgm_tracking_ds\databricks"
+```
+
 ### 4. Run the application
 
 ```powershell
@@ -191,9 +216,13 @@ pnpm dev:restart
 Cache validation helpers:
 
 ```powershell
+pnpm cache:rebuild
 pnpm cache:check
 pnpm cache:check:deep
+pnpm validate:real-data
 ```
+
+`pnpm validate:real-data` rebuilds the app-ready cache from the configured raw-data root and then runs the deep contract check against that regenerated cache.
 
 To bypass the startup cache preflight intentionally:
 
@@ -245,6 +274,7 @@ pnpm build
 pnpm validate
 pnpm validate:build
 pnpm validate:full
+pnpm validate:real-data
 ```
 
 ## Runtime Surface
@@ -287,7 +317,7 @@ types/
 
 ## Current Version
 
-`1.00.009`
+`1.00.010`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

@@ -1,6 +1,6 @@
 {
   "name": "mine-pile-viz-ts",
-  "version": "1.00.009",
+  "version": "1.00.010",
   "private": true,
   "packageManager": "pnpm@10.7.1",
   "engines": {
@@ -12,6 +12,7 @@
     "dev:status": "tsx scripts/dev-server.ts status",
     "dev:stop": "tsx scripts/dev-server.ts stop",
     "dev:restart": "tsx scripts/dev-server.ts restart",
+    "cache:rebuild": "tsx scripts/cache-rebuild.ts",
     "cache:check": "tsx scripts/check-app-cache.ts",
     "cache:check:deep": "tsx scripts/check-app-cache.ts --deep",
     "build": "next build",
@@ -22,7 +23,8 @@
     "test:e2e": "playwright test",
     "validate": "pnpm lint && pnpm test",
     "validate:build": "pnpm validate && pnpm build",
-    "validate:full": "pnpm validate:build && pnpm test:e2e"
+    "validate:full": "pnpm validate:build && pnpm test:e2e",
+    "validate:real-data": "pnpm cache:rebuild && pnpm cache:check:deep"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
