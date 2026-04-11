@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.007`
+- Active tracked version: `1.00.008`
 
 ## Release History
+
+### 1.00.008
+
+- Added repo-owned cache validation commands: `pnpm cache:check` and `pnpm cache:check:deep`, both driven by the same runtime contract loaders the application already uses.
+- Added a dedicated app-cache check service and unit coverage so the repository can validate manifest, registry, circuit, live payloads, profiler manifests, and profiler snapshots before the app is opened.
+- Surfaced cache-version drift as an explicit warning when the app-ready manifest advertises an `appVersion` different from the current repository version, and documented the new cache-check workflow in the local runtime guide and README.
 
 ### 1.00.007
 
