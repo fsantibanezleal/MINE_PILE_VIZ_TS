@@ -3,6 +3,8 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { detectPortOwner } from "./dev-server-port-owner";
+import { runAppCacheCheck } from "@/lib/server/app-cache-check";
+import { AppDataContractError } from "@/lib/server/app-data-errors";
 
 type Command = "start" | "status" | "stop" | "restart";
 
@@ -69,6 +71,10 @@ async function startServer() {
     removeState();
   }
 
+  if (!shouldSkipAppCacheCheck()) {
+    await runDevCachePreflight();
+  }
+
   const portAvailable = await isPortAvailable(defaultPort);
   if (!portAvailable) {
     const portOwner = detectPortOwner(defaultPort);
@@ -129,6 +135,41 @@ async function startServer() {
       resolve();
     });
   });
+}
+
+async function runDevCachePreflight() {
+  try {
+    const result = await runAppCacheCheck();
+
+    if (result.warnings.length > 0) {
+      console.log(
+        [
+          "App-ready cache preflight passed with warnings.",
+          ...result.warnings.map((warning) => `- ${warning}`),
+          "",
+        ].join("\n"),
+      );
+    }
+  } catch (error) {
+    if (error instanceof AppDataContractError) {
+      console.error(
+        [
+          "App-ready cache preflight failed.",
+          error.title,
+          error.message,
+          ...(error.relativePath ? [`Affected path: ${error.relativePath}`] : []),
+          ...error.details.map((detail) => `- ${detail}`),
+          "",
+          "Run `pnpm cache:check` for a repo-owned contract check before starting the app again.",
+          "Use `SKIP_APP_CACHE_CHECK=1 pnpm dev` only if you intentionally need to bypass the preflight.",
+        ].join("\n"),
+      );
+      process.exitCode = 1;
+      process.exit();
+    }
+
+    throw error;
+  }
 }
 
 async function printStatus() {
@@ -264,6 +305,10 @@ function parsePort(rawPort: string | undefined) {
   }
 
   return parsed;
+}
+
+function shouldSkipAppCacheCheck() {
+  return process.env.SKIP_APP_CACHE_CHECK === "1";
 }
 
 function isPortAvailable(port: number) {

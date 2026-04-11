@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.008`
+- Active tracked version: `1.00.009`
 
 ## Release History
+
+### 1.00.009
+
+- Added an app-ready cache preflight to the repo-managed `pnpm dev` workflow so normal local startup now fails fast on real contract errors and surfaces warnings before Next.js starts.
+- Added GitHub Actions CI for the tracked repository workflow, covering `pnpm validate:build` and the browser-backed Playwright route suite on pushes and pull requests.
+- Documented the startup preflight, the explicit skip path for exceptional cases, and the new CI baseline in the README and local runtime guide.
 
 ### 1.00.008
 

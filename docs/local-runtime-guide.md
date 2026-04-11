@@ -48,6 +48,14 @@ pnpm cache:check
 pnpm cache:check:deep
 ```
 
+The managed `pnpm dev` path now runs the shallow cache check before starting Next.js.  
+If you intentionally need to bypass that preflight:
+
+```powershell
+$env:SKIP_APP_CACHE_CHECK = "1"
+pnpm dev
+```
+
 Open:
 
 - `http://127.0.0.1:3000/circuit`
@@ -93,6 +101,13 @@ If `.local/app-data/v1/` is not the intended cache, set `APP_DATA_ROOT` explicit
 ### Cache Version Drift
 
 `pnpm cache:check` now warns when the app-ready cache advertises a different `appVersion` than the current repository version. That is not always a hard failure, but it is a strong signal that the local cache should be rebuilt before trusting new UI behavior.
+
+### CI Baseline
+
+The tracked repository now also expects GitHub Actions to run:
+
+- `pnpm validate:build`
+- `pnpm test:e2e`
 
 ### Repo-Managed Dev Server Already Running
 
