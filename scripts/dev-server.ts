@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import { detectPortOwner } from "./dev-server-port-owner";
 
 type Command = "start" | "status" | "stop" | "restart";
 
@@ -70,9 +71,13 @@ async function startServer() {
 
   const portAvailable = await isPortAvailable(defaultPort);
   if (!portAvailable) {
+    const portOwner = detectPortOwner(defaultPort);
     console.error(
       [
         `Port ${defaultPort} is already in use.`,
+        portOwner
+          ? `- Occupied by:  PID ${portOwner.pid}${portOwner.processName ? ` (${portOwner.processName})` : ""}`
+          : "- Occupied by:  unknown local process",
         "",
         "This repo now keeps `pnpm dev` pinned to one explicit port to avoid the ambiguous",
         "double-server state that Next reports when it silently shifts to another port.",
@@ -153,6 +158,7 @@ async function printStatus() {
     console.log(
       [
         `Port ${defaultPort} is currently occupied, but there is no repo-managed state file for this workspace.`,
+        describePortOwner(defaultPort),
         "Another local process is likely using the port.",
       ].join("\n"),
     );
@@ -274,4 +280,13 @@ function isPortAvailable(port: number) {
 
     server.listen(port, "127.0.0.1");
   });
+}
+
+function describePortOwner(port: number) {
+  const portOwner = detectPortOwner(port);
+  if (!portOwner) {
+    return "- Occupied by:  unknown local process";
+  }
+
+  return `- Occupied by:  PID ${portOwner.pid}${portOwner.processName ? ` (${portOwner.processName})` : ""}`;
 }
