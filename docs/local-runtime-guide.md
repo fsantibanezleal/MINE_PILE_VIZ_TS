@@ -41,6 +41,13 @@ pnpm dev:stop
 pnpm dev:restart
 ```
 
+If you need to validate the current app-ready cache before opening routes:
+
+```powershell
+pnpm cache:check
+pnpm cache:check:deep
+```
+
 Open:
 
 - `http://127.0.0.1:3000/circuit`
@@ -82,6 +89,10 @@ Use a supported Node version from `package.json` and enable `pnpm` through `core
 ### Wrong Cache Root
 
 If `.local/app-data/v1/` is not the intended cache, set `APP_DATA_ROOT` explicitly before `pnpm dev`.
+
+### Cache Version Drift
+
+`pnpm cache:check` now warns when the app-ready cache advertises a different `appVersion` than the current repository version. That is not always a hard failure, but it is a strong signal that the local cache should be rebuilt before trusting new UI behavior.
 
 ### Repo-Managed Dev Server Already Running
 
