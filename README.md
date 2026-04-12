@@ -62,7 +62,7 @@ Mine Pile Visualizer uses a single Next.js application with App Router and a loc
 - `React Three Fiber` is used for `3D` pile rendering.
 - Tests use `Vitest` for unit and component checks and `Playwright` for route-level browser validation.
 
-The tracked repository documents and consumes the app-ready contract only. Any transformation from original local source data into `.local/app-data/v1/` must remain outside tracked code.
+The tracked repository consumes the app-ready contract at runtime, and it now also provides one explicit maintenance path for rebuilding that cache locally from the configured raw-data tree when the operator intentionally requests it.
 
 ## KPI Targets
 
@@ -86,7 +86,7 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.005` |
+| Release-synced version | `1.00.011` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,13 +94,13 @@ The tracked repository documents and consumes the app-ready contract only. Any t
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.005` |
+| Active tracked version | `1.00.011` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. The latest layout pass also pulls disconnected downstream groups toward the feeder positions that drive them, so grouped reclaim outputs read closer to the vertical center of their upstream belts instead of floating at one generic height. The `Diagram` view now inherits that same vertical ordering while using more compact cards, which makes `Diagram`, `2D`, and `3D` read as the same process board instead of three unrelated spatial guesses. The `3D` view now also starts from a centered top-down camera so the opening read matches the `2D` board before the operator begins orbiting. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. The latest layout pass also pulls disconnected downstream groups toward the feeder positions that drive them, so grouped reclaim outputs read closer to the vertical center of their upstream belts instead of floating at one generic height. The `Diagram` view now inherits that same vertical ordering while using more compact cards, which makes `Diagram`, `2D`, and `3D` read as the same process board instead of three unrelated spatial guesses. The `3D` view now starts from an oblique approximately 45-degree camera so stage depth and object height are legible immediately instead of reading first as a strict top-down board. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
 
 ### Live Workspace
 
@@ -127,9 +127,9 @@ The profiler workspace is now object-and-time first. It does not redraw the circ
 
 - `data/` is local-only and ignored by Git.
 - `.local/` is local-only and ignored by Git.
-- The tracked repository does not keep source-trace serialization logic.
+- The tracked repository now keeps one repo-managed raw-data-to-cache rebuild command and script.
 - Runtime code depends only on the documented app-ready contract.
-- Local cache generation for sample or real datasets must stay outside tracked code.
+- Local cache generation is available only through an explicit maintenance command and is not part of normal runtime startup.
 - The UI never reads the original `data/` tree directly.
 - The routed shell now supports an operator-selectable dark or light theme, stored locally per browser.
 - `/stockpiles` is kept only as a compatibility redirect into `/live?view=piles`.
@@ -174,9 +174,60 @@ $env:APP_DATA_ROOT = "D:\path\to\app-data\v1"
 The required folder layout, JSON files, Arrow schemas, and semantics are documented in [App Data Contract](docs/app-data-contract.md).
 Operator-facing startup checks and local runtime expectations are documented in [Local Runtime Guide](docs/local-runtime-guide.md).
 
+If the cache needs to be regenerated from local raw data, use the repo-managed rebuild path:
+
+```powershell
+pnpm cache:rebuild
+```
+
+Optional overrides:
+
+```powershell
+pnpm cache:rebuild --root .local/app-data/v1-alt
+pnpm cache:rebuild --raw-root D:\path\to\raw\data
+```
+
+If the selected Python environment does not yet have the exporter dependencies, install them with:
+
+```powershell
+python -m pip install -r scripts/generate_actual_cache.requirements.txt
+```
+
+If the cached raw model state depends on the reference `mineral_tracking` module and the default local fallback path is not present, set:
+
+```powershell
+$env:REFERENCE_ROOT = "D:\path\to\dgm_tracking_ds\databricks"
+```
+
 ### 4. Run the application
 
 ```powershell
+pnpm dev
+```
+
+Local dev helpers:
+
+```powershell
+pnpm dev:status
+pnpm dev:stop
+pnpm dev:restart
+```
+
+Cache validation helpers:
+
+```powershell
+pnpm cache:rebuild
+pnpm cache:check
+pnpm cache:check:deep
+pnpm validate:real-data
+```
+
+`pnpm validate:real-data` rebuilds the app-ready cache from the configured raw-data root and then runs the deep contract check against that regenerated cache.
+
+To bypass the startup cache preflight intentionally:
+
+```powershell
+$env:SKIP_APP_CACHE_CHECK = "1"
 pnpm dev
 ```
 
@@ -215,6 +266,15 @@ pnpm test:e2e
 
 ```powershell
 pnpm build
+```
+
+### Combined validation helpers
+
+```powershell
+pnpm validate
+pnpm validate:build
+pnpm validate:full
+pnpm validate:real-data
 ```
 
 ## Runtime Surface
@@ -257,7 +317,7 @@ types/
 
 ## Current Version
 
-`1.00.005`
+`1.00.011`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

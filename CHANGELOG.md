@@ -12,9 +12,44 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.005`
+- Active tracked version: `1.00.011`
 
 ## Release History
+
+### 1.00.011
+
+- Changed the full-circuit `3D` illustration to start from an oblique approximately 45-degree camera instead of a top-down board view, so stage depth and object height read immediately before the operator interacts.
+- Extracted the initial circuit `3D` camera pose into a shared pure helper and added unit coverage so the startup view remains deterministic and does not regress back to a 90-degree top view.
+
+### 1.00.010
+
+- Added a repo-managed cache rebuild command, `pnpm cache:rebuild`, backed by a tracked raw-data exporter script and a testable launcher that resolves Python consistently across Windows and Unix-like environments.
+- Added `pnpm validate:real-data`, which rebuilds the app-ready cache from the configured raw-data root and then runs the deep contract check against the regenerated payloads.
+- Added a manual self-hosted GitHub Actions workflow for real-data cache validation, plus runtime guidance that now points stale-cache recovery toward `pnpm cache:rebuild` instead of an ad hoc local script.
+
+### 1.00.009
+
+- Added an app-ready cache preflight to the repo-managed `pnpm dev` workflow so normal local startup now fails fast on real contract errors and surfaces warnings before Next.js starts.
+- Added GitHub Actions CI for the tracked repository workflow, covering `pnpm validate:build` and the browser-backed Playwright route suite on pushes and pull requests.
+- Documented the startup preflight, the explicit skip path for exceptional cases, and the new CI baseline in the README and local runtime guide.
+
+### 1.00.008
+
+- Added repo-owned cache validation commands: `pnpm cache:check` and `pnpm cache:check:deep`, both driven by the same runtime contract loaders the application already uses.
+- Added a dedicated app-cache check service and unit coverage so the repository can validate manifest, registry, circuit, live payloads, profiler manifests, and profiler snapshots before the app is opened.
+- Surfaced cache-version drift as an explicit warning when the app-ready manifest advertises an `appVersion` different from the current repository version, and documented the new cache-check workflow in the local runtime guide and README.
+
+### 1.00.007
+
+- Extended the repo-managed local development workflow so `pnpm dev` and `pnpm dev:status` now report the owning PID and process name when port `3000` is occupied by a different local process.
+- Extracted the port-owner resolution logic into a dedicated helper and added unit coverage for the Windows and Unix parsing paths used by the workflow.
+- Tightened the local runtime documentation so the repo-managed dev-server section now explains that occupied-port feedback identifies the blocking process when the platform can resolve it.
+
+### 1.00.006
+
+- Wrapped `pnpm dev` in a repo-managed local server launcher that records one explicit dev-server state file under `.local/` and refuses to silently drift to another port when `3000` is already occupied.
+- Added `pnpm dev:status`, `pnpm dev:stop`, and `pnpm dev:restart` so the same repository can inspect, stop, and replace its own local Next dev process without relying on ad-hoc `taskkill` usage.
+- Updated the local runtime documentation so the preferred recovery path for duplicated or stale development servers is now part of the documented operator/developer workflow.
 
 ### 1.00.005
 
