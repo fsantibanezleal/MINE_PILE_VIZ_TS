@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { useTheme } from "@/components/shell/theme-provider";
+import { getIllustration3dInitialCameraPose } from "@/lib/circuit-camera";
 import type { CircuitSequenceState } from "@/lib/circuit-sequence";
 import { getThemeCanvasPalette } from "@/lib/theme";
 import type { CircuitGraph } from "@/types/app-data";
@@ -606,7 +607,7 @@ function StageBase3D({
   );
 }
 
-function TopDownCameraRig({
+function AngledCameraRig({
   centerX,
   centerZ,
   spanX,
@@ -620,11 +621,10 @@ function TopDownCameraRig({
   const { camera } = useThree();
 
   useEffect(() => {
-    const radius = Math.max(spanX, spanZ);
-    const cameraHeight = Math.max(34, radius * 1.16);
+    const pose = getIllustration3dInitialCameraPose(centerX, centerZ, spanX, spanZ);
 
-    camera.position.set(centerX, cameraHeight, centerZ + 0.01);
-    camera.lookAt(centerX, 0, centerZ);
+    camera.position.set(...pose.position);
+    camera.lookAt(...pose.target);
     camera.updateProjectionMatrix();
   }, [camera, centerX, centerZ, spanX, spanZ]);
 
@@ -633,7 +633,7 @@ function TopDownCameraRig({
       makeDefault
       enableDamping
       target={[centerX, 0, centerZ]}
-      maxPolarAngle={Math.PI / 2.05}
+      maxPolarAngle={Math.PI / 2.02}
     />
   );
 }
@@ -663,6 +663,12 @@ function Illustration3D({
   const groundCenterZ = (groundMinZ + groundMaxZ) / 2;
   const groundDepth = Math.max(34, groundMaxZ - groundMinZ + 10);
   const groundCenterX = spreadX / 2 - 4;
+  const initialPose = getIllustration3dInitialCameraPose(
+    groundCenterX,
+    groundCenterZ,
+    spreadX + 20,
+    groundDepth,
+  );
   const highlightedNodeIds = sequenceState?.nodeIds ?? EMPTY_NODE_IDS;
   const highlightedEdgeIds = sequenceState?.edgeIds ?? EMPTY_EDGE_IDS;
   const hasSelection = Boolean(selectedObjectId);
@@ -688,7 +694,7 @@ function Illustration3D({
           shadows
           dpr={[1, 1.5]}
           camera={{
-            position: [groundCenterX, Math.max(34, groundDepth * 1.18), groundCenterZ + 0.01],
+            position: initialPose.position,
             fov: 40,
             near: 0.1,
             far: 320,
@@ -808,7 +814,7 @@ function Illustration3D({
               />
             );
           })}
-          <TopDownCameraRig
+          <AngledCameraRig
             centerX={groundCenterX}
             centerZ={groundCenterZ}
             spanX={spreadX + 20}

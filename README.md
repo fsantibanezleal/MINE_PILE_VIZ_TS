@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.010` |
+| Release-synced version | `1.00.011` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,13 +94,13 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.010` |
+| Active tracked version | `1.00.011` |
 
 ## Current Frontend Views
 
 ### Circuit Workspace
 
-The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. The latest layout pass also pulls disconnected downstream groups toward the feeder positions that drive them, so grouped reclaim outputs read closer to the vertical center of their upstream belts instead of floating at one generic height. The `Diagram` view now inherits that same vertical ordering while using more compact cards, which makes `Diagram`, `2D`, and `3D` read as the same process board instead of three unrelated spatial guesses. The `3D` view now also starts from a centered top-down camera so the opening read matches the `2D` board before the operator begins orbiting. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
+The circuit workspace now starts with an illustrative reading of the modeled area. It offers an operator-facing `2D` view, a matching `3D` overview, and a diagram mode for structural debugging. Physical belts are rendered as conveyor-like elements, stockpiles are rendered as pile shapes, and virtual transfer objects remain visible as conceptual markers rather than physical equipment drawings. Pile illustrations also reflect their configured feed and discharge anchors, including multiple configured feed or reclaim points on the same pile instead of collapsing them into a single generic entry or exit point. The three circuit modes now share one fixed-height stage-board layout: stages are ordered left to right with contiguous frames, disconnected objects inside the same stage are treated as separate vertical groups, and same-stage receivers move one column to the right when the flow inside the stage has explicit dependency. The latest layout pass also pulls disconnected downstream groups toward the feeder positions that drive them, so grouped reclaim outputs read closer to the vertical center of their upstream belts instead of floating at one generic height. The `Diagram` view now inherits that same vertical ordering while using more compact cards, which makes `Diagram`, `2D`, and `3D` read as the same process board instead of three unrelated spatial guesses. The `3D` view now starts from an oblique approximately 45-degree camera so stage depth and object height are legible immediately instead of reading first as a strict top-down board. The route now also states its operator question and usage boundary explicitly, reinforcing that this page is for structural reading rather than material-content inspection. The selected object now highlights its connected circuit sequence so the operator can read upstream and downstream context without switching views, and the inspection panel exposes the configured feed and discharge anchor inventories with related object labels. It also derives one explicit flow role per object, which helps the operator distinguish virtual discharge contributors, merge accumulation nodes, and measured downstream transport instead of reading them as one generic node type.
 
 ### Live Workspace
 
@@ -317,7 +317,7 @@ types/
 
 ## Current Version
 
-`1.00.010`
+`1.00.011`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.
