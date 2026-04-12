@@ -12,9 +12,14 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.010`
+- Active tracked version: `1.00.011`
 
 ## Release History
+
+### 1.00.011
+
+- Changed the full-circuit `3D` illustration to start from an oblique approximately 45-degree camera instead of a top-down board view, so stage depth and object height read immediately before the operator interacts.
+- Extracted the initial circuit `3D` camera pose into a shared pure helper and added unit coverage so the startup view remains deterministic and does not regress back to a 90-degree top view.
 
 ### 1.00.010
 
