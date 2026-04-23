@@ -40,6 +40,10 @@ import {
   PileHeatmapView,
 } from "@/components/stockpiles/pile-views";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import {
+  buildLivePileExportArtifact,
+  downloadLiveExportArtifact,
+} from "@/lib/live-export";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
   getMaterialTimeDefinition,
@@ -510,6 +514,29 @@ export function StockpileWorkspace({
   );
   const directOutputs = dataset?.outputs ?? [];
 
+  function handleExportReport() {
+    if (!dataset) {
+      return;
+    }
+
+    const artifact = buildLivePileExportArtifact({
+      dataset,
+      selectedQuality,
+      inspectionQuality,
+      selectedTimeMode,
+      materialTimeSummary,
+      visibleCellCount,
+      viewMode,
+      verticalCompressionFactor,
+      surfaceColorMode: viewMode === "top-surface" ? surfaceColorMode : null,
+      outputSnapshots,
+      outputErrors,
+      valueAccessor: inspectionValueAccessor,
+    });
+
+    downloadLiveExportArtifact(artifact);
+  }
+
   let content: ReactNode;
 
   if (!dataset) {
@@ -684,6 +711,16 @@ export function StockpileWorkspace({
             { label: "Timestamp", value: dataset ? formatTimestamp(dataset.timestamp) : "Pending" },
           ]}
         />
+        {isLiveVariant ? (
+          <button
+            type="button"
+            className="segmented-button"
+            onClick={handleExportReport}
+            disabled={!dataset}
+          >
+            Export HTML report
+          </button>
+        ) : null}
       </aside>
 
       <section className="panel panel--canvas">

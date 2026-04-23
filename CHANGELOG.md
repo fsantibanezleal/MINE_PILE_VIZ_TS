@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.016`
+- Active tracked version: `1.00.017`
 
 ## Release History
+
+### 1.00.017
+
+- Extended the exportable operator-report baseline beyond the simulator route, so `Live` can now export the active dense belt or live pile view and `Profiler` can export the selected historical object snapshot together with its tracked-quality history.
+- Added route-specific HTML report builders for live belt context, live pile direct-output evidence, and profiler historical series plus snapshot comparison, while reusing one shared report grammar for histograms, belt strips, and printable HTML structure.
+- Added unit coverage for the new report artifacts, workspace regression coverage for the new export actions, and kept the profiler route lint-clean by simplifying manual memoization that no longer paid for itself under the current React Compiler rules.
 
 ### 1.00.016
 

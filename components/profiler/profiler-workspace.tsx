@@ -43,6 +43,10 @@ import {
   getMaterialTimeValue,
   type MaterialTimeMode,
 } from "@/lib/material-time-view";
+import {
+  buildProfilerExportArtifact,
+  downloadProfilerExportArtifact,
+} from "@/lib/profiler-export";
 import { getDefaultPile3DViewpoint } from "@/lib/pile-viewpoint";
 import { usePersistentPileViewpoint } from "@/lib/use-persistent-pile-viewpoint";
 import { usePersistentVerticalCompression } from "@/lib/use-persistent-vertical-compression";
@@ -338,6 +342,28 @@ export function ProfilerWorkspace({
       ? `${snapshotIndex + 1}/${selectedObjectRows.length}`
       : "N/A";
 
+  function handleExportReport() {
+    if (!selectedSummaryRow || !detailSnapshot) {
+      return;
+    }
+
+    const artifact = buildProfilerExportArtifact({
+      rows: selectedObjectRows,
+      selectedSummaryRow,
+      detailSnapshot,
+      selectedStepLabel,
+      selectedQuality,
+      inspectionQuality,
+      selectedTimeMode,
+      verticalCompressionFactor,
+      materialTimeSummary,
+      semanticFrame,
+      valueAccessor: inspectionValueAccessor,
+    });
+
+    downloadProfilerExportArtifact(artifact);
+  }
+
   function handleSelectSnapshot(nextSnapshotId: string) {
     if (!selectedObjectRows.some((row) => row.snapshotId === nextSnapshotId)) {
       return;
@@ -349,57 +375,51 @@ export function ProfilerWorkspace({
     setDetailError(null);
   }
 
-  const inspectionValueAccessor = useMemo(
-    () =>
-      selectedTimeMode === "property"
-        ? undefined
-        : (row: PileCellRecord) =>
-            getMaterialTimeValue(
-              row,
-              selectedTimeMode,
-              selectedSummaryRow?.timestamp ?? detailSnapshot?.timestamp,
-            ),
-    [detailSnapshot?.timestamp, selectedSummaryRow?.timestamp, selectedTimeMode],
-  );
-  const detailColorDomain = useMemo(() => {
-    if (!detailSnapshot || !inspectionQuality || inspectionQuality.kind !== "numerical") {
-      return undefined;
-    }
-
-    return deriveNumericColorDomain(
-      detailSnapshot.rows.map((row) => {
-        const value = inspectionValueAccessor
-          ? inspectionValueAccessor(row)
-          : row.qualityValues[inspectionQuality.id];
-        return typeof value === "number" ? value : null;
-      }),
-      inspectionQuality,
-    );
-  }, [detailSnapshot, inspectionQuality, inspectionValueAccessor]);
+  const inspectionReferenceTimestamp =
+    selectedSummaryRow?.timestamp ?? detailSnapshot?.timestamp;
+  const inspectionValueAccessor =
+    selectedTimeMode === "property"
+      ? undefined
+      : (row: PileCellRecord) =>
+          getMaterialTimeValue(
+            row,
+            selectedTimeMode,
+            inspectionReferenceTimestamp,
+          );
+  const detailColorDomain =
+    !detailSnapshot || !inspectionQuality || inspectionQuality.kind !== "numerical"
+      ? undefined
+      : deriveNumericColorDomain(
+          detailSnapshot.rows.map((row) => {
+            const value =
+              selectedTimeMode === "property"
+                ? row.qualityValues[inspectionQuality.id]
+                : getMaterialTimeValue(
+                    row,
+                    selectedTimeMode,
+                    inspectionReferenceTimestamp,
+                  );
+            return typeof value === "number" ? value : null;
+          }),
+          inspectionQuality,
+        );
   const activeHoveredCell =
     hoveredCell &&
     detailSnapshot?.rows.some((row) => isSameCell(row, hoveredCell))
       ? hoveredCell
       : null;
-  const detailDistribution = useMemo(
-    () =>
-      detailSnapshot && inspectionQuality
-        ? buildMassDistribution(detailSnapshot.rows, inspectionQuality, {
-            valueAccessor: inspectionValueAccessor,
-          })
-        : null,
-    [detailSnapshot, inspectionQuality, inspectionValueAccessor],
-  );
-  const materialTimeSummary = useMemo(
-    () =>
-      detailSnapshot
-        ? buildMaterialTimeSummary(
-            detailSnapshot.rows,
-            selectedSummaryRow?.timestamp ?? detailSnapshot.timestamp,
-          )
-        : null,
-    [detailSnapshot, selectedSummaryRow?.timestamp],
-  );
+  const detailDistribution =
+    detailSnapshot && inspectionQuality
+      ? buildMassDistribution(detailSnapshot.rows, inspectionQuality, {
+          valueAccessor: inspectionValueAccessor,
+        })
+      : null;
+  const materialTimeSummary = detailSnapshot
+    ? buildMaterialTimeSummary(
+        detailSnapshot.rows,
+        selectedSummaryRow?.timestamp ?? detailSnapshot.timestamp,
+      )
+    : null;
 
   let detailView: ReactNode = null;
 
@@ -531,6 +551,14 @@ export function ProfilerWorkspace({
             },
           ]}
         />
+        <button
+          type="button"
+          className="segmented-button"
+          onClick={handleExportReport}
+          disabled={!selectedSummaryRow || !detailSnapshot}
+        >
+          Export HTML report
+        </button>
         <RouteBasisPanel
           source={semanticFrame.source}
           resolution={semanticFrame.resolution}
