@@ -436,6 +436,8 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getAllByText("Virtual Lane").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
+    expect(screen.getByText("Route evidence notes")).toBeInTheDocument();
+    expect(screen.getByText("Route histogram encodes")).toBeInTheDocument();
     expect(screen.getByText("Active route evidence")).toBeInTheDocument();
     expect(screen.getByText("Discharge reading context")).toBeInTheDocument();
     expect(screen.getByText("Active route context")).toBeInTheDocument();

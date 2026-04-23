@@ -29,6 +29,7 @@ import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -653,6 +654,40 @@ export function StockpileWorkspace({
             to the current pile snapshot instead of a tracked quality.
           </InlineNotice>
         ) : null}
+        <VisualEvidencePanel
+          title={isLiveVariant ? "Dense pile reading notes" : "Pile reading notes"}
+          summary={
+            isLiveVariant
+              ? "This subview stays on one current dense pile snapshot inside Live. Use these notes to read shape, color, and the current mass distribution without treating the page as a topology view."
+              : "This route stays on one current pile as a structural object. Use these notes to read shape, coloring, and pile-level evidence rather than broader route flow."
+          }
+          notes={[
+            {
+              label: "Color encodes",
+              text:
+                selectedTimeMode === "property"
+                  ? viewMode === "top-surface"
+                    ? surfaceColorMode === "top-cell"
+                      ? "The selected quality of the top visible cell in each occupied column."
+                      : "The mass-weighted selected quality of each occupied column in the top-surface view."
+                    : "The selected quality of each visible cell or voxel in the current pile snapshot."
+                  : "Represented material time relative to the current pile snapshot.",
+            },
+            {
+              label: "Shape encodes",
+              text:
+                dataset?.dimension === 3
+                  ? viewMode === "top-surface"
+                    ? "One height column per occupied (x, y) location, so the visible surface emphasizes pile form before interior detail."
+                    : "Current occupied cell geometry of the selected pile, with the chosen 3D mode controlling how much interior content is exposed."
+                  : "Current occupied cell layout of the selected pile in its native dimensionality.",
+            },
+            {
+              label: "Distribution evidence encodes",
+              text: "Mass-weighted density across all current pile cells, so the chart remains about the selected pile inventory rather than about stage flow.",
+            },
+          ]}
+        />
         <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
         {dataset ? (
           <PileAnchorFrame

@@ -27,6 +27,7 @@ import { RouteSemanticsPanel } from "@/components/ui/route-semantics-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
 import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
 import { deriveNumericColorDomain } from "@/lib/color";
@@ -1272,6 +1273,27 @@ export function SimulatorWorkspace({
                 its downstream profiled transport context.
               </p>
             </div>
+            <VisualEvidencePanel
+              title="Route evidence notes"
+              summary="The central pile stays in view only as the reclaim anchor. The main operator evidence in this route is the selected downstream discharge path."
+              notes={[
+                {
+                  label: "Color encodes",
+                  text:
+                    selectedTimeMode === "property"
+                      ? "The selected quality on the route anchor and on profiled downstream transport."
+                      : "Represented material time relative to each selected profiler snapshot on the route anchor and profiled downstream transport.",
+                },
+                {
+                  label: "Central pile encodes",
+                  text: "Route-anchor structure and reclaim geometry, not the full downstream evidence by itself.",
+                },
+                {
+                  label: "Route histogram encodes",
+                  text: "Mass-weighted evidence aggregated from the profiled downstream belts on the active discharge route at the selected timestep.",
+                },
+              ]}
+            />
             <QualityLegend quality={inspectionQuality} numericDomain={colorDomain} />
             <PileAnchorFrame
               inputs={centralData.inputs}

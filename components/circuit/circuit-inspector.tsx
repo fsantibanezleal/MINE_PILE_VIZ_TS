@@ -1,6 +1,7 @@
 "use client";
 
 import { TransportSemanticsPanel } from "@/components/ui/transport-semantics-panel";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { deriveTransportNodeSemantics } from "@/lib/transport-semantics";
@@ -100,6 +101,24 @@ export function CircuitInspector({
           <strong>{node.outputs.length}</strong>
         </div>
       </div>
+      <VisualEvidencePanel
+        title="Visual reading notes"
+        summary="Circuit stays structural. The view is meant to explain configured sequence, stage grouping, and object relationships before any detailed current or historical content reading."
+        notes={[
+          {
+            label: "Stage frames encode",
+            text: "A fixed-height left-to-right process board, so stage order reads as sequence rather than as absolute physical plant coordinates.",
+          },
+          {
+            label: "Object forms encode",
+            text: "Modeled transport and accumulation roles, not dense material content or profiled mass evidence.",
+          },
+          {
+            label: "Anchor marks encode",
+            text: "Configured feed and discharge geometry from the circuit contract, including relative position and configured span where available.",
+          },
+        ]}
+      />
       <details className="inspector-stack inspector-stack--collapsed-context">
         <summary className="section-label">Cross-route context</summary>
         {summary ? (
