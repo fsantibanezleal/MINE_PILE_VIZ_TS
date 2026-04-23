@@ -27,6 +27,7 @@ import { ProfilerQualitySeriesPanel } from "@/components/ui/profiler-quality-ser
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
@@ -596,6 +597,27 @@ export function ProfilerWorkspace({
             timestep. The figure below is historical summary, not dense current
             state from the live route.
           </p>
+          <VisualEvidencePanel
+            title="Historical reading notes"
+            summary="This route is object-and-time first. The visual below is one summarized historical snapshot, and the quality series stays tied to the selected tracked quality across time."
+            notes={[
+              {
+                label: "Color encodes",
+                text:
+                  selectedTimeMode === "property"
+                    ? "The selected tracked quality within the summarized profiler rows, bands, or cells."
+                    : "Represented material time for the summarized snapshot, while the quality series below still follows the selected tracked quality.",
+              },
+              {
+                label: "Object figure encodes",
+                text: "One summarized historical object state at the selected profiler timestep, not the dense current inventory from 06_models.",
+              },
+              {
+                label: "Series evidence encodes",
+                text: "Change of the selected quality across stored snapshots for this same profiled object.",
+              },
+            ]}
+          />
           <QualityLegend quality={inspectionQuality} numericDomain={detailColorDomain} />
           {detailView ?? (
             <InlineNotice tone="info" title="No profiler detail snapshot available">

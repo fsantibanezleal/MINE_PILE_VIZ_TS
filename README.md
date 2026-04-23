@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.011` |
+| Release-synced version | `1.00.012` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.011` |
+| Active tracked version | `1.00.012` |
 
 ## Current Frontend Views
 
@@ -213,6 +213,12 @@ pnpm dev:stop
 pnpm dev:restart
 ```
 
+Optional local PowerShell wrapper:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/local/start-local-app.ps1
+```
+
 Cache validation helpers:
 
 ```powershell
@@ -317,7 +323,7 @@ types/
 
 ## Current Version
 
-`1.00.011`
+`1.00.012`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

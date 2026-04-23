@@ -317,6 +317,8 @@ describe("ProfilerWorkspace", () => {
     await screen.findByRole("heading", { name: "Pile A" });
     expect(screen.getByText("Historical object content")).toBeInTheDocument();
     expect(screen.getByText("Quality series")).toBeInTheDocument();
+    expect(screen.getByText("Historical reading notes")).toBeInTheDocument();
+    expect(screen.getByText("Series evidence encodes")).toBeInTheDocument();
     expect(screen.queryByText("Circuit")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Object"), {

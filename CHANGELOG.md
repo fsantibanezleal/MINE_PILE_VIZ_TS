@@ -12,9 +12,16 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.011`
+- Active tracked version: `1.00.012`
 
 ## Release History
+
+### 1.00.012
+
+- Added shared workspace-level reading notes across the active operator surfaces so `Circuit`, `Live`, `Profiler`, and `Simulator` now state how to interpret their visible evidence without falling back to generic route copy alone.
+- Extended the live dense pile subview with the same evidence-note treatment, keeping `Live > Piles / VPiles` aligned with the active-workspace reading model while preserving its current dense-state focus.
+- Added reusable `VisualEvidencePanel` coverage plus workspace regression checks so the new reading cues stay visible across the touched routes.
+- Added a repo-local PowerShell helper under `scripts/local/start-local-app.ps1` so local app testing can start with an explicit wrapper around the current `pnpm dev` workflow, optional cache-root override, and dry-run validation.
 
 ### 1.00.011
 
