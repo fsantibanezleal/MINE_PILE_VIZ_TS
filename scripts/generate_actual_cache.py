@@ -588,6 +588,191 @@ def pick_profile_files(object_id: str, dim_folder: Path) -> list[Path]:
     return [deduped[key] for key in sorted(deduped)]
 
 
+def pick_sim_files(dim_folder: Path) -> list[Path]:
+    sims = dim_folder / "sims"
+    if not sims.exists():
+        return []
+
+    return sorted(path for path in sims.glob("profile_*.parquet") if path.exists())
+
+
+def infer_step_minutes(df_transport: pd.DataFrame) -> int:
+    if "timestamp" not in df_transport.columns or len(df_transport.index) < 2:
+        return 15
+
+    ordered = pd.to_datetime(df_transport["timestamp"]).sort_values()
+    diffs = ordered.diff().dropna()
+    if diffs.empty:
+        return 15
+
+    minutes = diffs.dt.total_seconds().median() / 60
+    return max(1, int(round(minutes)))
+
+
+def build_transport_rate_map(
+    objects_conf: dict[str, Any],
+    latest_transport_row: pd.Series,
+    step_minutes: int,
+) -> dict[str, dict[str, Any]]:
+    belts_conf = {
+        **objects_conf["objects"].get("belts", {}),
+        **objects_conf["objects"].get("vbelts", {}),
+    }
+    rates: dict[str, dict[str, Any]] = {}
+
+    for belt_id, belt_conf in belts_conf.items():
+        tag_ton = str(belt_conf.get("tag_ton") or "").strip()
+        if not tag_ton or tag_ton not in latest_transport_row.index:
+            continue
+
+        tons_per_step = float(latest_transport_row.get(tag_ton) or 0.0)
+        rates[belt_id] = {
+            "tonsPerStep": max(0.0, tons_per_step),
+            "tonsPerHour": max(0.0, tons_per_step) * 60 / max(step_minutes, 1),
+            "parentBeltId": belt_id,
+            "rateSource": "latest-transport",
+        }
+
+    for conf in objects_conf["objects"].get("conf_prop_belts", {}).values():
+        parent_belt_id = conf.get("belt_with_ton")
+        contributors = conf.get("contributors", [])
+        parent_conf = belts_conf.get(parent_belt_id, {})
+        parent_tag_ton = str(parent_conf.get("tag_ton") or "").strip()
+        if not parent_tag_ton or parent_tag_ton not in latest_transport_row.index:
+            continue
+
+        parent_tons = max(0.0, float(latest_transport_row.get(parent_tag_ton) or 0.0))
+        contributor_speeds: dict[str, float] = {}
+        total_speed = 0.0
+        for contributor_id in contributors:
+            contributor_conf = belts_conf.get(contributor_id, {})
+            speed_tag = str(contributor_conf.get("tag_prop") or "").strip()
+            speed = (
+                max(0.0, float(latest_transport_row.get(speed_tag) or 0.0))
+                if speed_tag and speed_tag in latest_transport_row.index
+                else 0.0
+            )
+            contributor_speeds[contributor_id] = speed
+            total_speed += speed
+
+        for contributor_id in contributors:
+            contributor_tons = (
+                parent_tons * contributor_speeds[contributor_id] / total_speed
+                if total_speed > 0
+                else 0.0
+            )
+            rates[contributor_id] = {
+                "tonsPerStep": contributor_tons,
+                "tonsPerHour": contributor_tons * 60 / max(step_minutes, 1),
+                "parentBeltId": parent_belt_id,
+                "rateSource": "latest-transport",
+            }
+
+    return rates
+
+
+def is_inside_output_footprint(
+    record: dict[str, Any],
+    output: dict[str, Any],
+    extents: dict[str, int],
+) -> bool:
+    x_extent = max(int(extents.get("x", 1)), 1)
+    y_extent = max(int(extents.get("y", 1)), 1)
+    record_x = (int(record.get("ix", 0)) + 0.5) / x_extent
+    record_y = (int(record.get("iy", 0)) + 0.5) / y_extent
+    span_x = max(float(output.get("spanX", 0.1) or 0.1), 0.01) / 2
+    span_y = max(float(output.get("spanY", 0.1) or 0.1), 0.01) / 2
+    return abs(record_x - float(output["x"])) <= span_x and abs(record_y - float(output["y"])) <= span_y
+
+
+def normalized_distance(
+    record: dict[str, Any],
+    output: dict[str, Any],
+    extents: dict[str, int],
+) -> float:
+    x_extent = max(int(extents.get("x", 1)), 1)
+    y_extent = max(int(extents.get("y", 1)), 1)
+    record_x = (int(record.get("ix", 0)) + 0.5) / x_extent
+    record_y = (int(record.get("iy", 0)) + 0.5) / y_extent
+    return math.hypot(record_x - float(output["x"]), record_y - float(output["y"]))
+
+
+def candidate_sort_key(
+    record: dict[str, Any],
+    output: dict[str, Any],
+    extents: dict[str, int],
+) -> tuple[int, float, int, int]:
+    return (
+        int(record.get("iz", 0)),
+        normalized_distance(record, output, extents),
+        int(record.get("ix", 0)),
+        int(record.get("iy", 0)),
+    )
+
+
+def build_simulator_output_records(
+    pile_records: list[dict[str, Any]],
+    outputs: list[dict[str, Any]],
+    quality_ids: list[str],
+) -> dict[str, list[dict[str, Any]]]:
+    extents = {
+        "x": max((int(record.get("ix", 0)) for record in pile_records), default=0) + 1,
+        "y": max((int(record.get("iy", 0)) for record in pile_records), default=0) + 1,
+        "z": max((int(record.get("iz", 0)) for record in pile_records), default=0) + 1,
+    }
+    remaining_mass = [float(record.get("massTon", 0.0) or 0.0) for record in pile_records]
+    snapshots: dict[str, list[dict[str, Any]]] = {}
+
+    for output in outputs:
+        target_mass = max(0.0, float(output.get("tonsPerStep", 0.0) or 0.0))
+        if target_mass <= 0:
+            snapshots[output["id"]] = []
+            continue
+
+        indexed_records = [
+            (index, record)
+            for index, record in enumerate(pile_records)
+            if remaining_mass[index] > 0
+        ]
+        in_footprint = [
+            (index, record)
+            for index, record in indexed_records
+            if is_inside_output_footprint(record, output, extents)
+        ]
+        candidates = in_footprint if in_footprint else indexed_records
+        candidates.sort(key=lambda item: candidate_sort_key(item[1], output, extents))
+
+        blocks: list[dict[str, Any]] = []
+        remaining_target = target_mass
+        block_index = 0
+
+        for record_index, record in candidates:
+            if remaining_target <= 0:
+                break
+
+            available_mass = remaining_mass[record_index]
+            if available_mass <= 0:
+                continue
+
+            consumed_mass = min(remaining_target, available_mass)
+            remaining_mass[record_index] = max(0.0, available_mass - consumed_mass)
+            remaining_target -= consumed_mass
+            block = {
+                "position": block_index,
+                "massTon": consumed_mass,
+                "timestampOldestMs": float(record.get("timestampOldestMs", 0.0) or 0.0),
+                "timestampNewestMs": float(record.get("timestampNewestMs", 0.0) or 0.0),
+            }
+            for quality_id in quality_ids:
+                block[quality_id] = record.get(quality_id)
+            blocks.append(block)
+            block_index += 1
+
+        snapshots[output["id"]] = blocks
+
+    return snapshots
+
+
 def summarize_profile_dataframe(
     df: pd.DataFrame,
     object_id: str,
@@ -718,6 +903,15 @@ def main() -> None:
     registry = build_registry(state, objects_conf, report_root)
     registry_map = {entry["objectId"]: entry for entry in registry}
     circuit = build_circuit_graph(registry, objects_conf)
+    df_transport = pd.read_pickle(RAW_ROOT / "04_feature" / "df_transport.pkl")
+    df_transport = df_transport.sort_values("timestamp")
+    latest_transport_row = df_transport.iloc[-1]
+    step_minutes = infer_step_minutes(df_transport)
+    transport_rate_map = build_transport_rate_map(
+        objects_conf,
+        latest_transport_row,
+        step_minutes,
+    )
 
     live_summaries = []
     belt_columns = [
@@ -790,6 +984,7 @@ def main() -> None:
 
     profiler_index_objects = []
     profiler_summary_rows = []
+    profiler_manifests_by_object_id: dict[str, dict[str, Any]] = {}
 
     for entry in registry:
         object_id = entry["objectId"]
@@ -842,18 +1037,164 @@ def main() -> None:
                 "manifestRef": f"profiler/objects/{object_id}/manifest.json",
             }
         )
+        profiler_manifest = {
+            "objectId": object_id,
+            "objectType": entry["objectType"],
+            "displayName": entry["displayName"],
+            "dimension": entry["dimension"],
+            "defaultQualityId": quality_ids[0],
+            "availableQualityIds": quality_ids,
+            "latestSnapshotId": manifest_snapshot_ids[-1],
+            "snapshotIds": manifest_snapshot_ids,
+            "snapshotPathTemplate": f"profiler/objects/{object_id}/snapshots/[snapshotId].arrow",
+        }
+        profiler_manifests_by_object_id[object_id] = profiler_manifest
         write_json(
             APP_ROOT / "profiler" / "objects" / object_id / "manifest.json",
+            profiler_manifest,
+        )
+
+    simulator_index_objects = []
+    for entry in registry:
+        if entry["objectType"] != "pile":
+            continue
+
+        profiler_manifest = profiler_manifests_by_object_id.get(entry["objectId"])
+        if profiler_manifest is None:
+            continue
+
+        object_dir = report_root / entry["objectId"]
+        if not object_dir.exists():
+            continue
+
+        dim_dirs = [child for child in object_dir.iterdir() if child.is_dir()]
+        if not dim_dirs:
+            continue
+
+        dim_dir = dim_dirs[0]
+        sim_files = pick_sim_files(dim_dir)
+        latest_profile_file = dim_dir / "profile_latest.parquet"
+        if not latest_profile_file.exists():
+            continue
+
+        pile_conf = (
+            objects_conf["objects"]["piles"].get(entry["objectId"])
+            or objects_conf["objects"]["vpiles"].get(entry["objectId"])
+        )
+        output_rate_configs = []
+        for output_id, output_conf in (pile_conf.get("outputs") or {}).items():
+            anchor = build_graph_anchor(
+                output_id,
+                output_conf,
+                "output",
+                pile_conf,
+                entry["dimension"],
+            )
+            rate = transport_rate_map.get(output_conf["belt"], {})
+            related_entry = registry_map.get(output_conf["belt"], {})
+            output_rate_configs.append(
+                {
+                    **anchor,
+                    "label": related_entry.get("displayName", output_conf["belt"]),
+                    "tonsPerStep": float(rate.get("tonsPerStep", 0.0)),
+                    "tonsPerHour": float(rate.get("tonsPerHour", 0.0)),
+                    "stepMinutes": step_minutes,
+                    "rateSource": "latest-transport",
+                    "parentBeltId": rate.get("parentBeltId"),
+                }
+            )
+
+        simulator_steps = []
+        step_files = [("base", latest_profile_file), *[("simulated", path) for path in sim_files]]
+        for kind, file_path in step_files:
+            frame = pd.read_parquet(file_path)
+            if frame.empty:
+                continue
+
+            timestamp = pd.Timestamp(frame["timestamp"].iloc[0]).isoformat()
+            snapshot_id = snapshot_id_from_timestamp(timestamp)
+            pile_rows = profile_rows_from_dataframe(frame, quality_ids, entry["dimension"])
+            pile_snapshot_ref = (
+                f"simulator/objects/{entry['objectId']}/steps/{snapshot_id}/pile.arrow"
+            )
+            write_arrow(
+                APP_ROOT
+                / "simulator"
+                / "objects"
+                / entry["objectId"]
+                / "steps"
+                / snapshot_id
+                / "pile.arrow",
+                pile_rows,
+                ["timestamp", *cell_columns],
+            )
+
+            output_rows_by_id = build_simulator_output_records(
+                pile_rows,
+                output_rate_configs,
+                quality_ids,
+            )
+            output_snapshot_refs: dict[str, str] = {}
+            for output in output_rate_configs:
+                output_ref = (
+                    f"simulator/objects/{entry['objectId']}/steps/{snapshot_id}/outputs/{output['id']}.arrow"
+                )
+                output_snapshot_refs[output["id"]] = output_ref
+                write_arrow(
+                    APP_ROOT
+                    / "simulator"
+                    / "objects"
+                    / entry["objectId"]
+                    / "steps"
+                    / snapshot_id
+                    / "outputs"
+                    / f"{output['id']}.arrow",
+                    output_rows_by_id.get(output["id"], []),
+                    belt_columns,
+                )
+
+            simulator_steps.append(
+                {
+                    "snapshotId": snapshot_id,
+                    "timestamp": timestamp,
+                    "kind": kind,
+                    "pileSnapshotRef": pile_snapshot_ref,
+                    "outputSnapshotRefs": output_snapshot_refs,
+                }
+            )
+
+        simulator_index_objects.append(
             {
-                "objectId": object_id,
-                "objectType": entry["objectType"],
+                "objectId": entry["objectId"],
                 "displayName": entry["displayName"],
+                "objectType": "pile",
+                "dimension": entry["dimension"],
+                "manifestRef": f"simulator/objects/{entry['objectId']}/manifest.json",
+            }
+        )
+        write_json(
+            APP_ROOT / "simulator" / "objects" / entry["objectId"] / "manifest.json",
+            {
+                "objectId": entry["objectId"],
+                "objectType": "pile",
+                "displayName": entry["displayName"],
+                "objectRole": entry["objectRole"],
                 "dimension": entry["dimension"],
                 "defaultQualityId": quality_ids[0],
                 "availableQualityIds": quality_ids,
-                "latestSnapshotId": manifest_snapshot_ids[-1],
-                "snapshotIds": manifest_snapshot_ids,
-                "snapshotPathTemplate": f"profiler/objects/{object_id}/snapshots/[snapshotId].arrow",
+                "latestProfilerSnapshotId": profiler_manifest["latestSnapshotId"],
+                "latestProfilerTimestamp": next(
+                    (
+                        row["timestamp"]
+                        for row in reversed(profiler_summary_rows)
+                        if row["objectId"] == entry["objectId"]
+                        and row["snapshotId"] == profiler_manifest["latestSnapshotId"]
+                    ),
+                    iso_from_ms(state.last_processed_ms),
+                ),
+                "stepMinutes": step_minutes,
+                "outputs": output_rate_configs,
+                "steps": simulator_steps,
             },
         )
 
@@ -870,12 +1211,14 @@ def main() -> None:
             "liveSummaries": "live/object-summaries.json",
             "profilerIndex": "profiler/index.json",
             "profilerSummary": "profiler/summary.arrow",
+            "simulatorIndex": "simulator/index.json",
         },
         "capabilities": {
             "circuit": True,
             "live": True,
             "stockpiles": True,
             "profiler": True,
+            "simulator": True,
         },
         "objectCounts": {
             "total": len(registry),
@@ -897,6 +1240,15 @@ def main() -> None:
             if any(obj["objectId"] == "pile_stockpile" for obj in profiler_index_objects)
             else profiler_index_objects[0]["objectId"],
             "objects": profiler_index_objects,
+        },
+    )
+    write_json(
+        APP_ROOT / "simulator" / "index.json",
+        {
+            "defaultObjectId": "pile_stockpile"
+            if any(obj["objectId"] == "pile_stockpile" for obj in simulator_index_objects)
+            else simulator_index_objects[0]["objectId"],
+            "objects": simulator_index_objects,
         },
     )
     profiler_summary_rows.sort(key=lambda row: (row["timestamp"], row["objectId"]))

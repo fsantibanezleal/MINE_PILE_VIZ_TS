@@ -229,6 +229,23 @@ test("keeps simultaneous direct feeder evidence visible for multi-output live pi
   await expect(directOutputRow.getByRole("heading", { name: "Reclaim east" })).toBeVisible();
 });
 
+test("shows simultaneous simulated feeder outputs under the pile in simulator", async ({
+  page,
+}) => {
+  await page.goto("/simulator?object=pile_stockpile");
+
+  const directOutputRow = page.locator(".direct-output-row");
+
+  await expect(
+    page.getByRole("heading", { name: "Pile discharge simulator" }),
+  ).toBeVisible();
+  await expect(page.getByText("Simulated feeder outputs")).toBeVisible();
+  await expect(directOutputRow.locator(".direct-output-card")).toHaveCount(2);
+  await expect(directOutputRow.getByRole("heading", { name: "Feeder West" })).toBeVisible();
+  await expect(directOutputRow.getByRole("heading", { name: "Feeder East" })).toBeVisible();
+  await expect(page.getByText("Output discharge rates")).toHaveCount(0);
+});
+
 test("shows hovered stockpile cell details in the workspace inspector", async ({
   page,
 }) => {
