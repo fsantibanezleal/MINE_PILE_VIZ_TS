@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.012`
+- Active tracked version: `1.00.013`
 
 ## Release History
+
+### 1.00.013
+
+- Added simultaneous direct-output evidence cards under dense live pile views, so one selected pile can now stay visible together with every configured direct feeder output and its current feeder histogram at the same time.
+- Reworked the simulator discharge area to keep one direct feeder evidence card per configured output visible in parallel, while preserving one selected downstream-route detail as a secondary drill-down instead of the primary tab-like interaction.
+- Added reusable `DirectOutputEvidenceCard` coverage and expanded workspace regressions so multi-output piles keep their pile-plus-feeders reading model in both `Live` and `Simulator`.
 
 ### 1.00.012
 

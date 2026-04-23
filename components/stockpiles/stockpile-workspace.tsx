@@ -3,6 +3,7 @@
 import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
+  BeltSnapshot,
   ObjectRegistryEntry,
   PileCellRecord,
   PileDataset,
@@ -19,6 +20,7 @@ import {
   type PileSurfaceColorMode,
 } from "@/lib/pile-surface";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
+import { DirectOutputEvidenceCard } from "@/components/ui/direct-output-evidence-card";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { MaterialTimePanel } from "@/components/ui/material-time-panel";
 import { MaterialTimeModeSelector } from "@/components/ui/material-time-mode-selector";
@@ -131,6 +133,9 @@ export function StockpileWorkspace({
   const [hoveredCell, setHoveredCell] = useState<PileCellRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [outputSnapshots, setOutputSnapshots] = useState<Record<string, BeltSnapshot>>({});
+  const [outputErrors, setOutputErrors] = useState<Record<string, string>>({});
+  const [loadingOutputs, setLoadingOutputs] = useState(false);
 
   const selectedPileEntry =
     pileEntries.find((entry) => entry.objectId === selectedPileId) ?? pileEntries[0];
@@ -272,6 +277,91 @@ export function StockpileWorkspace({
       cancelled = true;
     };
   }, [selectedPileId]);
+
+  useEffect(() => {
+    const directOutputs = dataset?.outputs ?? [];
+    const uniqueBeltIds = [...new Set(directOutputs.map((output) => output.relatedObjectId))];
+
+    if (!dataset || uniqueBeltIds.length === 0) {
+      setOutputSnapshots({});
+      setOutputErrors({});
+      setLoadingOutputs(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadOutputSnapshots() {
+      if (!cancelled) {
+        setLoadingOutputs(true);
+        setOutputErrors({});
+      }
+
+      const results = await Promise.all(
+        uniqueBeltIds.map(async (beltId) => {
+          try {
+            const response = await fetch(`/api/live/belts/${beltId}`);
+
+            if (!response.ok) {
+              const payload = (await response.json().catch(() => null)) as
+                | {
+                    error?: {
+                      message?: string;
+                    };
+                  }
+                | null;
+
+              throw new Error(
+                payload?.error?.message ?? "Failed to load direct belt snapshot.",
+              );
+            }
+
+            return {
+              beltId,
+              snapshot: (await response.json()) as BeltSnapshot,
+              error: null,
+            };
+          } catch (error) {
+            return {
+              beltId,
+              snapshot: null,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to load direct belt snapshot.",
+            };
+          }
+        }),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const nextSnapshots: Record<string, BeltSnapshot> = {};
+      const nextErrors: Record<string, string> = {};
+
+      results.forEach((result) => {
+        if (result.snapshot) {
+          nextSnapshots[result.beltId] = result.snapshot;
+        }
+
+        if (result.error) {
+          nextErrors[result.beltId] = result.error;
+        }
+      });
+
+      setOutputSnapshots(nextSnapshots);
+      setOutputErrors(nextErrors);
+      setLoadingOutputs(false);
+    }
+
+    void loadOutputSnapshots();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dataset]);
 
   const fullRenderPlan = useMemo(
     () =>
@@ -418,6 +508,7 @@ export function StockpileWorkspace({
       dataset ? buildMaterialTimeSummary(dataset.cells, dataset.timestamp) : null,
     [dataset],
   );
+  const directOutputs = dataset?.outputs ?? [];
 
   let content: ReactNode;
 
@@ -700,6 +791,60 @@ export function StockpileWorkspace({
         ) : (
           content
         )}
+        {dataset ? (
+          <div className="direct-output-section">
+            <div className="section-label">Direct discharge outputs</div>
+            <p className="muted-text">
+              One column per configured output. Each card shows the current feeder content
+              leaving the selected pile right now, so pile inventory and outgoing feeder
+              evidence stay visible at the same time.
+            </p>
+            {directOutputs.length === 0 ? (
+              <InlineNotice tone="info" title="No direct discharge outputs">
+                This pile does not expose configured direct discharge outputs in the current
+                dense dataset.
+              </InlineNotice>
+            ) : (
+              <div className="direct-output-row">
+                {directOutputs.map((output) => {
+                  const snapshot = outputSnapshots[output.relatedObjectId];
+                  const error = outputErrors[output.relatedObjectId];
+                  const subtitle = snapshot
+                    ? snapshot.displayName
+                    : output.relatedObjectId;
+
+                  return (
+                    <DirectOutputEvidenceCard
+                      key={output.id}
+                      title={output.label}
+                      subtitle={subtitle}
+                      snapshot={snapshot}
+                      quality={inspectionQuality}
+                      materialTimeMode={selectedTimeMode}
+                      loading={loadingOutputs && !snapshot && !error}
+                      error={error}
+                      emptyTitle="Direct feeder snapshot unavailable"
+                      emptyMessage="The configured direct output does not currently expose a dense live belt snapshot."
+                      summaryMetrics={
+                        snapshot
+                          ? [
+                              { label: "Feeder", value: snapshot.displayName },
+                              { label: "Blocks", value: String(snapshot.blockCount) },
+                              { label: "Mass", value: formatMassTon(snapshot.totalMassTon) },
+                              {
+                                label: "Timestamp",
+                                value: formatTimestamp(snapshot.timestamp),
+                              },
+                            ]
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <aside className="panel">

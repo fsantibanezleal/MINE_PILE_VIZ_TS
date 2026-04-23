@@ -429,7 +429,8 @@ describe("SimulatorWorkspace", () => {
     expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/vbelt_lane");
     expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/belt_b");
 
-    expect(screen.getByRole("button", { name: /West reclaim/i })).toBeInTheDocument();
+    expect(screen.getByText("Direct discharge outputs")).toBeInTheDocument();
+    expect(screen.getAllByText("West reclaim").length).toBeGreaterThan(0);
     expect(screen.getByText("Direct reclaim")).toBeInTheDocument();
     expect(screen.getAllByText("Virtual merge").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Downstream conveyors").length).toBeGreaterThan(0);
@@ -438,7 +439,7 @@ describe("SimulatorWorkspace", () => {
     expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
     expect(screen.getByText("Route evidence notes")).toBeInTheDocument();
     expect(screen.getByText("Route histogram encodes")).toBeInTheDocument();
-    expect(screen.getByText("Active route evidence")).toBeInTheDocument();
+    expect(screen.getByText("Selected route detail")).toBeInTheDocument();
     expect(screen.getByText("Discharge reading context")).toBeInTheDocument();
     expect(screen.getByText("Active route context")).toBeInTheDocument();
     expect(screen.getByText("Route semantics")).toBeInTheDocument();
@@ -469,7 +470,7 @@ describe("SimulatorWorkspace", () => {
       expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByRole("button", { name: /To CV301/i })).toBeInTheDocument();
+    expect(screen.getAllByText("To CV301").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText("Inspect route anchor"));
     expect(screen.getByText("Central object material time")).toBeInTheDocument();
   });
@@ -569,6 +570,167 @@ describe("SimulatorWorkspace", () => {
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/profiler/objects/pile_a/snapshots/20250319010000",
+      );
+    });
+  });
+
+  it("shows direct feeder evidence for multiple outputs at the same time", async () => {
+    const multiOutputGraph: CircuitGraph = {
+      stages: [
+        { index: 0, label: "Accumulation", nodeIds: ["pile_a"] },
+        { index: 1, label: "Discharge", nodeIds: ["belt_west", "belt_east"] },
+      ],
+      nodes: [
+        {
+          ...graph.nodes[0]!,
+          outputs: [
+            {
+              id: "out-west",
+              label: "West feeder",
+              kind: "output",
+              x: 0.25,
+              y: 0.9,
+              relatedObjectId: "belt_west",
+            },
+            {
+              id: "out-east",
+              label: "East feeder",
+              kind: "output",
+              x: 0.75,
+              y: 0.9,
+              relatedObjectId: "belt_east",
+            },
+          ],
+        },
+        {
+          id: "belt_west",
+          objectId: "belt_west",
+          objectType: "belt",
+          objectRole: "physical",
+          label: "Belt West",
+          stageIndex: 1,
+          dimension: 1,
+          isProfiled: true,
+          shortDescription: "West feeder belt",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          id: "belt_east",
+          objectId: "belt_east",
+          objectType: "belt",
+          objectRole: "physical",
+          label: "Belt East",
+          stageIndex: 1,
+          dimension: 1,
+          isProfiled: true,
+          shortDescription: "East feeder belt",
+          inputs: [],
+          outputs: [],
+        },
+      ],
+      edges: [
+        { id: "e-west", source: "pile_a", target: "belt_west", label: "west" },
+        { id: "e-east", source: "pile_a", target: "belt_east", label: "east" },
+      ],
+    };
+
+    const multiOutputIndex: ProfilerIndex = {
+      defaultObjectId: "pile_a",
+      objects: [
+        {
+          objectId: "pile_a",
+          displayName: "Pile A",
+          objectType: "pile",
+          dimension: 3,
+          manifestRef: "profiler/objects/pile_a/manifest.json",
+        },
+        {
+          objectId: "belt_west",
+          displayName: "Belt West",
+          objectType: "belt",
+          dimension: 1,
+          manifestRef: "profiler/objects/belt_west/manifest.json",
+        },
+        {
+          objectId: "belt_east",
+          displayName: "Belt East",
+          objectType: "belt",
+          dimension: 1,
+          manifestRef: "profiler/objects/belt_east/manifest.json",
+        },
+      ],
+    };
+
+    const westSnapshot: ProfilerSnapshot = {
+      objectId: "belt_west",
+      displayName: "Belt West",
+      objectType: "belt",
+      snapshotId: "20250319011500",
+      timestamp: "2025-03-19T01:15:00Z",
+      dimension: 1,
+      rows: profiledPhysicalBelt.rows,
+    };
+
+    const eastSnapshot: ProfilerSnapshot = {
+      objectId: "belt_east",
+      displayName: "Belt East",
+      objectType: "belt",
+      snapshotId: "20250319011500",
+      timestamp: "2025-03-19T01:15:00Z",
+      dimension: 1,
+      rows: profiledPhysicalBelt.rows.map((row) => ({
+        ...row,
+        qualityValues: { q_num_fe: 1.32 },
+      })),
+    };
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/profiler/summary")) {
+        return jsonResponse(summaryRows);
+      }
+
+      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
+        return jsonResponse(profilerSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/belt_west/snapshots/20250319011500")) {
+        return jsonResponse(westSnapshot);
+      }
+
+      if (url.endsWith("/api/profiler/objects/belt_east/snapshots/20250319011500")) {
+        return jsonResponse(eastSnapshot);
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <SimulatorWorkspace
+        graph={multiOutputGraph}
+        index={multiOutputIndex}
+        qualities={qualities}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Direct discharge outputs")).toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText("West feeder").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("East feeder").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Belt West").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Belt East").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/belt_west/snapshots/20250319011500",
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/profiler/objects/belt_east/snapshots/20250319011500",
       );
     });
   });
