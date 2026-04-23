@@ -36,6 +36,13 @@ test("loads the primary pages with the synthetic contract cache", async ({ page 
     page.getByRole("heading", { name: "Historical object explorer" }),
   ).toBeVisible();
   await expect(page.getByText("Profiled object and time", { exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Diagnostics" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Runtime and dataset status" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runtime identity" })).toBeVisible();
+  await expect(page.getByText("Synthetic contract fixture").first()).toBeVisible();
   expect(reactFlowContainerWarnings).toEqual([]);
 });
 
