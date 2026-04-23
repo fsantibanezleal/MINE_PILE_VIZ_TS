@@ -704,6 +704,7 @@ describe("StockpileWorkspace", () => {
     await screen.findByText("Pile A Feed");
     expect(screen.getByText("Dense pile reading notes")).toBeInTheDocument();
     expect(screen.getByText("Distribution evidence encodes")).toBeInTheDocument();
+    expect(screen.getByText("Export HTML report")).toBeInTheDocument();
     expect(screen.queryByText("Structure profile")).not.toBeInTheDocument();
     expect(screen.queryByText("Route basis")).not.toBeInTheDocument();
     expect(screen.getByText("Profiled qualities")).toBeInTheDocument();

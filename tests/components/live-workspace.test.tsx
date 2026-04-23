@@ -134,6 +134,7 @@ describe("LiveWorkspace", () => {
     expect(screen.getByLabelText("Feed Belt block strip")).toBeInTheDocument();
     expect(screen.getByText("Inspection belt route context")).toBeInTheDocument();
     expect(screen.getByText("Current dense belt snapshot")).toBeInTheDocument();
+    expect(screen.getByText("Export HTML report")).toBeInTheDocument();
     expect(screen.queryByText("Graph focus context")).not.toBeInTheDocument();
     expect(screen.queryByText("Focused object semantics")).not.toBeInTheDocument();
   });

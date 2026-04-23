@@ -319,6 +319,7 @@ describe("ProfilerWorkspace", () => {
     expect(screen.getByText("Quality series")).toBeInTheDocument();
     expect(screen.getByText("Historical reading notes")).toBeInTheDocument();
     expect(screen.getByText("Series evidence encodes")).toBeInTheDocument();
+    expect(screen.getByText("Export HTML report")).toBeInTheDocument();
     expect(screen.queryByText("Circuit")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Object"), {

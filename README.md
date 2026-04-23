@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.016` |
+| Release-synced version | `1.00.017` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.016` |
+| Active tracked version | `1.00.017` |
 
 ## Diagnostics Surface
 
@@ -108,7 +108,7 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. When a selected pile exposes multiple direct discharge outputs, the same view now keeps one horizontal feeder card per output directly under the pile, so the operator can compare the pile inventory against all current feeder streams at the same time instead of opening each feeder separately. The `3D` pile view now also exposes a complementary `Top Surface` mode, which derives one height column per occupied `(x, y)` location and colors it either from the top visible cell or from the mass-weighted quality of the full column. Every `3D` pile view also exposes a vertical-compression factor, so tall voxel stacks can be flattened visually without changing the horizontal footprint. That factor is now stored per workspace, and the same workspace-level persistence now also restores the last-used `3D` orbit point of view on the next browser execution. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
+The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. When a selected pile exposes multiple direct discharge outputs, the same view now keeps one horizontal feeder card per output directly under the pile, so the operator can compare the pile inventory against all current feeder streams at the same time instead of opening each feeder separately. The `3D` pile view now also exposes a complementary `Top Surface` mode, which derives one height column per occupied `(x, y)` location and colors it either from the top visible cell or from the mass-weighted quality of the full column. Every `3D` pile view also exposes a vertical-compression factor, so tall voxel stacks can be flattened visually without changing the horizontal footprint. That factor is now stored per workspace, and the same workspace-level persistence now also restores the last-used `3D` orbit point of view on the next browser execution. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route. The live route now also exposes route-specific `Export HTML report` actions for the active dense belt or live pile selection.
 
 ### Simulator Workspace
 
@@ -116,7 +116,7 @@ The simulator workspace is now pile-centered and scenario-step based. It starts 
 
 ### Profiler Workspace
 
-The profiler workspace is now object-and-time first. It does not redraw the circuit. Instead, the operator selects one profiled object, moves through its stored profiler snapshots, and reads two pieces of evidence together: the summarized object representation at the selected timestep, and the time series of the selected quality across the available history. This route stays explicitly on `08_reporting` historical summaries, so it is suitable for trend reading, snapshot comparison, and playback over time rather than for dense current-state inspection. The selected snapshot still exposes delta against the previous stored step, represented-material time summaries, mass distributions, mapped categorical quality views, hovered summary-cell inspection, cross-route jumps, and the same vertical-compression control used by live and simulator for `3D` pile views. That compression value is restored independently for the profiler workspace, and the same workspace-level persistence now restores the last-used `3D` point of view as well. All of that now sits under one historical object view rather than being split into separate circuit and detail modes, and `play` keeps the active `3D` view stable while the next snapshot loads in the background.
+The profiler workspace is now object-and-time first. It does not redraw the circuit. Instead, the operator selects one profiled object, moves through its stored profiler snapshots, and reads two pieces of evidence together: the summarized object representation at the selected timestep, and the time series of the selected quality across the available history. This route stays explicitly on `08_reporting` historical summaries, so it is suitable for trend reading, snapshot comparison, and playback over time rather than for dense current-state inspection. The selected snapshot still exposes delta against the previous stored step, represented-material time summaries, mass distributions, mapped categorical quality views, hovered summary-cell inspection, cross-route jumps, and the same vertical-compression control used by live and simulator for `3D` pile views. That compression value is restored independently for the profiler workspace, and the same workspace-level persistence now restores the last-used `3D` point of view as well. All of that now sits under one historical object view rather than being split into separate circuit and detail modes, and `play` keeps the active `3D` view stable while the next snapshot loads in the background. The route now also exports one route-specific HTML report that packages the selected historical snapshot, tracked-quality series, snapshot delta, and represented material-time window into one artifact.
 
 ## Scope And Current Status
 
