@@ -325,10 +325,10 @@ describe("SimulatorWorkspace", () => {
     render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
 
     await screen.findByText("Feeder 01");
-    const horizonLabel = screen.getByText("Simulation horizon").closest("label");
-    const horizonInput = horizonLabel?.querySelector("input[type='range']");
-    expect(horizonInput).toBeTruthy();
-    fireEvent.change(horizonInput as HTMLInputElement, {
+    const stepLabel = screen.getByText("Simulated step").closest("label");
+    const stepInput = stepLabel?.querySelector("input[type='range']");
+    expect(stepInput).toBeTruthy();
+    fireEvent.change(stepInput as HTMLInputElement, {
       target: { value: "1" },
     });
 
@@ -337,5 +337,31 @@ describe("SimulatorWorkspace", () => {
     });
     expect(screen.getAllByText("Simulated mass").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Rate \/ 15 min/i).length).toBeGreaterThan(0);
+  });
+
+  it("keeps vertical compression with the other 3D pile controls in simulator", async () => {
+    render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    await screen.findByText("3D pile view");
+    const factorInput = screen.getByLabelText("Vertical compression factor");
+
+    fireEvent.change(factorInput, { target: { value: "25" } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
+        "data-vertical-compression",
+        "25",
+      );
+    });
+    expect(screen.getByText("Simulation reading notes")).toBeInTheDocument();
+  });
+
+  it("shows an export action for the active simulator report", async () => {
+    render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
+
+    const exportButton = await screen.findByText("Export HTML report");
+    await waitFor(() => {
+      expect(exportButton).toBeEnabled();
+    });
   });
 });

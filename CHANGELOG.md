@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.015`
+- Active tracked version: `1.00.016`
 
 ## Release History
+
+### 1.00.016
+
+- Added the first exportable operator artifact under the simulator route: one HTML report that preserves the active pile, simulated step, selected quality, direct feeder outputs, and their visual histogram evidence outside the live session.
+- Moved the simulator `3D` controls back into the left control panel, aligning `Vertical compression`, view-mode selection, and slice controls with the same pile-view grammar already used by the live and profiler routes.
+- Added simulator export helpers, direct unit coverage for the generated HTML artifact, workspace regression coverage for the export action, and updated documentation so the simulator route now exposes one stable external evidence path.
 
 ### 1.00.015
 
