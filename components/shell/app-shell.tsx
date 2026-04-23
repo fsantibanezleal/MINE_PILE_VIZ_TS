@@ -1,4 +1,5 @@
 import { Suspense, type ReactNode } from "react";
+import Link from "next/link";
 import { DatabaseZap, Radar } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/app-config";
 import { RouteNav } from "@/components/shell/route-nav";
@@ -35,6 +36,9 @@ export function AppShell({
             <Radar size={14} />
             Local
           </span>
+          <Link href="/diagnostics" className="link-chip">
+            Diagnostics
+          </Link>
           <ThemeToggle />
           <span className="status-chip status-chip--muted">
             <DatabaseZap size={14} />

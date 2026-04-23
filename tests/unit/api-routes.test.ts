@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getAppManifest: vi.fn(),
+  runAppCacheCheck: vi.fn(),
   getStockpileDataset: vi.fn(),
   normalizeAppDataError: vi.fn(),
   toAppDataErrorPayload: vi.fn(),
@@ -12,12 +13,17 @@ vi.mock("@/lib/server/app-data", () => ({
   getStockpileDataset: mocks.getStockpileDataset,
 }));
 
+vi.mock("@/lib/server/app-cache-check", () => ({
+  runAppCacheCheck: mocks.runAppCacheCheck,
+}));
+
 vi.mock("@/lib/server/app-data-errors", () => ({
   normalizeAppDataError: mocks.normalizeAppDataError,
   toAppDataErrorPayload: mocks.toAppDataErrorPayload,
 }));
 
 import { GET as getManifestRoute } from "@/app/api/manifest/route";
+import { GET as getDiagnosticsStatusRoute } from "@/app/api/diagnostics/status/route";
 import { GET as getStockpileRoute } from "@/app/api/stockpiles/[pileId]/route";
 
 describe("API route handlers", () => {
@@ -57,6 +63,50 @@ describe("API route handlers", () => {
     await expect(response.json()).resolves.toEqual({
       objectId: "pile_a",
       displayName: "Pile A",
+    });
+  });
+
+  it("returns the runtime cache status from the diagnostics route", async () => {
+    mocks.runAppCacheCheck.mockResolvedValueOnce({
+      root: ".local/app-data/v1",
+      manifest: {
+        schemaVersion: "1.0.0",
+        appVersion: "1.00.015",
+        datasetLabel: "Fixture",
+        latestTimestamp: "2025-03-07T23:45:00Z",
+      },
+      qualitiesCount: 15,
+      registry: { total: 16, belts: 11, piles: 5, profiled: 10 },
+      live: { summaries: 16, beltsChecked: 11, pilesChecked: 5 },
+      circuit: { stages: 7, nodes: 16, edges: 18 },
+      profiler: {
+        objectsChecked: 10,
+        summaryRows: 1527,
+        snapshotsChecked: 10,
+        mode: "latest-only",
+      },
+      simulator: {
+        objectsChecked: 5,
+        stepsChecked: 20,
+        outputSnapshotsChecked: 40,
+      },
+      warnings: [],
+    });
+
+    const response = await getDiagnosticsStatusRoute();
+
+    expect(mocks.runAppCacheCheck).toHaveBeenCalledWith({
+      includeAllProfilerSnapshots: false,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      manifest: {
+        appVersion: "1.00.015",
+        datasetLabel: "Fixture",
+      },
+      simulator: {
+        stepsChecked: 20,
+      },
     });
   });
 
