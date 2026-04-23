@@ -64,6 +64,9 @@ async function main() {
   console.log(
     `- Profiler payloads:    ${result.profiler.objectsChecked} objects, ${result.profiler.summaryRows} summary rows, ${result.profiler.snapshotsChecked} snapshots (${result.profiler.mode})`,
   );
+  console.log(
+    `- Simulator payloads:   ${result.simulator.objectsChecked} objects, ${result.simulator.stepsChecked} steps, ${result.simulator.outputSnapshotsChecked} output snapshots`,
+  );
 
   if (result.warnings.length > 0) {
     console.log("");

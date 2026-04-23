@@ -33,6 +33,9 @@ describe("app cache check", () => {
     expect(result.profiler.objectsChecked).toBe(2);
     expect(result.profiler.snapshotsChecked).toBe(2);
     expect(result.profiler.mode).toBe("latest-only");
+    expect(result.simulator.objectsChecked).toBe(1);
+    expect(result.simulator.stepsChecked).toBe(2);
+    expect(result.simulator.outputSnapshotsChecked).toBe(4);
     expect(result.warnings).toHaveLength(0);
   });
 

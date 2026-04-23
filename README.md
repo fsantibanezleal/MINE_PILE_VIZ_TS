@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.013` |
+| Release-synced version | `1.00.014` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.013` |
+| Active tracked version | `1.00.014` |
 
 ## Current Frontend Views
 
@@ -108,7 +108,7 @@ The live workspace now reads as the dense current-state route from `06_models`, 
 
 ### Simulator Workspace
 
-The simulator workspace now uses piles and virtual piles as route anchors rather than as another stockpile-detail workspace. One selected pile stays in view only as the reclaim anchor, profiler time controls remain available when that anchor has history, and the lower section treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The simulator now also keeps one direct feeder evidence card per configured output visible at the same time, which makes the selected route anchor readable together with all reclaim streams before the operator drills down into one downstream route. The route framing now stays profiler-only: downstream conveyors follow the same selected profiler timestep when a historical snapshot exists locally, and otherwise remain structural context instead of falling back to dense live strips. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Both the route anchor and downstream belt histograms can now switch into represented-material time modes, which makes age and represented-span patterns readable in the same simulator context used for discharge interpretation. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport. The simulator sidebar itself stays framed around active-route context, while route-anchor internals remain available only as a secondary disclosure when needed. When `play` advances to the next timestep, the current `3D` route-anchor view now stays mounted in place and shows a loading overlay instead of collapsing and rebuilding the scene.
+The simulator workspace is now pile-centered and scenario-step based. It starts from the latest real profiler state of the selected pile, then advances only through the generated future steps stored under `data/08_reporting/<object>/<dimension>/sims`. The selected pile stays in the center, and every configured feeder/output remains visible at the same time underneath it as its own discharge column with strip, histogram, and summary metrics. The UI no longer edits discharge rates; those rates are part of the generated scenario metadata and are shown as read-only context in `tons / step` and `t/h`. `Play` and step navigation still exist as simulator controls, but the route is no longer framed as a downstream topology explorer. Instead, it reads as one pile plus simultaneous feeder discharge evidence across future simulated steps. When `play` advances, the current `3D` pile view stays mounted and the next step loads without collapsing the scene.
 
 ### Profiler Workspace
 

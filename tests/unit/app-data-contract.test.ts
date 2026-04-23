@@ -8,6 +8,8 @@ import {
   getAppManifest,
   getLiveBeltSnapshot,
   getObjectRegistry,
+  getSimulatorIndex,
+  getSimulatorStep,
   getProfilerSnapshot,
   getProfilerSummary,
   getStockpileDataset,
@@ -35,12 +37,16 @@ describe("app data contract loaders", () => {
     const beltSnapshot = await getLiveBeltSnapshot("belt_cv200");
     const stockpile = await getStockpileDataset("pile_stockpile");
     const profilerSummary = await getProfilerSummary();
+    const simulatorIndex = await getSimulatorIndex();
+    const simulatorStep = await getSimulatorStep("pile_stockpile", "20250319013000");
 
     expect(manifest.datasetLabel).toBe("Synthetic contract fixture");
     expect(beltSnapshot.blocks).toHaveLength(6);
     expect(stockpile.dimension).toBe(3);
     expect(stockpile.surfaceCells).toHaveLength(3);
     expect(profilerSummary).toHaveLength(4);
+    expect(simulatorIndex.defaultObjectId).toBe("pile_stockpile");
+    expect(simulatorStep.outputSnapshots["stockpile-out-west"]?.blocks).toHaveLength(2);
   });
 
   it("derives optional stockpile acceleration layers when the optional files are missing", async () => {
