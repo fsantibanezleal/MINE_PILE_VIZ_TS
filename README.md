@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.012` |
+| Release-synced version | `1.00.013` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.012` |
+| Active tracked version | `1.00.013` |
 
 ## Current Frontend Views
 
@@ -104,11 +104,11 @@ The circuit workspace now starts with an illustrative reading of the modeled are
 
 ### Live Workspace
 
-The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. The `3D` pile view now also exposes a complementary `Top Surface` mode, which derives one height column per occupied `(x, y)` location and colors it either from the top visible cell or from the mass-weighted quality of the full column. Every `3D` pile view also exposes a vertical-compression factor, so tall voxel stacks can be flattened visually without changing the horizontal footprint. That factor is now stored per workspace, and the same workspace-level persistence now also restores the last-used `3D` orbit point of view on the next browser execution. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
+The live workspace now reads as the dense current-state route from `06_models`, not as another circuit view. It starts with two subviews: `Belts / VBelts` and `Piles / VPiles`. The belt subview stays explicitly on one current belt at a time and exposes the dense ordered belt strip plus a literal mass-weighted histogram for the selected quality. The pile subview now absorbs the former dedicated stockpile page: it renders current dense piles directly inside `/live`, keeping accumulation reading beside transport reading without duplicating another route. When a selected pile exposes multiple direct discharge outputs, the same view now keeps one horizontal feeder card per output directly under the pile, so the operator can compare the pile inventory against all current feeder streams at the same time instead of opening each feeder separately. The `3D` pile view now also exposes a complementary `Top Surface` mode, which derives one height column per occupied `(x, y)` location and colors it either from the top visible cell or from the mass-weighted quality of the full column. Every `3D` pile view also exposes a vertical-compression factor, so tall voxel stacks can be flattened visually without changing the horizontal footprint. That factor is now stored per workspace, and the same workspace-level persistence now also restores the last-used `3D` orbit point of view on the next browser execution. Both subviews can switch into represented-material time coloring, so the current dense state can also be read by oldest age, newest age, or represented span without leaving the route.
 
 ### Simulator Workspace
 
-The simulator workspace now uses piles and virtual piles as route anchors rather than as another stockpile-detail workspace. One selected pile stays in view only as the reclaim anchor, profiler time controls remain available when that anchor has history, and the lower section treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The route framing now stays profiler-only: downstream conveyors follow the same selected profiler timestep when a historical snapshot exists locally, and otherwise remain structural context instead of falling back to dense live strips. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Both the route anchor and downstream belt histograms can now switch into represented-material time modes, which makes age and represented-span patterns readable in the same simulator context used for discharge interpretation. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport. The simulator sidebar itself stays framed around active-route context, while route-anchor internals remain available only as a secondary disclosure when needed. When `play` advances to the next timestep, the current `3D` route-anchor view now stays mounted in place and shows a loading overlay instead of collapsing and rebuilding the scene.
+The simulator workspace now uses piles and virtual piles as route anchors rather than as another stockpile-detail workspace. One selected pile stays in view only as the reclaim anchor, profiler time controls remain available when that anchor has history, and the lower section treats discharge structure as one focused active route instead of a repeated flat stack per output. Direct reclaim belts are selected first from the pile outputs, then the active route separates virtual merge nodes from downstream conveyors so the reclaim hierarchy reads in the same order as the modeled flow. The simulator now also keeps one direct feeder evidence card per configured output visible at the same time, which makes the selected route anchor readable together with all reclaim streams before the operator drills down into one downstream route. The route framing now stays profiler-only: downstream conveyors follow the same selected profiler timestep when a historical snapshot exists locally, and otherwise remain structural context instead of falling back to dense live strips. The simulator builds an aggregated summary for the currently selected discharge route so the operator can read the active reclaim path as one combined histogram and summary block before drilling into each downstream belt card. Both the route anchor and downstream belt histograms can now switch into represented-material time modes, which makes age and represented-span patterns readable in the same simulator context used for discharge interpretation. Route selectors, merge cards, and the route sidebar now expose grouped discharge semantics directly, so one selected output can read as an independent route or as one contributor inside a larger grouped reclaim structure that converges on shared merge or downstream transport. The simulator sidebar itself stays framed around active-route context, while route-anchor internals remain available only as a secondary disclosure when needed. When `play` advances to the next timestep, the current `3D` route-anchor view now stays mounted in place and shows a loading overlay instead of collapsing and rebuilding the scene.
 
 ### Profiler Workspace
 
@@ -323,7 +323,7 @@ types/
 
 ## Current Version
 
-`1.00.012`
+`1.00.013`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.

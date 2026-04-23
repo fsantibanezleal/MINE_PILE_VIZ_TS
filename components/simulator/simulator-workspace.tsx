@@ -30,6 +30,7 @@ import { VerticalCompressionControl } from "@/components/ui/vertical-compression
 import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { CellFocusPanel } from "@/components/ui/cell-focus-panel";
+import { DirectOutputEvidenceCard } from "@/components/ui/direct-output-evidence-card";
 import { deriveNumericColorDomain } from "@/lib/color";
 import { deriveCellExtents } from "@/lib/data-stats";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
@@ -512,6 +513,34 @@ export function SimulatorWorkspace({
   const activeLaneBelts = useMemo(
     () => (activeLane ? getSimulatorLaneBelts(activeLane) : []),
     [activeLane],
+  );
+  const laneDirectEvidence = useMemo(
+    () =>
+      dischargeLanes.map((lane) => {
+        const directSnapshots = lane.directBelts
+          .map((belt) => beltSnapshots[belt.objectId])
+          .filter((snapshot): snapshot is BeltSnapshot => Boolean(snapshot));
+        const directLoadedCount = lane.directBelts.filter(
+          (belt) => Boolean(beltSnapshots[belt.objectId]),
+        ).length;
+        const directErrors = lane.directBelts
+          .map((belt) => beltErrors[belt.objectId])
+          .filter((error): error is string => Boolean(error));
+        const directSnapshot = buildSimulatorLaneSnapshot({
+          laneId: `${lane.output.id}:direct`,
+          displayName: lane.output.label,
+          snapshots: directSnapshots,
+          qualities,
+        });
+
+        return {
+          lane,
+          directSnapshot,
+          directLoadedCount,
+          directErrors,
+        };
+      }),
+    [beltErrors, beltSnapshots, dischargeLanes, qualities],
   );
   const totalRouteBelts = useMemo(
     () =>
@@ -1309,7 +1338,7 @@ export function SimulatorWorkspace({
         )}
         {activeLane ? (
           <div className="simulator-route-summary">
-            <div className="section-label">Active route evidence</div>
+            <div className="section-label">Selected route detail</div>
             <MetricGrid
               metrics={[
                 { label: "Output", value: activeLane.output.label },
@@ -1368,7 +1397,7 @@ export function SimulatorWorkspace({
           </div>
         ) : null}
         <div className="simulator-discharge">
-          <div className="section-label">Discharge routes</div>
+          <div className="section-label">Direct discharge outputs</div>
           {dischargeLanes.length === 0 ? (
             <InlineNotice tone="info" title="No discharge outputs">
               The selected pile does not expose downstream output routes in the current
@@ -1376,40 +1405,84 @@ export function SimulatorWorkspace({
             </InlineNotice>
           ) : (
             <>
-              <div className="simulator-discharge__selector">
-                {dischargeLanes.map((lane) => {
-                  const routeBelts = getSimulatorLaneBelts(lane);
-
-                  return (
-                    <button
+              <p className="muted-text">
+                One column per configured output. Each card shows the direct feeder content
+                leaving the selected pile at the active profiler timestep, so the route
+                anchor and all reclaim outputs stay visible together.
+              </p>
+              <div className="direct-output-row">
+                {laneDirectEvidence.map(
+                  ({ lane, directSnapshot, directLoadedCount, directErrors }) => (
+                    <DirectOutputEvidenceCard
                       key={lane.output.id}
-                      type="button"
-                      className={`simulator-discharge-button ${
-                        lane.output.id === effectiveSelectedOutputId
-                          ? "simulator-discharge-button--active"
-                          : ""
-                      }`}
-                      onClick={() => handleSelectOutput(lane.output.id)}
-                    >
-                      <span className="simulator-discharge-button__content">
-                        <span>{lane.output.label}</span>
-                        <span className="simulator-discharge-button__subtext">
-                          {routeGrouping.laneSemanticsByOutputId[lane.output.id]?.routeKindLabel ??
-                            "Route"}
-                        </span>
-                      </span>
-                      <strong>
-                        {lane.directBelts.length} direct / {routeBelts.length} total
-                      </strong>
-                    </button>
-                  );
-                })}
+                      title={lane.output.label}
+                      subtitle={
+                        routeGrouping.laneSemanticsByOutputId[lane.output.id]?.routeKindLabel ??
+                        "Direct discharge route"
+                      }
+                      snapshot={directSnapshot?.snapshot}
+                      quality={inspectionQuality}
+                      materialTimeMode={selectedTimeMode}
+                      loading={
+                        loadingBelts &&
+                        lane.directBelts.length > 0 &&
+                        !directSnapshot &&
+                        directErrors.length === 0
+                      }
+                      error={directErrors[0]}
+                      emptyTitle={
+                        lane.directBelts.length === 0
+                          ? "No direct feeder objects"
+                          : "No direct feeder snapshot"
+                      }
+                      emptyMessage={
+                        lane.directBelts.length === 0
+                          ? "This configured output does not resolve to a direct feeder belt object in the current circuit graph."
+                          : "The direct feeder belt for this output has no profiler snapshot at the selected timestep."
+                      }
+                      selected={lane.output.id === effectiveSelectedOutputId}
+                      summaryMetrics={[
+                        {
+                          label: "Direct belts",
+                          value: `${directLoadedCount}/${lane.directBelts.length}`,
+                        },
+                        {
+                          label: "Merge nodes",
+                          value: String(lane.mergeNodes.length),
+                        },
+                        {
+                          label: "Downstream belts",
+                          value: String(lane.downstreamBelts.length),
+                        },
+                        {
+                          label: "Route basis",
+                          value: directSnapshot ? "Profiler-aligned" : "Structural only",
+                        },
+                      ]}
+                      action={
+                        <button
+                          type="button"
+                          className={`segmented-button ${
+                            lane.output.id === effectiveSelectedOutputId
+                              ? "segmented-button--active"
+                              : ""
+                          }`}
+                          onClick={() => handleSelectOutput(lane.output.id)}
+                        >
+                          {lane.output.id === effectiveSelectedOutputId
+                            ? "Inspecting"
+                            : "Inspect route"}
+                        </button>
+                      }
+                    />
+                  ),
+                )}
               </div>
               {activeLane ? (
                 <article className="simulator-discharge-lane simulator-discharge-lane--active">
                   <div className="simulator-discharge-lane__header">
                     <div>
-                      <div className="section-label">Active route</div>
+                      <div className="section-label">Selected downstream route</div>
                       <h3>{activeLane.output.label}</h3>
                     </div>
                     <div className="simulator-belt-card__meta">
