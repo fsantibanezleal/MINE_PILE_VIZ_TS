@@ -9,6 +9,7 @@ import { MetricGrid } from "@/components/ui/metric-grid";
 import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { VerticalCompressionControl } from "@/components/ui/vertical-compression-control";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { PileAnchorFrame } from "@/components/stockpiles/pile-anchor-frame";
 import { Pile3DCanvas } from "@/components/stockpiles/pile-3d-canvas";
@@ -33,6 +34,10 @@ import {
   buildHrefWithQuery,
   resolveQuerySelection,
 } from "@/lib/workspace-route-state";
+import {
+  buildSimulatorExportArtifact,
+  downloadSimulatorExportArtifact,
+} from "@/lib/simulator-export";
 import type {
   CircuitGraph,
   PileCellRecord,
@@ -448,10 +453,30 @@ export function SimulatorWorkspace({
     ? formatStepLabel(effectiveStepIndex, manifest.stepMinutes)
     : "Pending";
 
+  function handleExportReport() {
+    if (!manifest || !currentStep) {
+      return;
+    }
+
+    const artifact = buildSimulatorExportArtifact({
+      manifest,
+      step: currentStep,
+      stepLabel: currentStepLabel,
+      selectedQuality,
+      pileMassTon: totalMassTon,
+      visibleCellCount: visibleCells.length,
+      viewMode,
+      verticalCompressionFactor,
+      surfaceColorMode: viewMode === "top-surface" ? surfaceColorMode : null,
+    });
+
+    downloadSimulatorExportArtifact(artifact);
+  }
+
   return (
     <div className="workspace-grid workspace-grid--triple">
       <aside className="panel">
-        <div className="section-label">Simulation controls</div>
+        <div className="section-label">Pile and simulation step</div>
         <label className="field">
           <span>Pile</span>
           <select
@@ -471,6 +496,67 @@ export function SimulatorWorkspace({
           value={effectiveQualityId}
           onChange={setSelectedQualityId}
         />
+        {dataset?.dimension === 3 ? (
+          <>
+            <div className="section-label">3D pile view</div>
+            <div className="button-row">
+              {(["surface", "shell", "full", "slice", "top-surface"] as Pile3DDisplayMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`segmented-button ${viewMode === mode ? "segmented-button--active" : ""}`}
+                  onClick={() => setViewMode(mode)}
+                >
+                  {mode === "top-surface" ? "top surface" : mode}
+                </button>
+              ))}
+            </div>
+            {viewMode === "top-surface" ? (
+              <div className="button-row">
+                {(["top-cell", "column-mass-weighted"] as PileSurfaceColorMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`segmented-button ${surfaceColorMode === mode ? "segmented-button--active" : ""}`}
+                    onClick={() => setSurfaceColorMode(mode)}
+                  >
+                    {mode === "top-cell" ? "top cell" : "mass-weighted column"}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <VerticalCompressionControl
+              value={verticalCompressionFactor}
+              onChange={setVerticalCompressionFactor}
+            />
+            {viewMode === "slice" ? (
+              <>
+                <div className="button-row">
+                  {(["x", "y", "z"] as SliceAxis[]).map((axis) => (
+                    <button
+                      key={axis}
+                      type="button"
+                      className={`segmented-button ${sliceAxis === axis ? "segmented-button--active" : ""}`}
+                      onClick={() => setSliceAxis(axis)}
+                    >
+                      {axis.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+                <label className="field">
+                  <span>Slice index</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={sliceMax}
+                    value={effectiveSliceIndex}
+                    onChange={(event) => setSliceIndex(Number(event.target.value))}
+                  />
+                </label>
+              </>
+            ) : null}
+          </>
+        ) : null}
         <div className="button-row">
           <button
             type="button"
@@ -492,7 +578,7 @@ export function SimulatorWorkspace({
           </button>
         </div>
         <label className="field">
-          <span>Simulation horizon</span>
+          <span>Simulated step</span>
           <input
             type="range"
             min={0}
@@ -522,6 +608,14 @@ export function SimulatorWorkspace({
             },
           ]}
         />
+        <button
+          type="button"
+          className="segmented-button"
+          onClick={handleExportReport}
+          disabled={!manifest || !currentStep}
+        >
+          Export HTML report
+        </button>
       </aside>
 
       <section className="panel panel--canvas">
@@ -534,67 +628,25 @@ export function SimulatorWorkspace({
         ) : null}
         {dataset ? (
           <>
+            <VisualEvidencePanel
+              title="Simulation reading notes"
+              summary="This route stays on one simulated pile state plus all direct feeder outputs at the same time. It is not a route browser and it does not edit scenario rates."
+              notes={[
+                {
+                  label: "Color encodes",
+                  text: "The selected quality across the simulated pile cells and each simultaneous feeder-output card.",
+                },
+                {
+                  label: "Pile figure encodes",
+                  text: "One selected simulated pile state at the active step, using the same 1D, 2D, or 3D pile grammar used by the other pile-focused routes.",
+                },
+                {
+                  label: "Feeder cards encode",
+                  text: "Simultaneous simulated output evidence for every configured direct feeder, so pile state and discharge remain visible together.",
+                },
+              ]}
+            />
             <QualityLegend quality={selectedQuality} numericDomain={colorDomain} />
-            {dataset.dimension === 3 ? (
-              <>
-                <div className="button-row">
-                  {(["surface", "shell", "full", "slice", "top-surface"] as Pile3DDisplayMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      className={`segmented-button ${viewMode === mode ? "segmented-button--active" : ""}`}
-                      onClick={() => setViewMode(mode)}
-                    >
-                      {mode === "top-surface" ? "top surface" : mode}
-                    </button>
-                  ))}
-                </div>
-                {viewMode === "top-surface" ? (
-                  <div className="button-row">
-                    {(["top-cell", "column-mass-weighted"] as PileSurfaceColorMode[]).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        className={`segmented-button ${surfaceColorMode === mode ? "segmented-button--active" : ""}`}
-                        onClick={() => setSurfaceColorMode(mode)}
-                      >
-                        {mode === "top-cell" ? "top cell" : "mass-weighted column"}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <VerticalCompressionControl
-                  value={verticalCompressionFactor}
-                  onChange={setVerticalCompressionFactor}
-                />
-                {viewMode === "slice" ? (
-                  <>
-                    <div className="button-row">
-                      {(["x", "y", "z"] as SliceAxis[]).map((axis) => (
-                        <button
-                          key={axis}
-                          type="button"
-                          className={`segmented-button ${sliceAxis === axis ? "segmented-button--active" : ""}`}
-                          onClick={() => setSliceAxis(axis)}
-                        >
-                          {axis.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                    <label className="field">
-                      <span>Slice index</span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={sliceMax}
-                        value={effectiveSliceIndex}
-                        onChange={(event) => setSliceIndex(Number(event.target.value))}
-                      />
-                    </label>
-                  </>
-                ) : null}
-              </>
-            ) : null}
             <PileAnchorFrame
               inputs={dataset.inputs}
               outputs={dataset.outputs}
@@ -671,7 +723,7 @@ export function SimulatorWorkspace({
                       title={output.label}
                       subtitle={
                         output.parentBeltId
-                          ? `${output.relatedObjectId} → ${output.parentBeltId}`
+                          ? `${output.relatedObjectId} -> ${output.parentBeltId}`
                           : output.relatedObjectId
                       }
                       snapshot={snapshot}
@@ -709,7 +761,7 @@ export function SimulatorWorkspace({
         <h3>{manifest?.displayName ?? "Selected pile"}</h3>
         <MetricGrid
           metrics={[
-            { label: "Scenario step", value: currentStepLabel },
+            { label: "Active step", value: currentStepLabel },
             { label: "Pile mass", value: dataset ? formatMassTon(totalMassTon) : "Pending" },
             { label: "Visible cells", value: String(visibleCells.length) },
             { label: "Feeders", value: String(outputCards.length) },
@@ -731,3 +783,4 @@ export function SimulatorWorkspace({
     </div>
   );
 }
+

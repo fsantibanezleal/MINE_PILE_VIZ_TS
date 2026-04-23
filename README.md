@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.015` |
+| Release-synced version | `1.00.016` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.015` |
+| Active tracked version | `1.00.016` |
 
 ## Diagnostics Surface
 
@@ -112,7 +112,7 @@ The live workspace now reads as the dense current-state route from `06_models`, 
 
 ### Simulator Workspace
 
-The simulator workspace is now pile-centered and scenario-step based. It starts from the latest real profiler state of the selected pile, then advances only through the generated future steps stored under `data/08_reporting/<object>/<dimension>/sims`. The selected pile stays in the center, and every configured feeder/output remains visible at the same time underneath it as its own discharge column with strip, histogram, and summary metrics. The UI no longer edits discharge rates; those rates are part of the generated scenario metadata and are shown as read-only context in `tons / step` and `t/h`. `Play` and step navigation still exist as simulator controls, but the route is no longer framed as a downstream topology explorer. Instead, it reads as one pile plus simultaneous feeder discharge evidence across future simulated steps. When `play` advances, the current `3D` pile view stays mounted and the next step loads without collapsing the scene.
+The simulator workspace is now pile-centered and scenario-step based. It starts from the latest real profiler state of the selected pile, then advances only through the generated future steps emitted into the simulator cache from the raw `sims` source tree. The selected pile stays in the center, and every configured feeder/output remains visible at the same time underneath it as its own discharge column with strip, histogram, and summary metrics. The UI no longer edits discharge rates; those rates are part of the generated scenario metadata and are shown as read-only context in `tons / step` and `t/h`. `Play` and step navigation still exist as simulator controls, but the route is no longer framed as a downstream topology explorer. Instead, it reads as one pile plus simultaneous feeder discharge evidence across future simulated steps. The simulator now also exposes an `Export HTML report` action that packages the active pile, step, quality, and simultaneous feeder evidence into one standalone artifact that can be opened or printed outside the app. When `play` advances, the current `3D` pile view stays mounted and the next step loads without collapsing the scene, and the `3D` controls remain in the left panel for consistency with the other pile-focused routes.
 
 ### Profiler Workspace
 
