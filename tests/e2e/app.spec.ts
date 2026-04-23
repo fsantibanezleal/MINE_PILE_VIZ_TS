@@ -216,6 +216,19 @@ test("shows stockpile feed and discharge anchors on the pile view", async ({
   await expect(page.getByText("Reclaim east")).toBeVisible();
 });
 
+test("keeps simultaneous direct feeder evidence visible for multi-output live piles", async ({
+  page,
+}) => {
+  await page.goto("/live?view=piles&object=pile_stockpile");
+
+  const directOutputRow = page.locator(".direct-output-row");
+
+  await expect(page.getByText("Direct discharge outputs")).toBeVisible();
+  await expect(directOutputRow.locator(".direct-output-card")).toHaveCount(2);
+  await expect(directOutputRow.getByRole("heading", { name: "Reclaim west" })).toBeVisible();
+  await expect(directOutputRow.getByRole("heading", { name: "Reclaim east" })).toBeVisible();
+});
+
 test("shows hovered stockpile cell details in the workspace inspector", async ({
   page,
 }) => {

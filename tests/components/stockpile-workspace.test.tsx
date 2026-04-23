@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { StockpileWorkspace } from "@/components/stockpiles/stockpile-workspace";
 import { getVerticalCompressionStorageKey } from "@/lib/use-persistent-vertical-compression";
 import type {
+  BeltSnapshot,
   ObjectRegistryEntry,
   PileDataset,
   QualityDefinition,
@@ -151,6 +152,44 @@ function createPileDataset(objectId: string, displayName: string, fe: number): P
       },
     ],
     shellCells: [],
+  };
+}
+
+function createBeltSnapshot(
+  objectId: string,
+  displayName: string,
+  fe: number,
+): BeltSnapshot {
+  return {
+    objectId,
+    displayName,
+    timestamp: "2025-03-19T01:15:00Z",
+    totalMassTon: 24,
+    blockCount: 3,
+    qualityAverages: { q_num_fe: fe },
+    blocks: [
+      {
+        position: 0,
+        massTon: 8,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe - 0.08 },
+      },
+      {
+        position: 1,
+        massTon: 8,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe },
+      },
+      {
+        position: 2,
+        massTon: 8,
+        timestampOldestMs: 1,
+        timestampNewestMs: 2,
+        qualityValues: { q_num_fe: fe + 0.08 },
+      },
+    ],
   };
 }
 
@@ -426,6 +465,36 @@ function create3DPileDataset(objectId: string, displayName: string, fe: number):
   };
 }
 
+function createMultiOutputPileDataset(
+  objectId: string,
+  displayName: string,
+  fe: number,
+): PileDataset {
+  const dataset = create3DPileDataset(objectId, displayName, fe);
+
+  return {
+    ...dataset,
+    outputs: [
+      {
+        id: `${objectId}-reclaim-1`,
+        label: `${displayName} Feeder 1`,
+        kind: "output",
+        x: 0.2,
+        y: 0.88,
+        relatedObjectId: "belt_reclaim_1",
+      },
+      {
+        id: `${objectId}-reclaim-2`,
+        label: `${displayName} Feeder 2`,
+        kind: "output",
+        x: 0.8,
+        y: 0.88,
+        relatedObjectId: "belt_reclaim_2",
+      },
+    ],
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -450,6 +519,10 @@ describe("StockpileWorkspace", () => {
         return jsonResponse(pileB);
       }
 
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
+      }
+
       throw new Error(`Unexpected request: ${url}`);
     });
 
@@ -466,8 +539,10 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("Loading current pile dataset...")).toBeInTheDocument();
     await screen.findByText("Pile A Feed");
     expect(fetchMock).toHaveBeenCalledWith("/api/live/piles/pile_a");
+    await screen.findByText("Direct discharge outputs");
+    expect(screen.getAllByText("Pile A Reclaim").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Reclaim Belt").length).toBeGreaterThan(0);
     expect(screen.getByText("Pile A Feed")).toBeInTheDocument();
-    expect(screen.getByText("Pile A Reclaim")).toBeInTheDocument();
     expect(screen.getByText("Structure profile")).toBeInTheDocument();
     expect(screen.getByText("Mass by x axis")).toBeInTheDocument();
     expect(screen.queryByText("Profiled qualities")).not.toBeInTheDocument();
@@ -481,7 +556,7 @@ describe("StockpileWorkspace", () => {
     expect(screen.getByText("Loading current pile dataset...")).toBeInTheDocument();
     await screen.findByText("Pile B Feed");
     expect(screen.getByText("Pile B Feed")).toBeInTheDocument();
-    expect(screen.getByText("Pile B Reclaim")).toBeInTheDocument();
+    expect(screen.getAllByText("Pile B Reclaim").length).toBeGreaterThan(0);
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/live/piles/pile_b");
@@ -495,6 +570,10 @@ describe("StockpileWorkspace", () => {
 
       if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -525,6 +604,10 @@ describe("StockpileWorkspace", () => {
 
       if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -558,6 +641,10 @@ describe("StockpileWorkspace", () => {
         return jsonResponse(pileA);
       }
 
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
+      }
+
       throw new Error(`Unexpected request: ${url}`);
     });
 
@@ -583,7 +670,7 @@ describe("StockpileWorkspace", () => {
     expect(inputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
     expect(outputOverlay.querySelectorAll(".pile-anchor-overlay__item")).toHaveLength(2);
     expect(screen.getByText("Pile A Feed West")).toBeInTheDocument();
-    expect(screen.getByText("Pile A Reclaim East")).toBeInTheDocument();
+    expect(screen.getAllByText("Pile A Reclaim East").length).toBeGreaterThan(0);
   });
 
   it("suppresses structure-first side panels in the live dense pile variant", async () => {
@@ -593,6 +680,10 @@ describe("StockpileWorkspace", () => {
 
       if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -621,6 +712,50 @@ describe("StockpileWorkspace", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows all direct feeder outputs simultaneously in the live dense pile variant", async () => {
+    const pileA = createMultiOutputPileDataset("pile_a", "Pile A", 1.1);
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/live/piles/pile_a")) {
+        return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim_1")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim_1", "Feeder Belt 1", 1.18));
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim_2")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim_2", "Feeder Belt 2", 1.26));
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <StockpileWorkspace
+        pileEntries={pileEntries}
+        qualities={qualities}
+        initialPileId="pile_a"
+        variant="live"
+      />,
+    );
+
+    await screen.findByText("Direct discharge outputs");
+    expect(screen.getAllByText("Pile A Feeder 1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Pile A Feeder 2").length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/api/live/belts/belt_reclaim_1");
+      expect(fetchMock).toHaveBeenCalledWith("/api/live/belts/belt_reclaim_2");
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("Feeder Belt 1").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Feeder Belt 2").length).toBeGreaterThan(0);
+    });
+  });
+
   it("exposes vertical compression for 3D pile views", async () => {
     window.localStorage.clear();
     const pileA = create3DPileDataset("pile_a", "Pile A", 1.1);
@@ -629,6 +764,10 @@ describe("StockpileWorkspace", () => {
 
       if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
       }
 
       throw new Error(`Unexpected request: ${url}`);
@@ -673,6 +812,10 @@ describe("StockpileWorkspace", () => {
 
       if (url.endsWith("/api/live/piles/pile_a")) {
         return jsonResponse(pileA);
+      }
+
+      if (url.endsWith("/api/live/belts/belt_reclaim")) {
+        return jsonResponse(createBeltSnapshot("belt_reclaim", "Reclaim Belt", 1.22));
       }
 
       throw new Error(`Unexpected request: ${url}`);
