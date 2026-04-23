@@ -438,6 +438,36 @@ code {
   line-height: 1.45;
 }
 
+.evidence-panel__grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.evidence-panel__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+}
+
+.evidence-panel__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.evidence-panel__card p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.45;
+}
+
 .panel--canvas {
   position: relative;
   min-height: 760px;

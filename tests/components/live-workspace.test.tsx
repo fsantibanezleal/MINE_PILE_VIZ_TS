@@ -127,6 +127,9 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByText("Current belt content")).toBeInTheDocument();
     expect(screen.getByText("Mass-weighted histogram")).toBeInTheDocument();
+    expect(screen.getByText("Dense-state reading notes")).toBeInTheDocument();
+    expect(screen.getByText("Color encodes")).toBeInTheDocument();
+    expect(screen.getByText("Histogram evidence encodes")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Feed Belt" })).toBeInTheDocument();
     expect(screen.getByLabelText("Feed Belt block strip")).toBeInTheDocument();
     expect(screen.getByText("Inspection belt route context")).toBeInTheDocument();

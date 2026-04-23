@@ -114,6 +114,8 @@ describe("CircuitInspector", () => {
     );
 
     expect(screen.getByText("Flow semantics")).toBeInTheDocument();
+    expect(screen.getByText("Visual reading notes")).toBeInTheDocument();
+    expect(screen.getByText("Anchor marks encode")).toBeInTheDocument();
     expect(screen.getByText("Source transport")).toBeInTheDocument();
     expect(screen.getByText("Companion transport")).toBeInTheDocument();
     expect(screen.getByText("Virtual Lane B")).toBeInTheDocument();

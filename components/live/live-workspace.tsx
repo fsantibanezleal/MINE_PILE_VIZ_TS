@@ -20,6 +20,7 @@ import { QualityLegend } from "@/components/ui/quality-legend";
 import { QualitySelector } from "@/components/ui/quality-selector";
 import { RelationshipPanel } from "@/components/ui/relationship-panel";
 import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
+import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
 import { deriveLiveBeltRouteContext } from "@/lib/live-belt-context";
@@ -323,6 +324,27 @@ export function LiveWorkspace({
             not redraw the circuit; it stays on the ordered content actually
             present on the inspected transport object.
           </p>
+          <VisualEvidencePanel
+            title="Dense-state reading notes"
+            summary="This view stays on one current belt. Use these cues to read the strip and histogram without switching back to a circuit-first interpretation."
+            notes={[
+              {
+                label: "Color encodes",
+                text:
+                  selectedTimeMode === "property"
+                    ? "The selected quality on each current belt block."
+                    : "Represented material time for each current belt block relative to the active live snapshot.",
+              },
+              {
+                label: "Strip geometry encodes",
+                text: "Current ordered block sequence along the belt, not stage layout or broader circuit topology.",
+              },
+              {
+                label: "Histogram evidence encodes",
+                text: "Mass-weighted density over the selected belt blocks, so taller bins mean more represented belt mass inside that value range.",
+              },
+            ]}
+          />
           <QualityLegend quality={inspectionQuality} />
           <BeltBlockStrip
             snapshot={currentBelt}
