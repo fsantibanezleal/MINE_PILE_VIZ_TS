@@ -86,7 +86,7 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Alternate cache path | `APP_DATA_ROOT` |
 | Local development port | `3000` |
 | Theme modes | dark, light |
-| Release-synced version | `1.00.014` |
+| Release-synced version | `1.00.015` |
 | Validation surface | `pnpm lint`, `pnpm test`, `pnpm test:e2e`, `pnpm build` |
 
 ## Release Status
@@ -94,7 +94,11 @@ The tracked repository consumes the app-ready contract at runtime, and it now al
 | Status | Version |
 |---|---|
 | Closed baseline | `1.00.000` |
-| Active tracked version | `1.00.014` |
+| Active tracked version | `1.00.015` |
+
+## Diagnostics Surface
+
+The application now also exposes one auxiliary diagnostics route at `/diagnostics`. It is intentionally outside the operator workflow and exists to inspect runtime identity, cache root, dataset label, route capabilities, and the latest-only loader-based contract health from inside the app itself.
 
 ## Current Frontend Views
 

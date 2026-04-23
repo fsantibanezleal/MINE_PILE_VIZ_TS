@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.014`
+- Active tracked version: `1.00.015`
 
 ## Release History
+
+### 1.00.015
+
+- Added a dedicated in-app diagnostics surface at `/diagnostics`, keeping runtime identity, cache root, route capabilities, and loader-based contract health visible inside the application without polluting the operator routes.
+- Added a diagnostics API route backed directly by the existing cache-check service, so the app and future tooling can reuse the same runtime contract summary instead of maintaining parallel status metadata.
+- Added header access, component coverage, route coverage, and updated documentation so diagnostics is now a first-class maintenance surface alongside the existing local workflow commands.
 
 ### 1.00.014
 
