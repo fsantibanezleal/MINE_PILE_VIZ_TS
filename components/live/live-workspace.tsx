@@ -23,6 +23,10 @@ import { RouteBasisPanel } from "@/components/ui/route-basis-panel";
 import { VisualEvidencePanel } from "@/components/ui/visual-evidence-panel";
 import { WorkspaceJumpLinks } from "@/components/ui/workspace-jump-links";
 import { formatMassTon, formatTimestamp } from "@/lib/format";
+import {
+  buildLiveBeltExportArtifact,
+  downloadLiveExportArtifact,
+} from "@/lib/live-export";
 import { deriveLiveBeltRouteContext } from "@/lib/live-belt-context";
 import { buildMaterialTimeSummary } from "@/lib/material-time";
 import {
@@ -204,6 +208,20 @@ export function LiveWorkspace({
     );
   }
 
+  function handleExportReport() {
+    const artifact = buildLiveBeltExportArtifact({
+      snapshot: currentBelt,
+      selectedQuality,
+      inspectionQuality,
+      selectedTimeMode,
+      routeContext: inspectionBeltRouteContext,
+      materialTimeSummary: beltTimeSummary,
+      valueAccessor: inspectionValueAccessor,
+    });
+
+    downloadLiveExportArtifact(artifact);
+  }
+
   return (
     <div className="workspace-grid workspace-grid--double">
       <aside className="panel">
@@ -249,6 +267,13 @@ export function LiveWorkspace({
             },
           ]}
         />
+        <button
+          type="button"
+          className="segmented-button"
+          onClick={handleExportReport}
+        >
+          Export HTML report
+        </button>
         <RouteBasisPanel
           source="Current dense belt snapshot"
           resolution="Dense ordered belt blocks"
