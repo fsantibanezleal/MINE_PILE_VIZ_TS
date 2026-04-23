@@ -35,12 +35,14 @@ export async function createSampleAppData(root: string) {
       liveSummaries: "live/object-summaries.json",
       profilerIndex: "profiler/index.json",
       profilerSummary: "profiler/summary.arrow",
+      simulatorIndex: "simulator/index.json",
     },
     capabilities: {
       circuit: true,
       live: true,
       stockpiles: true,
       profiler: true,
+      simulator: true,
     },
     objectCounts: {
       total: 5,
@@ -514,5 +516,146 @@ export async function createSampleAppData(root: string) {
     q_num_fe: [1.05, 1.1, 1.15, 1.2],
     q_num_cut: [0.75, 0.79, 0.9, 0.92],
     q_cat_materialtype_main: [10001, 10002, 10003, 10003],
+  });
+
+  await writeJson(path.join(root, "simulator", "index.json"), {
+    defaultObjectId: "pile_stockpile",
+    objects: [
+      {
+        objectId: "pile_stockpile",
+        displayName: "Plant Stockpile",
+        objectType: "pile",
+        dimension: 3,
+        manifestRef: "simulator/objects/pile_stockpile/manifest.json",
+      },
+    ],
+  });
+  await writeJson(path.join(root, "simulator", "objects", "pile_stockpile", "manifest.json"), {
+    objectId: "pile_stockpile",
+    objectType: "pile",
+    displayName: "Plant Stockpile",
+    objectRole: "physical",
+    dimension: 3,
+    defaultQualityId: "q_num_fe",
+    availableQualityIds: ["q_num_fe", "q_num_cut", "q_cat_materialtype_main"],
+    latestProfilerSnapshotId: "20250319011500",
+    latestProfilerTimestamp: "2025-03-19T01:15:00Z",
+    stepMinutes: 15,
+    outputs: [
+      {
+        id: "stockpile-out-west",
+        label: "Feeder West",
+        kind: "output",
+        x: 0.26,
+        y: 0.9,
+        spanX: 0.12,
+        spanY: 0.12,
+        positionMode: "fixed",
+        relatedObjectId: "vbelt_sp_f01",
+        tonsPerStep: 32,
+        tonsPerHour: 128,
+        stepMinutes: 15,
+        rateSource: "latest-transport",
+        parentBeltId: "belt_cv301",
+      },
+      {
+        id: "stockpile-out-east",
+        label: "Feeder East",
+        kind: "output",
+        x: 0.74,
+        y: 0.9,
+        spanX: 0.12,
+        spanY: 0.12,
+        positionMode: "fixed",
+        relatedObjectId: "vbelt_sp_f02",
+        tonsPerStep: 28,
+        tonsPerHour: 112,
+        stepMinutes: 15,
+        rateSource: "latest-transport",
+        parentBeltId: "belt_cv301",
+      },
+    ],
+    steps: [
+      {
+        snapshotId: "20250319011500",
+        timestamp: "2025-03-19T01:15:00Z",
+        kind: "base",
+        pileSnapshotRef: "simulator/objects/pile_stockpile/steps/20250319011500/pile.arrow",
+        outputSnapshotRefs: {
+          "stockpile-out-west": "simulator/objects/pile_stockpile/steps/20250319011500/outputs/stockpile-out-west.arrow",
+          "stockpile-out-east": "simulator/objects/pile_stockpile/steps/20250319011500/outputs/stockpile-out-east.arrow",
+        },
+      },
+      {
+        snapshotId: "20250319013000",
+        timestamp: "2025-03-19T01:30:00Z",
+        kind: "simulated",
+        pileSnapshotRef: "simulator/objects/pile_stockpile/steps/20250319013000/pile.arrow",
+        outputSnapshotRefs: {
+          "stockpile-out-west": "simulator/objects/pile_stockpile/steps/20250319013000/outputs/stockpile-out-west.arrow",
+          "stockpile-out-east": "simulator/objects/pile_stockpile/steps/20250319013000/outputs/stockpile-out-east.arrow",
+        },
+      },
+    ],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319011500", "pile.arrow"), {
+    timestamp: Array(4).fill("2025-03-19T01:15:00Z"),
+    ix: [0, 0, 1, 1],
+    iy: [0, 1, 0, 1],
+    iz: [0, 0, 0, 0],
+    massTon: [100, 102, 108, 110],
+    timestampOldestMs: Array(4).fill(1742346900000),
+    timestampNewestMs: Array(4).fill(1742346900000),
+    q_num_fe: [1.05, 1.1, 1.15, 1.2],
+    q_num_cut: [0.75, 0.79, 0.9, 0.92],
+    q_cat_materialtype_main: [10001, 10002, 10003, 10003],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319013000", "pile.arrow"), {
+    timestamp: Array(4).fill("2025-03-19T01:30:00Z"),
+    ix: [0, 0, 1, 1],
+    iy: [0, 1, 0, 1],
+    iz: [0, 0, 0, 0],
+    massTon: [92, 98, 102, 106],
+    timestampOldestMs: Array(4).fill(1742347800000),
+    timestampNewestMs: Array(4).fill(1742347800000),
+    q_num_fe: [1.04, 1.09, 1.14, 1.18],
+    q_num_cut: [0.74, 0.78, 0.88, 0.91],
+    q_cat_materialtype_main: [10001, 10002, 10003, 10003],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319011500", "outputs", "stockpile-out-west.arrow"), {
+    position: [0, 1],
+    massTon: [18, 14],
+    timestampOldestMs: [1742346900000, 1742346900000],
+    timestampNewestMs: [1742346900000, 1742346900000],
+    q_num_fe: [1.08, 1.12],
+    q_num_cut: [0.78, 0.86],
+    q_cat_materialtype_main: [10002, 10003],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319011500", "outputs", "stockpile-out-east.arrow"), {
+    position: [0, 1],
+    massTon: [16, 12],
+    timestampOldestMs: [1742346900000, 1742346900000],
+    timestampNewestMs: [1742346900000, 1742346900000],
+    q_num_fe: [1.15, 1.2],
+    q_num_cut: [0.9, 0.92],
+    q_cat_materialtype_main: [10003, 10003],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319013000", "outputs", "stockpile-out-west.arrow"), {
+    position: [0, 1],
+    massTon: [17, 15],
+    timestampOldestMs: [1742347800000, 1742347800000],
+    timestampNewestMs: [1742347800000, 1742347800000],
+    q_num_fe: [1.07, 1.11],
+    q_num_cut: [0.77, 0.84],
+    q_cat_materialtype_main: [10002, 10003],
+  });
+  await writeArrow(path.join(root, "simulator", "objects", "pile_stockpile", "steps", "20250319013000", "outputs", "stockpile-out-east.arrow"), {
+    position: [0, 1],
+    massTon: [15, 13],
+    timestampOldestMs: [1742347800000, 1742347800000],
+    timestampNewestMs: [1742347800000, 1742347800000],
+    q_num_fe: [1.13, 1.18],
+    q_num_cut: [0.89, 0.91],
+    q_cat_materialtype_main: [10003, 10003],
   });
 }

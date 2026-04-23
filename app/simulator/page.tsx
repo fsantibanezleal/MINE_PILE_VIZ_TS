@@ -10,8 +10,8 @@ import {
   getAppManifest,
   getCircuitGraph,
   getConfiguredAppDataRoot,
-  getProfilerIndex,
   getQualityDefinitions,
+  getSimulatorIndex,
 } from "@/lib/server/app-data";
 import { describeAppDataError } from "@/lib/server/app-data-errors";
 
@@ -20,10 +20,10 @@ async function loadSimulatorPageState() {
     const [manifest, graph, index, qualities] = await Promise.all([
       getAppManifest(),
       getCircuitGraph(),
-      getProfilerIndex(),
+      getSimulatorIndex(),
       getQualityDefinitions(),
     ]);
-    assertManifestCapability(manifest, "profiler", "Simulator view");
+    assertManifestCapability(manifest, "simulator", "Simulator view");
 
     return {
       kind: "ready" as const,
@@ -50,7 +50,7 @@ export default async function SimulatorPage() {
       <AppShell
         eyebrow="Simulator"
         title="Pile discharge simulator"
-        description="Inspect one pile-centric discharge scenario from the local app-ready cache and follow its profiled reclaim routes toward downstream transport objects."
+        description="Project future discharge from the latest profiled pile state, keep one pile at the center, and inspect every configured reclaim output simultaneously."
       >
         <DataUnavailable cacheRoot={getConfiguredAppDataRoot()} />
       </AppShell>
@@ -64,7 +64,7 @@ export default async function SimulatorPage() {
       <AppShell
         eyebrow="Simulator"
         title="Pile discharge simulator"
-        description="Inspect one pile-centric discharge scenario from the local app-ready cache and follow its profiled reclaim routes toward downstream transport objects."
+        description="Project future discharge from the latest profiled pile state, keep one pile at the center, and inspect every configured reclaim output simultaneously."
       >
         <DataUnavailable
           title={state.issue.title}
@@ -80,34 +80,32 @@ export default async function SimulatorPage() {
     <AppShell
       eyebrow="Simulator"
       title="Pile discharge simulator"
-      description="The simulator route is profiler-only and route-first. It keeps one selected pile or virtual pile as the route anchor, follows one stored profiler timestep, and organizes downstream discharge content by configured reclaim output."
+      description="The simulator route is pile-centered and profiler-based. It starts from the latest real pile state, advances through stored future simulation steps, and keeps every configured feeder/output visible together under the pile."
       actions={
         <MetricGrid
           metrics={[
             { label: "Dataset", value: state.manifest.datasetLabel },
             {
               label: "Pile nodes",
-              value: String(
-                state.graph.nodes.filter((node) => node.objectType === "pile").length,
-              ),
+              value: String(state.index.objects.length),
             },
             {
-              label: "Route focus",
-              value: "Pile-centered discharge",
+              label: "View focus",
+              value: "Pile + all direct outputs",
             },
             {
               label: "Time basis",
-              value: "Selected profiler snapshot",
+              value: "Latest real state + sims",
             },
           ]}
         />
       }
     >
       <RouteIntentPanel
-        primaryQuestion="If one pile is the center of attention, how do its configured outputs organize downstream route content?"
-        uniqueEvidence="Pile-centric discharge structure that keeps one pile as the route anchor, splits outputs by configured reclaim route, and keeps downstream profiled transport context aligned to the selected stored timestep."
-        useWhen="You want to reason about pile discharge structure, grouped reclaim routes, and downstream transport context from the perspective of one selected profiled pile or virtual pile."
-        switchWhen="Use Live for pure current belt or pile reading, Profiler for historical summaries, or Circuit for the full staged topology."
+        primaryQuestion="If one pile keeps discharging at the latest measured reclaim rates, what material would leave each configured output over the next simulated steps?"
+        uniqueEvidence="A pile-centered simulation view that starts from the latest real profiler state, projects future discharge by configured output, and keeps all reclaim outputs visible together under the pile."
+        useWhen="You want to inspect the current profiled pile, compare every feeder/output side by side, and play projected future discharge without leaving the pile view."
+        switchWhen="Use Live for dense current state, Profiler for stored history, or Circuit for topology-first reading."
       />
       <Suspense fallback={<div className="panel">Loading route context...</div>}>
         <SimulatorWorkspace

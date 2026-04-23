@@ -12,9 +12,15 @@ All notable tracked releases for this repository are recorded here.
 ## Release Status
 
 - Closed release baseline: `1.00.000`
-- Active tracked version: `1.00.013`
+- Active tracked version: `1.00.014`
 
 ## Release History
+
+### 1.00.014
+
+- Rebuilt the simulator around precomputed scenario steps from `data/08_reporting/**/sims`, so the route now loads generated future pile states and generated feeder-output evidence instead of deriving future discharge interactively in the browser.
+- Removed editable discharge-rate controls from the simulator UI and replaced them with one pile-centered, simultaneous feeder reading model: the selected pile stays in the center and every configured feeder/output remains visible together underneath it at each simulation step.
+- Extended the app-ready cache contract, simulator API surface, synthetic fixtures, component coverage, cache checks, and browser coverage so simulator steps, per-step feeder snapshots, and the new `sims`-based reading model are validated end to end.
 
 ### 1.00.013
 

@@ -1,21 +1,21 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { SimulatorWorkspace } from "@/components/simulator/simulator-workspace";
-import { getVerticalCompressionStorageKey } from "@/lib/use-persistent-vertical-compression";
 import type {
   CircuitGraph,
-  PileDataset,
-  ProfilerIndex,
-  ProfilerSnapshot,
-  ProfilerSummaryRow,
   QualityDefinition,
+  SimulatorIndex,
+  SimulatorObjectManifest,
+  SimulatorStepSnapshot,
 } from "@/types/app-data";
+
+const replaceMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/simulator",
   useRouter: () => ({
-    replace: vi.fn(),
+    replace: replaceMock,
   }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -57,681 +57,285 @@ const qualities: QualityDefinition[] = [
 ];
 
 const graph: CircuitGraph = {
-  stages: [
-    { index: 0, label: "Accumulation", nodeIds: ["pile_a"] },
-    { index: 1, label: "Discharge", nodeIds: ["vbelt_lane", "vpile_mix"] },
-    { index: 2, label: "Transport", nodeIds: ["belt_b"] },
-  ],
+  stages: [{ index: 0, label: "Accumulation", nodeIds: ["pile_stockpile"] }],
   nodes: [
     {
-      id: "pile_a",
-      objectId: "pile_a",
+      id: "pile_stockpile",
+      objectId: "pile_stockpile",
       objectType: "pile",
       objectRole: "physical",
-      label: "Pile A",
+      label: "Plant Stockpile",
       stageIndex: 0,
       dimension: 3,
       isProfiled: true,
-      shortDescription: "Central pile",
+      shortDescription: "Main pile",
       inputs: [],
       outputs: [
         {
-          id: "out-west",
-          label: "West reclaim",
+          id: "out_1",
+          label: "Feeder 01",
           kind: "output",
-          x: 0.3,
-          y: 0.9,
-          relatedObjectId: "vbelt_lane",
+          x: 0.25,
+          y: 0.35,
+          relatedObjectId: "vbelt_sp_f01",
         },
-      ],
-    },
-    {
-      id: "vbelt_lane",
-      objectId: "vbelt_lane",
-      objectType: "belt",
-      objectRole: "virtual",
-      label: "Virtual Lane",
-      stageIndex: 1,
-      dimension: 1,
-      isProfiled: false,
-      shortDescription: "Virtual discharge lane",
-      inputs: [],
-      outputs: [],
-    },
-    {
-      id: "vpile_mix",
-      objectId: "vpile_mix",
-      objectType: "pile",
-      objectRole: "virtual",
-      label: "Virtual Mixer",
-      stageIndex: 1,
-      dimension: 1,
-      isProfiled: false,
-      shortDescription: "Virtual pile",
-      inputs: [],
-      outputs: [
         {
-          id: "out-b",
-          label: "To CV301",
+          id: "out_2",
+          label: "Feeder 02",
           kind: "output",
-          x: 0.5,
-          y: 0.9,
-          relatedObjectId: "belt_b",
+          x: 0.75,
+          y: 0.65,
+          relatedObjectId: "vbelt_sp_f02",
         },
       ],
     },
-    {
-      id: "belt_b",
-      objectId: "belt_b",
-      objectType: "belt",
-      objectRole: "physical",
-      label: "Belt B",
-      stageIndex: 2,
-      dimension: 1,
-      isProfiled: true,
-      shortDescription: "Physical downstream belt",
-      inputs: [],
-      outputs: [],
-    },
   ],
-  edges: [
-    { id: "e1", source: "pile_a", target: "vbelt_lane", label: "west" },
-    { id: "e2", source: "vbelt_lane", target: "vpile_mix", label: "mix" },
-    { id: "e3", source: "vpile_mix", target: "belt_b", label: "belt" },
-  ],
+  edges: [],
 };
 
-const index: ProfilerIndex = {
-  defaultObjectId: "pile_a",
+const index: SimulatorIndex = {
+  defaultObjectId: "pile_stockpile",
   objects: [
     {
-      objectId: "pile_a",
-      displayName: "Pile A",
+      objectId: "pile_stockpile",
+      displayName: "Plant Stockpile",
       objectType: "pile",
       dimension: 3,
-      manifestRef: "profiler/objects/pile_a/manifest.json",
-    },
-    {
-      objectId: "belt_b",
-      displayName: "Belt B",
-      objectType: "belt",
-      dimension: 1,
-      manifestRef: "profiler/objects/belt_b/manifest.json",
-    },
-    {
-      objectId: "vpile_mix",
-      displayName: "Virtual Mixer",
-      objectType: "pile",
-      dimension: 1,
-      manifestRef: "profiler/objects/vpile_mix/manifest.json",
+      manifestRef: "simulator/objects/pile_stockpile/manifest.json",
     },
   ],
 };
 
-const summaryRows: ProfilerSummaryRow[] = [
-  {
-    snapshotId: "20250319010000",
-    timestamp: "2025-03-19T01:00:00Z",
-    objectId: "pile_a",
-    objectType: "pile",
-    displayName: "Pile A",
-    dimension: 3,
-    massTon: 95,
-    qualityValues: { q_num_fe: 1.04 },
-  },
-  {
-    snapshotId: "20250319011500",
-    timestamp: "2025-03-19T01:15:00Z",
-    objectId: "pile_a",
-    objectType: "pile",
-    displayName: "Pile A",
-    dimension: 3,
-    massTon: 104,
-    qualityValues: { q_num_fe: 1.14 },
-  },
-  {
-    snapshotId: "20250319011500",
-    timestamp: "2025-03-19T01:15:00Z",
-    objectId: "vpile_mix",
-    objectType: "pile",
-    displayName: "Virtual Mixer",
-    dimension: 1,
-    massTon: 54,
-    qualityValues: { q_num_fe: 1.22 },
-  },
-];
-
-const profilerSnapshot: ProfilerSnapshot = {
-  objectId: "pile_a",
-  displayName: "Pile A",
+const manifest: SimulatorObjectManifest = {
+  objectId: "pile_stockpile",
   objectType: "pile",
-  snapshotId: "20250319011500",
-  timestamp: "2025-03-19T01:15:00Z",
+  displayName: "Plant Stockpile",
+  objectRole: "physical",
   dimension: 3,
-  rows: [
-    {
-      ix: 0,
-      iy: 0,
-      iz: 0,
-      massTon: 50,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.1 },
-    },
-    {
-      ix: 1,
-      iy: 0,
-      iz: 0,
-      massTon: 54,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.18 },
-    },
-  ],
-};
-
-const currentVirtualPile: PileDataset = {
-  objectId: "vpile_mix",
-  displayName: "Virtual Mixer",
-  objectRole: "virtual",
-  timestamp: "2025-03-19T01:15:00Z",
-  dimension: 1,
-  extents: { x: 1, y: 1, z: 3 },
-  occupiedCellCount: 3,
-  surfaceCellCount: 1,
   defaultQualityId: "q_num_fe",
   availableQualityIds: ["q_num_fe"],
-  viewModes: ["full"],
-  suggestedFullStride: 1,
-  fullModeThreshold: 12,
-  qualityAverages: { q_num_fe: 1.22 },
-  inputs: [],
+  latestProfilerSnapshotId: "20250301234500",
+  latestProfilerTimestamp: "2025-03-01T23:45:00Z",
+  stepMinutes: 15,
   outputs: [
     {
-      id: "out-b",
-      label: "To CV301",
+      id: "out_1",
+      label: "Feeder 01",
       kind: "output",
-      x: 0.5,
-      y: 0.9,
-      relatedObjectId: "belt_b",
+      x: 0.25,
+      y: 0.35,
+      spanX: 0.12,
+      spanY: 0.12,
+      positionMode: "fixed",
+      relatedObjectId: "vbelt_sp_f01",
+      tonsPerStep: 30,
+      tonsPerHour: 120,
+      stepMinutes: 15,
+      rateSource: "latest-transport",
+      parentBeltId: "belt_cv301",
+    },
+    {
+      id: "out_2",
+      label: "Feeder 02",
+      kind: "output",
+      x: 0.75,
+      y: 0.65,
+      spanX: 0.12,
+      spanY: 0.12,
+      positionMode: "fixed",
+      relatedObjectId: "vbelt_sp_f02",
+      tonsPerStep: 20,
+      tonsPerHour: 80,
+      stepMinutes: 15,
+      rateSource: "latest-transport",
+      parentBeltId: "belt_cv301",
     },
   ],
-  files: { cells: "live/piles/vpile_mix/cells.arrow" },
-  cells: [
+  steps: [
     {
-      ix: 0,
-      iy: 0,
-      iz: 0,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.16 },
+      snapshotId: "20250301234500",
+      timestamp: "2025-03-01T23:45:00Z",
+      kind: "base",
+      pileSnapshotRef: "simulator/objects/pile_stockpile/steps/20250301234500/pile.arrow",
+      outputSnapshotRefs: {
+        out_1: "simulator/objects/pile_stockpile/steps/20250301234500/outputs/out_1.arrow",
+        out_2: "simulator/objects/pile_stockpile/steps/20250301234500/outputs/out_2.arrow",
+      },
     },
     {
-      ix: 0,
-      iy: 0,
-      iz: 1,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.22 },
-    },
-    {
-      ix: 0,
-      iy: 0,
-      iz: 2,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.28 },
+      snapshotId: "20250302000000",
+      timestamp: "2025-03-02T00:00:00Z",
+      kind: "simulated",
+      pileSnapshotRef: "simulator/objects/pile_stockpile/steps/20250302000000/pile.arrow",
+      outputSnapshotRefs: {
+        out_1: "simulator/objects/pile_stockpile/steps/20250302000000/outputs/out_1.arrow",
+        out_2: "simulator/objects/pile_stockpile/steps/20250302000000/outputs/out_2.arrow",
+      },
     },
   ],
-  surfaceCells: [
-    {
-      ix: 0,
-      iy: 0,
-      iz: 2,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.28 },
-    },
-  ],
-  shellCells: [],
 };
 
-const profiledPhysicalBelt: ProfilerSnapshot = {
-  objectId: "belt_b",
-  displayName: "Belt B",
-  objectType: "belt",
-  snapshotId: "20250319011500",
-  timestamp: "2025-03-19T01:15:00Z",
-  dimension: 1,
-  rows: [
+const baseStep: SimulatorStepSnapshot = {
+  objectId: "pile_stockpile",
+  displayName: "Plant Stockpile",
+  objectType: "pile",
+  snapshotId: "20250301234500",
+  timestamp: "2025-03-01T23:45:00Z",
+  dimension: 3,
+  pileRows: [
     {
       ix: 0,
       iy: 0,
       iz: 0,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.2 },
+      massTon: 120,
+      timestampOldestMs: 1740872700000,
+      timestampNewestMs: 1740872700000,
+      qualityValues: { q_num_fe: 0.9 },
     },
     {
       ix: 1,
       iy: 0,
       iz: 0,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.24 },
-    },
-    {
-      ix: 2,
-      iy: 0,
-      iz: 0,
-      massTon: 18,
-      timestampOldestMs: 1742346000000,
-      timestampNewestMs: 1742346900000,
-      qualityValues: { q_num_fe: 1.28 },
+      massTon: 140,
+      timestampOldestMs: 1740872700000,
+      timestampNewestMs: 1740872700000,
+      qualityValues: { q_num_fe: 1.1 },
     },
   ],
+  outputSnapshots: {
+    out_1: {
+      objectId: "vbelt_sp_f01",
+      displayName: "Feeder 01",
+      timestamp: "2025-03-01T23:45:00Z",
+      totalMassTon: 30,
+      blockCount: 2,
+      qualityAverages: { q_num_fe: 0.95 },
+      blocks: [
+        {
+          position: 0,
+          massTon: 15,
+          timestampOldestMs: 1740872700000,
+          timestampNewestMs: 1740872700000,
+          qualityValues: { q_num_fe: 0.9 },
+        },
+        {
+          position: 1,
+          massTon: 15,
+          timestampOldestMs: 1740872700000,
+          timestampNewestMs: 1740872700000,
+          qualityValues: { q_num_fe: 1.0 },
+        },
+      ],
+    },
+    out_2: {
+      objectId: "vbelt_sp_f02",
+      displayName: "Feeder 02",
+      timestamp: "2025-03-01T23:45:00Z",
+      totalMassTon: 20,
+      blockCount: 1,
+      qualityAverages: { q_num_fe: 1.1 },
+      blocks: [
+        {
+          position: 0,
+          massTon: 20,
+          timestampOldestMs: 1740872700000,
+          timestampNewestMs: 1740872700000,
+          qualityValues: { q_num_fe: 1.1 },
+        },
+      ],
+    },
+  },
 };
 
-const virtualPileProfilerSnapshot: ProfilerSnapshot = {
-  objectId: "vpile_mix",
-  displayName: "Virtual Mixer",
-  objectType: "pile",
-  snapshotId: "20250319011500",
-  timestamp: "2025-03-19T01:15:00Z",
-  dimension: 1,
-  rows: currentVirtualPile.cells,
+const simulatedStep: SimulatorStepSnapshot = {
+  ...baseStep,
+  snapshotId: "20250302000000",
+  timestamp: "2025-03-02T00:00:00Z",
+  pileRows: [
+    {
+      ix: 0,
+      iy: 0,
+      iz: 0,
+      massTon: 90,
+      timestampOldestMs: 1740873600000,
+      timestampNewestMs: 1740873600000,
+      qualityValues: { q_num_fe: 0.88 },
+    },
+    {
+      ix: 1,
+      iy: 0,
+      iz: 0,
+      massTon: 120,
+      timestampOldestMs: 1740873600000,
+      timestampNewestMs: 1740873600000,
+      qualityValues: { q_num_fe: 1.08 },
+    },
+  ],
+  outputSnapshots: {
+    out_1: {
+      ...baseStep.outputSnapshots.out_1,
+      timestamp: "2025-03-02T00:00:00Z",
+      totalMassTon: 30,
+    },
+    out_2: {
+      ...baseStep.outputSnapshots.out_2,
+      timestamp: "2025-03-02T00:00:00Z",
+      totalMassTon: 20,
+    },
+  },
 };
-
-function jsonResponse(payload: unknown, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-function createDeferredJsonResponse() {
-  let resolveResponse: ((value: Response) => void) | null = null;
-  const promise = new Promise<Response>((resolve) => {
-    resolveResponse = resolve;
-  });
-
-  return {
-    promise,
-    resolve(payload: unknown) {
-      resolveResponse?.(jsonResponse(payload));
-    },
-  };
-}
 
 describe("SimulatorWorkspace", () => {
-  it("centers the simulator on piles and renders the active discharge route as direct, merge, and downstream stages", async () => {
-    window.localStorage.clear();
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+  beforeEach(() => {
+    replaceMock.mockReset();
+    vi.restoreAllMocks();
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
-
-      if (url.endsWith("/api/profiler/summary")) {
-        return jsonResponse(summaryRows);
+      if (url.includes("/api/simulator/objects/pile_stockpile/steps/20250301234500")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(baseStep), { status: 200 }),
+        );
       }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
-        return jsonResponse(profilerSnapshot);
+      if (url.includes("/api/simulator/objects/pile_stockpile/steps/20250302000000")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(simulatedStep), { status: 200 }),
+        );
       }
-
-      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
-        return jsonResponse(virtualPileProfilerSnapshot);
+      if (url.includes("/api/simulator/objects/pile_stockpile")) {
+        return Promise.resolve(
+          new Response(JSON.stringify(manifest), { status: 200 }),
+        );
       }
-
-      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
-        return jsonResponse(profiledPhysicalBelt);
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
+      return Promise.resolve(new Response("Not found", { status: 404 }));
     });
+    localStorage.clear();
+  });
 
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("shows the pile and all direct feeder outputs at the same time", async () => {
     render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
 
-    expect(screen.getByText("Loading simulator history...")).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith("/api/profiler/summary");
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
-    });
-
-    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
-      "data-vertical-compression",
-      "1",
-    );
-    fireEvent.change(screen.getByLabelText("Vertical compression factor"), {
-      target: { value: "32" },
-    });
-    expect(screen.getByText("Effective vertical scale: 1 / 32")).toBeInTheDocument();
-    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
-      "data-vertical-compression",
-      "32",
-    );
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/profiler/objects/belt_b/snapshots/20250319011500",
-    );
-    expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/vbelt_lane");
-    expect(fetchMock).not.toHaveBeenCalledWith("/api/live/belts/belt_b");
-
-    expect(screen.getByText("Direct discharge outputs")).toBeInTheDocument();
-    expect(screen.getAllByText("West reclaim").length).toBeGreaterThan(0);
-    expect(screen.getByText("Direct reclaim")).toBeInTheDocument();
-    expect(screen.getAllByText("Virtual merge").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Downstream conveyors").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Virtual Lane").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Belt B").length).toBeGreaterThan(0);
-    expect(screen.getByText("Route evidence notes")).toBeInTheDocument();
-    expect(screen.getByText("Route histogram encodes")).toBeInTheDocument();
-    expect(screen.getByText("Selected route detail")).toBeInTheDocument();
-    expect(screen.getByText("Discharge reading context")).toBeInTheDocument();
-    expect(screen.getByText("Active route context")).toBeInTheDocument();
-    expect(screen.getByText("Route semantics")).toBeInTheDocument();
-    expect(screen.getByText("Inspect route anchor")).toBeInTheDocument();
-    expect(screen.getAllByText("Independent discharge route").length).toBeGreaterThan(0);
-    expect(screen.getByText("Combined mass")).toBeInTheDocument();
-    expect(screen.getAllByText("Profiler-aligned").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Snapshot UTC").length).toBeGreaterThan(0);
-    expect(screen.getByText("Structural transport only")).toBeInTheDocument();
-    expect(screen.queryByText("Profiled qualities")).not.toBeInTheDocument();
-    expect(
-      screen.getByLabelText("West reclaim numerical mass distribution for Fe"),
-    ).toBeInTheDocument();
-    expect(screen.queryByLabelText("Virtual Lane block strip")).not.toBeInTheDocument();
+    expect(await screen.findByText("Simulated feeder outputs")).toBeInTheDocument();
+    expect(screen.getByText("Feeder 01")).toBeInTheDocument();
+    expect(screen.getByText("Feeder 02")).toBeInTheDocument();
     expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Route anchor"), {
-      target: { value: "vpile_mix" },
-    });
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/profiler/objects/vpile_mix/snapshots/20250319011500",
-      );
-    });
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Virtual Mixer").length).toBeGreaterThan(0);
-    });
-
-    expect(screen.getAllByText("To CV301").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByText("Inspect route anchor"));
-    expect(screen.getByText("Central object material time")).toBeInTheDocument();
+    expect(screen.queryByText("Output discharge rates")).not.toBeInTheDocument();
   });
 
-  it("restores the stored simulator vertical compression factor", async () => {
-    window.localStorage.clear();
-    window.localStorage.setItem(
-      getVerticalCompressionStorageKey("simulator"),
-      "19",
-    );
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = String(input);
-
-      if (url.endsWith("/api/profiler/summary")) {
-        return jsonResponse(summaryRows);
-      }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
-        return jsonResponse(profilerSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
-        return jsonResponse(virtualPileProfilerSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
-        return jsonResponse(profiledPhysicalBelt);
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("moves to the next simulated step and keeps output columns visible", async () => {
     render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
-    });
-
-    expect(screen.getByTestId("pile-3d-canvas")).toHaveAttribute(
-      "data-vertical-compression",
-      "19",
-    );
-    expect(screen.getByText("Effective vertical scale: 1 / 19")).toBeInTheDocument();
-  });
-
-  it("keeps the active 3D route-anchor canvas mounted while the next timestep loads", async () => {
-    const deferredSnapshot = createDeferredJsonResponse();
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = String(input);
-
-      if (url.endsWith("/api/profiler/summary")) {
-        return jsonResponse(summaryRows);
-      }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
-        return jsonResponse(profilerSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319010000")) {
-        return deferredSnapshot.promise;
-      }
-
-      if (url.endsWith("/api/profiler/objects/vpile_mix/snapshots/20250319011500")) {
-        return jsonResponse(virtualPileProfilerSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/belt_b/snapshots/20250319011500")) {
-        return jsonResponse(profiledPhysicalBelt);
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<SimulatorWorkspace graph={graph} index={index} qualities={qualities} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
-    });
-
-    fireEvent.change(screen.getByLabelText("Time step"), {
-      target: { value: "0" },
-    });
-
-    expect(screen.getByTestId("pile-3d-canvas")).toBeInTheDocument();
-    expect(screen.getByText("Loading route anchor...")).toBeInTheDocument();
-
-    deferredSnapshot.resolve({
-      ...profilerSnapshot,
-      snapshotId: "20250319010000",
-      timestamp: "2025-03-19T01:00:00Z",
+    await screen.findByText("Feeder 01");
+    const horizonLabel = screen.getByText("Simulation horizon").closest("label");
+    const horizonInput = horizonLabel?.querySelector("input[type='range']");
+    expect(horizonInput).toBeTruthy();
+    fireEvent.change(horizonInput as HTMLInputElement, {
+      target: { value: "1" },
     });
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/profiler/objects/pile_a/snapshots/20250319010000",
-      );
+      expect(screen.getAllByText("+15 min").length).toBeGreaterThan(0);
     });
-  });
-
-  it("shows direct feeder evidence for multiple outputs at the same time", async () => {
-    const multiOutputGraph: CircuitGraph = {
-      stages: [
-        { index: 0, label: "Accumulation", nodeIds: ["pile_a"] },
-        { index: 1, label: "Discharge", nodeIds: ["belt_west", "belt_east"] },
-      ],
-      nodes: [
-        {
-          ...graph.nodes[0]!,
-          outputs: [
-            {
-              id: "out-west",
-              label: "West feeder",
-              kind: "output",
-              x: 0.25,
-              y: 0.9,
-              relatedObjectId: "belt_west",
-            },
-            {
-              id: "out-east",
-              label: "East feeder",
-              kind: "output",
-              x: 0.75,
-              y: 0.9,
-              relatedObjectId: "belt_east",
-            },
-          ],
-        },
-        {
-          id: "belt_west",
-          objectId: "belt_west",
-          objectType: "belt",
-          objectRole: "physical",
-          label: "Belt West",
-          stageIndex: 1,
-          dimension: 1,
-          isProfiled: true,
-          shortDescription: "West feeder belt",
-          inputs: [],
-          outputs: [],
-        },
-        {
-          id: "belt_east",
-          objectId: "belt_east",
-          objectType: "belt",
-          objectRole: "physical",
-          label: "Belt East",
-          stageIndex: 1,
-          dimension: 1,
-          isProfiled: true,
-          shortDescription: "East feeder belt",
-          inputs: [],
-          outputs: [],
-        },
-      ],
-      edges: [
-        { id: "e-west", source: "pile_a", target: "belt_west", label: "west" },
-        { id: "e-east", source: "pile_a", target: "belt_east", label: "east" },
-      ],
-    };
-
-    const multiOutputIndex: ProfilerIndex = {
-      defaultObjectId: "pile_a",
-      objects: [
-        {
-          objectId: "pile_a",
-          displayName: "Pile A",
-          objectType: "pile",
-          dimension: 3,
-          manifestRef: "profiler/objects/pile_a/manifest.json",
-        },
-        {
-          objectId: "belt_west",
-          displayName: "Belt West",
-          objectType: "belt",
-          dimension: 1,
-          manifestRef: "profiler/objects/belt_west/manifest.json",
-        },
-        {
-          objectId: "belt_east",
-          displayName: "Belt East",
-          objectType: "belt",
-          dimension: 1,
-          manifestRef: "profiler/objects/belt_east/manifest.json",
-        },
-      ],
-    };
-
-    const westSnapshot: ProfilerSnapshot = {
-      objectId: "belt_west",
-      displayName: "Belt West",
-      objectType: "belt",
-      snapshotId: "20250319011500",
-      timestamp: "2025-03-19T01:15:00Z",
-      dimension: 1,
-      rows: profiledPhysicalBelt.rows,
-    };
-
-    const eastSnapshot: ProfilerSnapshot = {
-      objectId: "belt_east",
-      displayName: "Belt East",
-      objectType: "belt",
-      snapshotId: "20250319011500",
-      timestamp: "2025-03-19T01:15:00Z",
-      dimension: 1,
-      rows: profiledPhysicalBelt.rows.map((row) => ({
-        ...row,
-        qualityValues: { q_num_fe: 1.32 },
-      })),
-    };
-
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = String(input);
-
-      if (url.endsWith("/api/profiler/summary")) {
-        return jsonResponse(summaryRows);
-      }
-
-      if (url.endsWith("/api/profiler/objects/pile_a/snapshots/20250319011500")) {
-        return jsonResponse(profilerSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/belt_west/snapshots/20250319011500")) {
-        return jsonResponse(westSnapshot);
-      }
-
-      if (url.endsWith("/api/profiler/objects/belt_east/snapshots/20250319011500")) {
-        return jsonResponse(eastSnapshot);
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
-    });
-
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(
-      <SimulatorWorkspace
-        graph={multiOutputGraph}
-        index={multiOutputIndex}
-        qualities={qualities}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("Direct discharge outputs")).toBeInTheDocument();
-    });
-
-    expect(screen.getAllByText("West feeder").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("East feeder").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Belt West").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Belt East").length).toBeGreaterThan(0);
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/profiler/objects/belt_west/snapshots/20250319011500",
-      );
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/profiler/objects/belt_east/snapshots/20250319011500",
-      );
-    });
+    expect(screen.getAllByText("Simulated mass").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Rate \/ 15 min/i).length).toBeGreaterThan(0);
   });
 });

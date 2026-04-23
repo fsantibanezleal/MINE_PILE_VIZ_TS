@@ -13,12 +13,14 @@ export const manifestSchema = z.object({
     liveSummaries: z.string(),
     profilerIndex: z.string(),
     profilerSummary: z.string(),
+    simulatorIndex: z.string().optional(),
   }),
   capabilities: z.object({
     circuit: z.boolean(),
     live: z.boolean(),
     stockpiles: z.boolean(),
     profiler: z.boolean(),
+    simulator: z.boolean().optional(),
   }),
   objectCounts: z.object({
     total: z.number(),
@@ -170,4 +172,48 @@ export const profilerObjectManifestSchema = z.object({
   latestSnapshotId: z.string(),
   snapshotIds: z.array(z.string()),
   snapshotPathTemplate: z.string(),
+});
+
+export const simulatorRateConfigSchema = graphAnchorSchema.extend({
+  tonsPerStep: z.number(),
+  tonsPerHour: z.number(),
+  stepMinutes: z.number(),
+  rateSource: z.literal("latest-transport"),
+  parentBeltId: z.string().nullable().optional(),
+});
+
+export const simulatorIndexSchema = z.object({
+  defaultObjectId: z.string(),
+  objects: z.array(
+    z.object({
+      objectId: z.string(),
+      displayName: z.string(),
+      objectType: z.literal("pile"),
+      dimension: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      manifestRef: z.string(),
+    }),
+  ),
+});
+
+export const simulatorStepEntrySchema = z.object({
+  snapshotId: z.string(),
+  timestamp: z.string(),
+  kind: z.enum(["base", "simulated"]),
+  pileSnapshotRef: z.string(),
+  outputSnapshotRefs: z.record(z.string(), z.string()),
+});
+
+export const simulatorObjectManifestSchema = z.object({
+  objectId: z.string(),
+  objectType: z.literal("pile"),
+  displayName: z.string(),
+  objectRole: z.enum(["physical", "virtual"]),
+  dimension: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  defaultQualityId: z.string(),
+  availableQualityIds: z.array(z.string()),
+  latestProfilerSnapshotId: z.string(),
+  latestProfilerTimestamp: z.string(),
+  stepMinutes: z.number(),
+  outputs: z.array(simulatorRateConfigSchema),
+  steps: z.array(simulatorStepEntrySchema),
 });

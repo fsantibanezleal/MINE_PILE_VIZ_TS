@@ -36,12 +36,14 @@ export interface AppManifest {
     liveSummaries: string;
     profilerIndex: string;
     profilerSummary: string;
+    simulatorIndex?: string;
   };
   capabilities: {
     circuit: boolean;
     live: boolean;
     stockpiles: boolean;
     profiler: boolean;
+    simulator?: boolean;
   };
   objectCounts: {
     total: number;
@@ -230,4 +232,68 @@ export interface ProfilerSnapshot {
   timestamp: string;
   dimension: 1 | 2 | 3;
   rows: PileCellRecord[];
+}
+
+export interface SimulatorRateConfig {
+  id: string;
+  label: string;
+  kind: "input" | "output";
+  x: number;
+  y: number;
+  spanX?: number;
+  spanY?: number;
+  positionMode?: AnchorPositionMode;
+  relatedObjectId: string;
+  tonsPerStep: number;
+  tonsPerHour: number;
+  stepMinutes: number;
+  rateSource: "latest-transport";
+  parentBeltId?: string | null;
+}
+
+export interface SimulatorStepEntry {
+  snapshotId: string;
+  timestamp: string;
+  kind: "base" | "simulated";
+  pileSnapshotRef: string;
+  outputSnapshotRefs: Record<string, string>;
+}
+
+export interface SimulatorIndexEntry {
+  objectId: string;
+  displayName: string;
+  objectType: "pile";
+  dimension: 1 | 2 | 3;
+  manifestRef: string;
+}
+
+export interface SimulatorIndex {
+  defaultObjectId: string;
+  objects: SimulatorIndexEntry[];
+}
+
+export interface SimulatorObjectManifest {
+  objectId: string;
+  objectType: "pile";
+  displayName: string;
+  objectRole: ObjectRole;
+  dimension: 1 | 2 | 3;
+  defaultQualityId: string;
+  availableQualityIds: string[];
+  latestProfilerSnapshotId: string;
+  latestProfilerTimestamp: string;
+  stepMinutes: number;
+  outputs: SimulatorRateConfig[];
+  steps: SimulatorStepEntry[];
+}
+
+export interface SimulatorStepSnapshot {
+  objectId: string;
+  displayName: string;
+  objectType: "pile";
+  snapshotId: string;
+  timestamp: string;
+  dimension: 1 | 2 | 3;
+  pileRows: PileCellRecord[];
+  outputSnapshots: Record<string, BeltSnapshot>;
 }

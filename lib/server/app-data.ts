@@ -27,6 +27,9 @@ import type {
   ProfilerSummaryRow,
   QualityDefinition,
   QualityValueMap,
+  SimulatorIndex,
+  SimulatorObjectManifest,
+  SimulatorStepSnapshot,
 } from "@/types/app-data";
 import { readArrowRows } from "@/lib/server/arrow";
 import {
@@ -42,6 +45,8 @@ import {
   profilerIndexSchema,
   profilerObjectManifestSchema,
   qualityDefinitionSchema,
+  simulatorIndexSchema,
+  simulatorObjectManifestSchema,
 } from "@/lib/server/schemas";
 
 function getDensePileRef(entry: ObjectRegistryEntry) {
@@ -256,6 +261,19 @@ function mapPileCells(
   }));
 }
 
+function mapBeltBlocks(
+  rows: Array<Record<string, unknown>>,
+  qualityIds: string[],
+): BeltBlockRecord[] {
+  return rows.map((row) => ({
+    position: Number(row.position ?? 0),
+    massTon: Number(row.massTon ?? 0),
+    timestampOldestMs: Number(row.timestampOldestMs ?? 0),
+    timestampNewestMs: Number(row.timestampNewestMs ?? 0),
+    qualityValues: mapQualityValues(row, qualityIds),
+  }));
+}
+
 export async function appDataExists() {
   try {
     await access(resolveAppFile("manifest.json"));
@@ -357,13 +375,7 @@ export async function getLiveBeltSnapshot(beltId: string): Promise<BeltSnapshot>
     `Live belt snapshot for ${beltEntry.displayName}`,
   );
   const qualityIds = qualities.map((quality) => quality.id);
-  const blocks: BeltBlockRecord[] = rows.map((row) => ({
-    position: Number(row.position ?? 0),
-    massTon: Number(row.massTon ?? 0),
-    timestampOldestMs: Number(row.timestampOldestMs ?? 0),
-    timestampNewestMs: Number(row.timestampNewestMs ?? 0),
-    qualityValues: mapQualityValues(row, qualityIds),
-  }));
+  const blocks = mapBeltBlocks(rows, qualityIds);
 
   const totalMassTon = blocks.reduce((sum, block) => sum + block.massTon, 0);
   const qualityAverages = buildMassWeightedQualitySummary(blocks, qualities);
@@ -546,5 +558,128 @@ export async function getProfilerSnapshot(
     timestamp: String(rows[0]?.timestamp ?? new Date(0).toISOString()),
     dimension: manifest.dimension,
     rows: mapPileCells(rows, qualityIds),
+  };
+}
+
+export async function getSimulatorIndex(): Promise<SimulatorIndex> {
+  const manifest = await getAppManifest();
+
+  if (!manifest.paths.simulatorIndex) {
+    throw new AppDataContractError({
+      code: "capability_disabled",
+      title: "Simulator cache inputs are unavailable",
+      message: "The manifest does not expose a simulator index for this cache.",
+      details: ["Manifest path `simulatorIndex` is missing."],
+    });
+  }
+
+  const raw = await readJsonFile<unknown>(
+    manifest.paths.simulatorIndex,
+    "Simulator index",
+  );
+
+  return parseWithSchema(
+    raw,
+    simulatorIndexSchema,
+    "Simulator index",
+    manifest.paths.simulatorIndex,
+  );
+}
+
+export async function getSimulatorObjectManifest(
+  objectId: string,
+): Promise<SimulatorObjectManifest> {
+  const index = await getSimulatorIndex();
+  const entry = index.objects.find((candidate) => candidate.objectId === objectId);
+
+  if (!entry) {
+    throw new AppDataContractError({
+      code: "missing_object",
+      title: "Simulator object not registered",
+      message: `No simulator manifest is registered for '${objectId}'.`,
+      status: 404,
+      details: ["The selected object is not present in simulator/index.json."],
+    });
+  }
+
+  const raw = await readJsonFile<unknown>(
+    entry.manifestRef,
+    `Simulator manifest for ${entry.displayName}`,
+  );
+
+  return parseWithSchema(
+    raw,
+    simulatorObjectManifestSchema,
+    `Simulator manifest for ${entry.displayName}`,
+    entry.manifestRef,
+  );
+}
+
+export async function getSimulatorStep(
+  objectId: string,
+  snapshotId: string,
+): Promise<SimulatorStepSnapshot> {
+  const [manifest, qualities] = await Promise.all([
+    getSimulatorObjectManifest(objectId),
+    getQualityDefinitions(),
+  ]);
+  const step = manifest.steps.find((candidate) => candidate.snapshotId === snapshotId);
+
+  if (!step) {
+    throw new AppDataContractError({
+      code: "missing_object",
+      title: "Simulator step not registered",
+      message: `Snapshot '${snapshotId}' is not registered for simulator object '${objectId}'.`,
+      status: 404,
+      details: ["The requested snapshot id is missing from the simulator object manifest."],
+    });
+  }
+
+  const qualityIds = qualities.map((quality) => quality.id);
+  const [pileRowsRaw, outputRowsById] = await Promise.all([
+    readArrowFile(
+      step.pileSnapshotRef,
+      `Simulator pile snapshot '${snapshotId}' for ${manifest.displayName}`,
+    ),
+    Promise.all(
+      manifest.outputs.map(async (output) => {
+        const relativePath = step.outputSnapshotRefs[output.id];
+        const rows = await readArrowFile(
+          relativePath,
+          `Simulator output snapshot '${snapshotId}' for ${output.label}`,
+        );
+        return [output.id, rows] as const;
+      }),
+    ),
+  ]);
+
+  const outputSnapshots = Object.fromEntries(
+    outputRowsById.map(([outputId, rows]) => {
+      const output = manifest.outputs.find((candidate) => candidate.id === outputId);
+      const blocks = mapBeltBlocks(rows, qualityIds);
+      return [
+        outputId,
+        {
+          objectId: output?.relatedObjectId ?? outputId,
+          displayName: output?.label ?? outputId,
+          timestamp: step.timestamp,
+          totalMassTon: blocks.reduce((sum, block) => sum + block.massTon, 0),
+          blockCount: blocks.length,
+          qualityAverages: buildMassWeightedQualitySummary(blocks, qualities),
+          blocks,
+        } satisfies BeltSnapshot,
+      ];
+    }),
+  );
+
+  return {
+    objectId: manifest.objectId,
+    displayName: manifest.displayName,
+    objectType: "pile",
+    snapshotId: step.snapshotId,
+    timestamp: step.timestamp,
+    dimension: manifest.dimension,
+    pileRows: mapPileCells(pileRowsRaw, qualityIds),
+    outputSnapshots,
   };
 }

@@ -12,6 +12,9 @@ import {
   getProfilerSnapshot,
   getProfilerSummary,
   getQualityDefinitions,
+  getSimulatorIndex,
+  getSimulatorObjectManifest,
+  getSimulatorStep,
 } from "@/lib/server/app-data";
 
 type CacheCheckOptions = {
@@ -49,6 +52,11 @@ export type AppCacheCheckResult = {
     snapshotsChecked: number;
     mode: "latest-only" | "all-snapshots";
   };
+  simulator: {
+    objectsChecked: number;
+    stepsChecked: number;
+    outputSnapshotsChecked: number;
+  };
   warnings: string[];
 };
 
@@ -57,7 +65,16 @@ export async function runAppCacheCheck(
 ): Promise<AppCacheCheckResult> {
   const includeAllProfilerSnapshots = options.includeAllProfilerSnapshots ?? false;
 
-  const [manifest, qualities, registry, graph, liveSummaries, profilerIndex, profilerSummary] =
+  const [
+    manifest,
+    qualities,
+    registry,
+    graph,
+    liveSummaries,
+    profilerIndex,
+    profilerSummary,
+    simulatorIndex,
+  ] =
     await Promise.all([
       getAppManifest(),
       getQualityDefinitions(),
@@ -66,6 +83,7 @@ export async function runAppCacheCheck(
       getLiveObjectSummaries(),
       getProfilerIndex(),
       getProfilerSummary(),
+      getSimulatorIndex(),
     ]);
 
   const liveBeltEntries = registry.filter((entry) => Boolean(entry.liveRef));
@@ -91,6 +109,18 @@ export async function runAppCacheCheck(
     for (const snapshotId of snapshotIds) {
       await getProfilerSnapshot(entry.objectId, snapshotId);
       snapshotsChecked += 1;
+    }
+  }
+
+  let simulatorStepsChecked = 0;
+  let simulatorOutputSnapshotsChecked = 0;
+  for (const entry of simulatorIndex.objects) {
+    const simulatorManifest = await getSimulatorObjectManifest(entry.objectId);
+
+    for (const step of simulatorManifest.steps) {
+      const simulatorStep = await getSimulatorStep(entry.objectId, step.snapshotId);
+      simulatorStepsChecked += 1;
+      simulatorOutputSnapshotsChecked += Object.keys(simulatorStep.outputSnapshots).length;
     }
   }
 
@@ -150,6 +180,11 @@ export async function runAppCacheCheck(
       summaryRows: profilerSummary.length,
       snapshotsChecked,
       mode: includeAllProfilerSnapshots ? "all-snapshots" : "latest-only",
+    },
+    simulator: {
+      objectsChecked: simulatorIndex.objects.length,
+      stepsChecked: simulatorStepsChecked,
+      outputSnapshotsChecked: simulatorOutputSnapshotsChecked,
     },
     warnings,
   };
