@@ -323,6 +323,7 @@ types/
 - [App Data Contract](docs/app-data-contract.md)
 - [Development Guidelines](docs/development-guidelines.md)
 - [Local Runtime Guide](docs/local-runtime-guide.md)
+pr - [Exporter Script Docs](scripts/docs/generate-actual-cache.md)
 - [Changelog](CHANGELOG.md)
 
 ## Current Version
