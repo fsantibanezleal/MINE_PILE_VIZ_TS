@@ -1,3 +1,10 @@
+"""Export the local raw mineral-tracking dataset into the app-ready runtime cache.
+
+This script is the only tracked conversion boundary between `data/` and the cache
+consumed by the Next.js application. It emits the shared metadata plus the route
+payloads used by the circuit, live, profiler, and simulator workspaces.
+"""
+
 from __future__ import annotations
 
 import json
@@ -32,6 +39,7 @@ PILE_HISTORY_STRIDE = 12
 
 
 def detect_reference_root() -> Path | None:
+    """Resolve the optional source tree that provides the `mineral_tracking` module."""
     configured = os.environ.get("REFERENCE_ROOT")
     candidates: list[Path] = []
 
@@ -307,6 +315,7 @@ def build_live_summary(
 
 
 def build_registry(state, objects_conf: dict[str, Any], report_root: Path) -> list[dict[str, Any]]:
+    """Build one app registry entry per current belt or pile object."""
     registry: list[dict[str, Any]] = []
     pile_confs = {
         **objects_conf["objects"].get("piles", {}),
@@ -366,6 +375,7 @@ def build_registry(state, objects_conf: dict[str, Any], report_root: Path) -> li
 
 
 def build_circuit_graph(registry: list[dict[str, Any]], objects_conf: dict[str, Any]) -> dict[str, Any]:
+    """Derive the staged circuit graph and pile anchors used by the circuit route."""
     registry_map = {entry["objectId"]: entry for entry in registry}
     nodes = []
     edges = []
@@ -454,6 +464,7 @@ def build_circuit_graph(registry: list[dict[str, Any]], objects_conf: dict[str, 
 
 
 def build_belt_records(belt, quality_ids: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, float | None]], list[float]]:
+    """Convert the current occupied belt blocks into live Arrow-ready rows."""
     records = []
     quality_maps = []
     masses = []
@@ -478,6 +489,7 @@ def build_belt_records(belt, quality_ids: list[str]) -> tuple[list[dict[str, Any
 
 
 def build_pile_cell_records(pile, quality_ids: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, float | None]], list[float]]:
+    """Convert the occupied pile cells into live Arrow-ready rows."""
     internal = pile.internal_pile
     used = internal[:, 0, :, :] > 0
     indices = np.argwhere(used)
@@ -507,6 +519,7 @@ def build_pile_cell_records(pile, quality_ids: list[str]) -> tuple[list[dict[str
 
 
 def build_surface_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep only the highest occupied cell in each `(ix, iy)` column."""
     top_map: dict[tuple[int, int], dict[str, Any]] = {}
     for record in records:
         key = (record["ix"], record["iy"])
@@ -526,6 +539,7 @@ def build_stockpile_metadata(
     quality_ids: list[str],
     registry_map: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    """Build the live pile metadata used to describe dense pile payloads to the app."""
     dimension = registry_map[pile_id]["dimension"]
     configured_x, configured_y = get_configured_xy_extents(pile_conf, dimension)
     extents_x = max(configured_x, max((record["ix"] for record in records), default=-1) + 1)
@@ -568,6 +582,7 @@ def build_stockpile_metadata(
 
 
 def pick_profile_files(object_id: str, dim_folder: Path) -> list[Path]:
+    """Select the profiler parquet files that should become app snapshots."""
     latest = dim_folder / "profile_latest.parquet"
     history = sorted((dim_folder / "history").glob("profile_*.parquet"))
     if object_id == "pile_stockpile":
@@ -614,6 +629,7 @@ def build_transport_rate_map(
     latest_transport_row: pd.Series,
     step_minutes: int,
 ) -> dict[str, dict[str, Any]]:
+    """Derive simulator discharge rates from the latest transport measurements."""
     belts_conf = {
         **objects_conf["objects"].get("belts", {}),
         **objects_conf["objects"].get("vbelts", {}),
@@ -715,6 +731,7 @@ def build_simulator_output_records(
     outputs: list[dict[str, Any]],
     quality_ids: list[str],
 ) -> dict[str, list[dict[str, Any]]]:
+    """Project simulated output blocks by consuming mass from the simulated pile rows."""
     extents = {
         "x": max((int(record.get("ix", 0)) for record in pile_records), default=0) + 1,
         "y": max((int(record.get("iy", 0)) for record in pile_records), default=0) + 1,
@@ -782,6 +799,7 @@ def summarize_profile_dataframe(
     numerical_ids: list[str],
     categorical_ids: list[str],
 ) -> dict[str, Any]:
+    """Collapse one profiler parquet snapshot into a single summary row."""
     mass = float(df["mass_ton"].sum()) if "mass_ton" in df.columns else 0.0
     timestamp = pd.Timestamp(df["timestamp"].iloc[0]).isoformat()
     weights = df["mass_ton"] if "mass_ton" in df.columns else pd.Series([1.0] * len(df))
@@ -817,6 +835,7 @@ def summarize_profile_dataframe(
 
 
 def profile_rows_from_dataframe(df: pd.DataFrame, quality_ids: list[str], dimension: int) -> list[dict[str, Any]]:
+    """Normalize profiler or simulator parquet rows into pile-style cell records."""
     rows = []
     for _, record in df.iterrows():
         row = {
@@ -836,6 +855,7 @@ def profile_rows_from_dataframe(df: pd.DataFrame, quality_ids: list[str], dimens
 
 
 def ensure_required_paths() -> None:
+    """Fail fast when the configured raw dataset is incomplete."""
     if not RAW_ROOT.exists():
         raise FileNotFoundError(
             f"Configured RAW_DATA_ROOT does not exist: {RAW_ROOT}. Set RAW_DATA_ROOT or place the dataset under {PROJECT_ROOT / 'data'}."
@@ -857,6 +877,7 @@ def ensure_required_paths() -> None:
 
 
 def ensure_reference_modules() -> None:
+    """Ensure the reference module required to unpickle the raw model state is importable."""
     if importlib.util.find_spec("mineral_tracking") is not None:
         return
 
@@ -880,6 +901,7 @@ def ensure_reference_modules() -> None:
 
 
 def main() -> None:
+    """Rebuild the app-ready cache from scratch under the selected app root."""
     ensure_required_paths()
     ensure_reference_modules()
 
