@@ -327,7 +327,7 @@ types/
 
 ## Current Version
 
-`1.00.013`
+`1.00.017`
 
 Versioning uses the fixed-width format `x.xx.xxx`.
 This stable baseline corresponds semantically to the `1.0.0` release milestone.
