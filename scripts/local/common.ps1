@@ -156,13 +156,40 @@ function Get-CommandPaths {
     }
   }
 
-  if (Get-Command 'where.exe' -ErrorAction SilentlyContinue) {
-    foreach ($candidate in @(& where.exe $Name 2>$null)) {
-      Add-UniqueExistingPath -Items $items -CandidatePath $candidate
-    }
+  foreach ($candidate in @(Get-WhereCommandOutput -Name $Name)) {
+    Add-UniqueExistingPath -Items $items -CandidatePath $candidate
   }
 
   return $items.ToArray()
+}
+
+function Get-WhereCommandOutput {
+  param(
+    [string]$Name
+  )
+
+  if (-not (Get-Command 'where.exe' -ErrorAction SilentlyContinue)) {
+    return @()
+  }
+
+  $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+  $startInfo.FileName = 'where.exe'
+  $startInfo.Arguments = $Name
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.UseShellExecute = $false
+  $startInfo.CreateNoWindow = $true
+
+  $process = [System.Diagnostics.Process]::Start($startInfo)
+  $stdout = $process.StandardOutput.ReadToEnd()
+  $process.StandardError.ReadToEnd() | Out-Null
+  $process.WaitForExit()
+
+  if ($process.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($stdout)) {
+    return @()
+  }
+
+  return @($stdout -split "\r?\n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
 
 function Get-RepoManagedPythonEnvironmentRoot {
