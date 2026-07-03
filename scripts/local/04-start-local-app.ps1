@@ -8,46 +8,21 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Get-PnpmCommand {
-  if (Get-Command 'pnpm.cmd' -ErrorAction SilentlyContinue) {
-    return @{
-      Exe = 'pnpm.cmd'
-      Prefix = @()
-    }
-  }
-
-  if (Get-Command 'pnpm' -ErrorAction SilentlyContinue) {
-    return @{
-      Exe = 'pnpm'
-      Prefix = @()
-    }
-  }
-
-  if (Get-Command 'corepack' -ErrorAction SilentlyContinue) {
-    return @{
-      Exe = 'corepack'
-      Prefix = @('pnpm')
-    }
-  }
-
-  throw 'Could not find pnpm, pnpm.cmd, or corepack in PATH.'
-}
-
-function Invoke-Pnpm {
-  param(
-    [hashtable]$PnpmCommand,
-    [string[]]$Arguments
-  )
-
-  & $PnpmCommand.Exe @($PnpmCommand.Prefix + $Arguments)
-}
-
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptDirectory 'common.ps1')
+
 $repoRoot = (Resolve-Path (Join-Path $scriptDirectory '..\..')).Path
-$pnpmCommand = Get-PnpmCommand
 
 Push-Location $repoRoot
 try {
+  $packageJson = Get-Content -Raw 'package.json' | ConvertFrom-Json
+  $nodeVersionInfo = Resolve-NodeCommand -Constraint ([string]$packageJson.engines.node)
+  if (-not $nodeVersionInfo) {
+    throw 'Node.js is missing or unsupported. Run scripts/local/02-install-local-requirements.ps1 first.'
+  }
+
+  $pnpmCommand = Get-PnpmCommand -NodeExe $nodeVersionInfo.Exe
+
   if ($AppDataRoot) {
     $resolvedAppDataRoot = Resolve-Path $AppDataRoot
     $env:APP_DATA_ROOT = $resolvedAppDataRoot.Path
@@ -76,13 +51,13 @@ try {
   }
 
   if ($Install) {
+    Write-Host ''
     Write-Host 'Running dependency install...'
-    if ($DryRun) {
-      Write-Host "> $($pnpmCommand.Exe) $($pnpmCommand.Prefix + @('install') -join ' ')"
-    }
-    else {
-      Invoke-Pnpm -PnpmCommand $pnpmCommand -Arguments @('install')
-    }
+    Invoke-Pnpm `
+      -PnpmCommand $pnpmCommand `
+      -Arguments @('install') `
+      -WorkingDirectory $repoRoot `
+      -DryRun:$DryRun
   }
 
   Write-Host ''
@@ -92,13 +67,16 @@ try {
   Write-Host '  http://127.0.0.1:3000/profiler'
   Write-Host '  http://127.0.0.1:3000/simulator'
   Write-Host ''
-  Write-Host "Starting app with: $($pnpmCommand.Exe) $($pnpmCommand.Prefix + @('dev') -join ' ')"
+  Write-Host "Starting app with: $(Format-CommandLine -Exe $pnpmCommand.Exe -Arguments ($pnpmCommand.Prefix + @('dev')))"
 
   if ($DryRun) {
     return
   }
 
-  Invoke-Pnpm -PnpmCommand $pnpmCommand -Arguments @('dev')
+  Invoke-Pnpm `
+    -PnpmCommand $pnpmCommand `
+    -Arguments @('dev') `
+    -WorkingDirectory $repoRoot
 }
 finally {
   Pop-Location

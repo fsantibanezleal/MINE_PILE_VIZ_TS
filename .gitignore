@@ -44,3 +44,10 @@ Thumbs.db
 # Python
 __pycache__/
 *.pyc
+
+# Python virtualenvs (any name, any depth) — never commit venvs
+.venv/
+.venv*
+**/.venv*
+venv/
+**/venv/

@@ -1,5 +1,10 @@
 # Mine Pile Visualizer
 
+[![CI](https://img.shields.io/github/actions/workflow/status/fsantibanezleal/MINE_PILE_VIZ_TS/ci.yml?branch=main&label=CI)](https://github.com/fsantibanezleal/MINE_PILE_VIZ_TS/actions)
+[![License](https://img.shields.io/github/license/fsantibanezleal/MINE_PILE_VIZ_TS)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/fsantibanezleal/MINE_PILE_VIZ_TS?label=version&sort=semver)](https://github.com/fsantibanezleal/MINE_PILE_VIZ_TS/tags)
+[![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://minepile.fasl-work.com)
+
 Local-first web application for exploring circuit topology, live material state, stockpile structure, and profiler history produced by a mineral tracking simulation engine.
 
 ## Overview

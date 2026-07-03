@@ -47,7 +47,7 @@ The Python script performs the actual transformation.
 | `scripts/cache-rebuild.ts` | repository-owned CLI entry point used by `pnpm cache:rebuild` |
 | `lib/server/app-cache-rebuild.ts` | argument parsing, Python launcher resolution, and environment wiring |
 | `scripts/generate_actual_cache.py` | actual raw-data-to-cache conversion logic |
-| `scripts/local/rebuild-local-app-data.ps1` | local PowerShell wrapper around the tracked rebuild path |
+| `scripts/local/03-rebuild-local-app-data.ps1` | local PowerShell wrapper around the tracked rebuild path |
 
 ## Required Raw Inputs
 
