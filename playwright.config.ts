@@ -21,7 +21,10 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `${pnpmCommand} dev`,
+    // Seed the synthetic contract cache BEFORE the managed dev server runs its app-ready
+    // preflight. Playwright starts webServer before globalSetup, so a fresh checkout (CI)
+    // has no cache when the server boots; `e2e:serve` seeds it first so the preflight passes.
+    command: `${pnpmCommand} e2e:serve`,
     url: "http://127.0.0.1:3000",
     reuseExistingServer: false,
     env: {

@@ -216,11 +216,13 @@ test("shows stockpile feed and discharge anchors on the pile view", async ({
   await page.goto("/live?view=piles&object=pile_stockpile");
 
   await expect(page.getByText("Feeds (2)")).toBeVisible();
-  await expect(page.getByText("Feed point west")).toBeVisible();
-  await expect(page.getByText("Feed point east")).toBeVisible();
+  // Scope the anchor-label assertions to the anchor spans: the currently-selected anchor also renders
+  // its label as an <h3> in the detail panel, so a bare getByText is ambiguous (strict-mode violation).
+  await expect(page.locator(".pile-anchor__label", { hasText: "Feed point west" })).toBeVisible();
+  await expect(page.locator(".pile-anchor__label", { hasText: "Feed point east" })).toBeVisible();
   await expect(page.getByText("Discharges (2)")).toBeVisible();
-  await expect(page.getByText("Reclaim west")).toBeVisible();
-  await expect(page.getByText("Reclaim east")).toBeVisible();
+  await expect(page.locator(".pile-anchor__label", { hasText: "Reclaim west" })).toBeVisible();
+  await expect(page.locator(".pile-anchor__label", { hasText: "Reclaim east" })).toBeVisible();
 });
 
 test("keeps simultaneous direct feeder evidence visible for multi-output live piles", async ({

@@ -13,6 +13,8 @@
     "dev:stop": "tsx scripts/dev-server.ts stop",
     "dev:restart": "tsx scripts/dev-server.ts restart",
     "cache:rebuild": "tsx scripts/cache-rebuild.ts",
+    "seed:e2e": "tsx scripts/seed-e2e-cache.ts",
+    "e2e:serve": "tsx scripts/seed-e2e-cache.ts && tsx scripts/dev-server.ts start",
     "cache:check": "tsx scripts/check-app-cache.ts",
     "cache:check:deep": "tsx scripts/check-app-cache.ts --deep",
     "build": "next build",
