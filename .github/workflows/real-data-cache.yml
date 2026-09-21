@@ -2,11 +2,15 @@ name: Real Data Cache Validation
 
 on:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-real-data-cache:
     runs-on:
       - self-hosted
+    timeout-minutes: 30
     env:
       RAW_DATA_ROOT: ${{ vars.MINE_PILE_VIZ_RAW_DATA_ROOT }}
       APP_CACHE_ROOT: ${{ github.workspace }}/.local/app-data/v1
@@ -51,3 +55,5 @@ jobs:
 
       - name: Rebuild and validate the real-data cache
         run: pnpm validate:real-data
+      - name: CI budget, trunk-only triggers, no training (ADR-0074)
+        run: python scripts/check_ci_budget.py
